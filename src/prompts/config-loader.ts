@@ -60,6 +60,7 @@ export function createDefaultConfig(projectName: string): WorkspaceConfig {
       ui: 'none',
       testing: 'playwright',
       stateManagement: 'context',
+      animations: false,
       linting: true,
       formatting: true,
       gitHooks: true,

@@ -35,6 +35,7 @@ export interface WorkspaceConfig {
     ui: UILibraryType;
     testing: TestingType;
     stateManagement: StateManagementType;
+    animations: boolean; // Framer Motion animations
     linting: boolean;
     formatting: boolean;
     gitHooks: boolean;
@@ -96,6 +97,7 @@ export interface PromptAnswers {
   uiLibrary: UILibraryType;
   testing: TestingType;
   stateManagement: StateManagementType;
+  animations: boolean;
   backend: BackendType;
   backendFeatures: BackendFeature[];
   firebasePattern?: FirebasePattern;
@@ -122,6 +124,7 @@ export interface TemplateContext {
   uiLibrary: UILibraryType;
   testing: TestingType;
   stateManagement: StateManagementType;
+  animations: boolean;
   backend: BackendType;
   backendFeatures: BackendFeature[];
   firebasePattern?: FirebasePattern;

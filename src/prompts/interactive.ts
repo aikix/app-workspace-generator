@@ -240,6 +240,12 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
       default: 'context',
     },
     {
+      type: 'confirm',
+      name: 'animations',
+      message: 'Add animations with Framer Motion?',
+      default: false,
+    },
+    {
       type: 'list',
       name: 'backend',
       message: 'Backend services?',
@@ -336,5 +342,5 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     answers.backendFeatures = [];
   }
 
-  return answers;
+  return answers as PromptAnswers;
 }

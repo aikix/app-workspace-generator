@@ -355,6 +355,57 @@ async function generateSourceStructure(
     },
   ];
 
+  // Add animation files if animations are enabled
+  if (context.animations) {
+    operations.push(
+      {
+        type: 'copy',
+        source: 'web/lib/animations/variants.ts',
+        destination: 'src/lib/animations/variants.ts',
+      },
+      {
+        type: 'copy',
+        source: 'web/lib/animations/hooks.ts',
+        destination: 'src/lib/animations/hooks.ts',
+      },
+      {
+        type: 'copy',
+        source: 'web/lib/animations/components/FadeIn.tsx',
+        destination: 'src/lib/animations/components/FadeIn.tsx',
+      },
+      {
+        type: 'copy',
+        source: 'web/lib/animations/components/SlideIn.tsx',
+        destination: 'src/lib/animations/components/SlideIn.tsx',
+      },
+      {
+        type: 'copy',
+        source: 'web/lib/animations/components/PageTransition.tsx',
+        destination: 'src/lib/animations/components/PageTransition.tsx',
+      },
+      {
+        type: 'copy',
+        source: 'web/lib/animations/components/ScrollReveal.tsx',
+        destination: 'src/lib/animations/components/ScrollReveal.tsx',
+      },
+      {
+        type: 'copy',
+        source: 'web/lib/animations/components/Stagger.tsx',
+        destination: 'src/lib/animations/components/Stagger.tsx',
+      },
+      {
+        type: 'copy',
+        source: 'web/lib/animations/components/index.ts',
+        destination: 'src/lib/animations/components/index.ts',
+      },
+      {
+        type: 'copy',
+        source: 'web/lib/animations/index.ts',
+        destination: 'src/lib/animations/index.ts',
+      }
+    );
+  }
+
   // Add Firebase configuration files if backend is Firebase
   if (context.backend === 'firebase') {
     // Client-side pattern: Modular Firebase client structure

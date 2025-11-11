@@ -22,6 +22,7 @@ export function answersToConfig(answers: PromptAnswers): WorkspaceConfig {
       ui: answers.uiLibrary,
       testing: answers.testing,
       stateManagement: answers.stateManagement,
+      animations: answers.animations,
       linting: answers.linting,
       formatting: answers.linting, // Use same value as linting for formatting
       gitHooks: answers.gitHooks,
@@ -71,6 +72,7 @@ export function configToTemplateContext(config: WorkspaceConfig): TemplateContex
     uiLibrary: config.web.ui,
     testing: config.web.testing,
     stateManagement: config.web.stateManagement,
+    animations: config.web.animations,
     backend: config.backend?.type || 'none',
     backendFeatures,
     firebasePattern,
