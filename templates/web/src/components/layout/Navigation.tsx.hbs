@@ -11,22 +11,36 @@ const navItems = [
 {{/if}}
 ];
 
+/**
+ * Navigation component - Active state navigation with client-side routing
+ *
+ * @component
+ * @example
+ * ```tsx
+ * <Navigation />
+ * ```
+ */
 export default function Navigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-6">
+    <nav
+      className="flex items-center gap-6"
+      role="navigation"
+      aria-label="Secondary navigation"
+    >
       {navItems.map((item) => {
         const isActive = pathname === item.href;
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`text-sm transition-colors ${
+            className={`text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1 ${
               isActive
                 ? 'text-blue-600 font-semibold'
                 : 'hover:text-blue-600'
             }`}
+            aria-current={isActive ? 'page' : undefined}
           >
             {item.label}
           </Link>

@@ -1,0 +1,58 @@
+import Link from 'next/link';
+
+/**
+ * Header component - Main navigation header
+ *
+ * @component
+ * @example
+ * ```tsx
+ * <Header />
+ * ```
+ */
+export default function Header() {
+  return (
+    <header
+      className="border-b border-gray-200 dark:border-gray-800"
+      role="banner"
+    >
+      <nav
+        className="container mx-auto px-4 py-4 flex items-center justify-between"
+        role="navigation"
+        aria-label="Main navigation"
+      >
+        <Link
+          href="/"
+          className="text-xl font-bold hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+          aria-label="{{pascalCase projectName}} home"
+        >
+          {{pascalCase projectName}}
+        </Link>
+        <div className="flex items-center gap-6" role="menubar">
+          <Link
+            href="/"
+            className="text-sm hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+            role="menuitem"
+          >
+            Home
+          </Link>
+          <Link
+            href="/about"
+            className="text-sm hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+            role="menuitem"
+          >
+            About
+          </Link>
+{{#if (eq backend "firebase")}}
+          <Link
+            href="/dashboard"
+            className="text-sm hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+            role="menuitem"
+          >
+            Dashboard
+          </Link>
+{{/if}}
+        </div>
+      </nav>
+    </header>
+  );
+}

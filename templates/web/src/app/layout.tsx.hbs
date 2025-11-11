@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 {{#if (eq styling "tailwind")}}
 import './globals.css';
 {{/if}}
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
   title: '{{pascalCase projectName}}',

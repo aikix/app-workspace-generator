@@ -184,35 +184,52 @@ async function generateSourceStructure(
       source: 'web/src/app/not-found.tsx',
       destination: 'src/app/not-found.tsx',
     },
-    // Components
+    // Components - Layout
     {
       type: 'template',
-      source: 'web/src/components/Header.tsx.hbs',
-      destination: 'src/components/Header.tsx',
+      source: 'web/src/components/layout/Header.tsx.hbs',
+      destination: 'src/components/layout/Header.tsx',
       context,
     },
     {
       type: 'template',
-      source: 'web/src/components/Footer.tsx.hbs',
-      destination: 'src/components/Footer.tsx',
+      source: 'web/src/components/layout/Footer.tsx.hbs',
+      destination: 'src/components/layout/Footer.tsx',
       context,
     },
     {
       type: 'template',
-      source: 'web/src/components/Navigation.tsx.hbs',
-      destination: 'src/components/Navigation.tsx',
+      source: 'web/src/components/layout/Navigation.tsx.hbs',
+      destination: 'src/components/layout/Navigation.tsx',
       context,
+    },
+    // Components - UI
+    {
+      type: 'copy',
+      source: 'web/src/components/ui/Button.tsx',
+      destination: 'src/components/ui/Button.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/components/ui/Card.tsx',
+      destination: 'src/components/ui/Card.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/components/ui/index.ts',
+      destination: 'src/components/ui/index.ts',
     },
     // Component directories
     {
       type: 'directory',
       source: '',
-      destination: 'src/components/ui',
-    },
-    {
-      type: 'directory',
-      source: '',
       destination: 'src/components/features',
+    },
+    // Components showcase page
+    {
+      type: 'copy',
+      source: 'web/src/app/components/page.tsx',
+      destination: 'src/app/components/page.tsx',
     },
     // Lib directory
     {
@@ -287,8 +304,7 @@ export {};
 `;
 
   let placeholderCount = 0;
-  await writeFile(path.join(targetDir, 'src/components/ui/index.ts'), placeholderContent);
-  placeholderCount++;
+  // ui/index.ts is now a real file with component exports
   await writeFile(path.join(targetDir, 'src/hooks/index.ts'), placeholderContent);
   placeholderCount++;
   // Note: src/types/index.ts is now a real file, not a placeholder
