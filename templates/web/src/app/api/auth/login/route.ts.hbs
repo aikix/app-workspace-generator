@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createSession } from '@/lib/firebase-admin/session';
+
+/**
+ * POST /api/auth/login
+ *
+ * Create a server-side session after client-side Firebase authentication.
+ *
+ * Flow:
+ * 1. Client authenticates with Firebase Auth (signInWithEmailAndPassword, etc.)
+ * 2. Client gets ID token (user.getIdToken())
+ * 3. Client sends ID token to this endpoint
+ * 4. Server creates secure HTTP-only session cookie
+ * 5. Client can now access protected routes
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { idToken } = body;
+
+    // Validate request
+    if (!idToken || typeof idToken !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'ID token is required' },
+        { status: 400 }
+      );
+    }
+
+    // Create session cookie
+    const user = await createSession(idToken);
+
+    // Return success with user info
+    return NextResponse.json({
+      success: true,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create session',
+      },
+      { status: 401 }
+    );
+  }
+}

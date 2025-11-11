@@ -1,0 +1,99 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+/**
+ * Next.js Middleware for Authentication Protection
+ *
+ * This middleware runs on every request BEFORE the page/API route handler.
+ * Use it to:
+ * - Protect routes that require authentication
+ * - Redirect unauthenticated users to login
+ * - Check session validity
+ * - Add custom headers
+ *
+ * Note: Middleware runs on Edge Runtime, so some Node.js APIs are unavailable.
+ * For full Firebase Admin SDK access, check auth in Server Components/Actions.
+ */
+
+/**
+ * Define which routes require authentication
+ * Add your protected paths here
+ */
+const PROTECTED_ROUTES = [
+  '/dashboard',
+  '/profile',
+  '/settings',
+  // Add more protected routes as needed
+];
+
+/**
+ * Define public routes (always accessible)
+ */
+const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/signup',
+  '/about',
+  // Add more public routes as needed
+];
+
+/**
+ * Check if a path matches any of the route patterns
+ */
+function matchesRoute(pathname: string, routes: string[]): boolean {
+  return routes.some((route) => {
+    if (route.endsWith('*')) {
+      // Wildcard matching: /dashboard* matches /dashboard, /dashboard/settings, etc.
+      return pathname.startsWith(route.slice(0, -1));
+    }
+    return pathname === route || pathname.startsWith(`${route}/`);
+  });
+}
+
+/**
+ * Middleware function
+ * Runs on every request matching the config below
+ */
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Check if route requires authentication
+  const isProtectedRoute = matchesRoute(pathname, PROTECTED_ROUTES);
+  const isPublicRoute = matchesRoute(pathname, PUBLIC_ROUTES);
+
+  // Get session cookie
+  const session = request.cookies.get('session')?.value;
+
+  // If accessing protected route without session, redirect to login
+  if (isProtectedRoute && !session) {
+    const loginUrl = new URL('/login', request.url);
+    // Add return URL so we can redirect back after login
+    loginUrl.searchParams.set('from', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // If accessing login/signup with valid session, redirect to dashboard
+  if ((pathname === '/login' || pathname === '/signup') && session) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // Continue to the requested page
+  return NextResponse.next();
+}
+
+/**
+ * Configure which routes this middleware runs on
+ * We exclude static files and API routes by default
+ */
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files (public assets)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};

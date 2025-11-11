@@ -1,0 +1,178 @@
+/**
+ * Session Management with HTTP-only Cookies
+ *
+ * Secure session handling for Firebase authentication using Next.js cookies.
+ * Benefits:
+ * - httpOnly cookies (protected from XSS)
+ * - Secure flag in production (HTTPS only)
+ * - SameSite protection (CSRF prevention)
+ * - Server-side session verification
+ */
+
+import { cookies } from 'next/headers';
+import { createSessionCookie, getCurrentUser, revokeRefreshTokens } from './auth';
+import type { DecodedIdToken } from 'firebase-admin/auth';
+
+const SESSION_COOKIE_NAME = 'session';
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+
+/**
+ * Cookie options for secure session management
+ */
+function getCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true, // Cannot be accessed by client-side JavaScript
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: 'lax' as const, // CSRF protection
+    maxAge, // Cookie expiration in seconds
+    path: '/', // Available across the entire site
+  };
+}
+
+/**
+ * Create a new session after user login
+ * Call this from your login API route
+ *
+ * @param idToken - Firebase ID token from client authentication
+ * @returns User information from the session
+ */
+export async function createSession(idToken: string): Promise<DecodedIdToken> {
+  // Create Firebase session cookie
+  const sessionCookie = await createSessionCookie(idToken, SESSION_DURATION);
+
+  // Verify the session cookie to get user info
+  const decodedToken = await getCurrentUser();
+
+  if (!decodedToken) {
+    throw new Error('Failed to verify session cookie');
+  }
+
+  // Set HTTP-only cookie
+  const cookieStore = await cookies();
+  cookieStore.set(
+    SESSION_COOKIE_NAME,
+    sessionCookie,
+    getCookieOptions(SESSION_DURATION / 1000) // maxAge is in seconds
+  );
+
+  return decodedToken;
+}
+
+/**
+ * Get the current session
+ * Returns user information if session is valid, null otherwise
+ *
+ * @returns Decoded token with user information, or null
+ */
+export async function getSession(): Promise<DecodedIdToken | null> {
+  return getCurrentUser();
+}
+
+/**
+ * Require a valid session - throws if user is not authenticated
+ * Use this to protect Server Components and Server Actions
+ *
+ * @returns Decoded token with user information
+ * @throws Error if no valid session
+ */
+export async function requireSession(): Promise<DecodedIdToken> {
+  const session = await getSession();
+
+  if (!session) {
+    throw new Error('Authentication required. Please log in.');
+  }
+
+  return session;
+}
+
+/**
+ * Destroy the current session (logout)
+ * Call this from your logout API route
+ *
+ * @param revokeTokens - Whether to revoke all refresh tokens (force sign out everywhere)
+ */
+export async function destroySession(revokeTokens = false): Promise<void> {
+  const cookieStore = await cookies();
+  const session = await getSession();
+
+  // Optionally revoke all refresh tokens
+  if (revokeTokens && session) {
+    await revokeRefreshTokens(session.uid);
+  }
+
+  // Delete the session cookie
+  cookieStore.delete(SESSION_COOKIE_NAME);
+}
+
+/**
+ * Check if user is authenticated
+ * Returns true if a valid session exists
+ *
+ * @returns Boolean indicating if user is authenticated
+ */
+export async function isAuthenticated(): Promise<boolean> {
+  const session = await getSession();
+  return session !== null;
+}
+
+/**
+ * Refresh the session cookie
+ * Extends the session duration - call this periodically for active users
+ *
+ * @param idToken - Fresh ID token from client
+ */
+export async function refreshSession(idToken: string): Promise<void> {
+  const sessionCookie = await createSessionCookie(idToken, SESSION_DURATION);
+
+  const cookieStore = await cookies();
+  cookieStore.set(
+    SESSION_COOKIE_NAME,
+    sessionCookie,
+    getCookieOptions(SESSION_DURATION / 1000)
+  );
+}
+
+/**
+ * Get user ID from current session
+ * Convenience method for getting just the user ID
+ *
+ * @returns User ID, or null if not authenticated
+ */
+export async function getUserId(): Promise<string | null> {
+  const session = await getSession();
+  return session?.uid ?? null;
+}
+
+/**
+ * Get user email from current session
+ * Convenience method for getting just the user email
+ *
+ * @returns User email, or null if not authenticated
+ */
+export async function getUserEmail(): Promise<string | null> {
+  const session = await getSession();
+  return session?.email ?? null;
+}
+
+/**
+ * Check if user has a specific custom claim
+ * Useful for role-based access control
+ *
+ * @param claim - Claim name (e.g., 'admin', 'editor')
+ * @returns Value of the claim, or null if not present
+ */
+export async function getCustomClaim(claim: string): Promise<unknown> {
+  const session = await getSession();
+  return session?.[claim] ?? null;
+}
+
+/**
+ * Check if user has admin role
+ * Convenience method for admin checks
+ *
+ * @returns True if user has admin claim
+ */
+export async function isAdmin(): Promise<boolean> {
+  const adminClaim = await getCustomClaim('admin');
+  return adminClaim === true;
+}

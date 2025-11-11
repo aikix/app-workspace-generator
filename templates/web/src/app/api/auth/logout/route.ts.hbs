@@ -1,0 +1,56 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { destroySession } from '@/lib/firebase-admin/session';
+
+/**
+ * POST /api/auth/logout
+ *
+ * Destroy the server-side session and optionally revoke refresh tokens.
+ *
+ * Flow:
+ * 1. Client calls this endpoint
+ * 2. Server deletes the session cookie
+ * 3. Optionally revokes all refresh tokens (force sign out everywhere)
+ * 4. Client is redirected to login page
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { revokeTokens = false } = body;
+
+    // Destroy session
+    await destroySession(revokeTokens);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+
+    // Even if logout fails, return success
+    // Better UX than showing an error
+    return NextResponse.json({
+      success: true,
+      message: 'Logged out',
+    });
+  }
+}
+
+/**
+ * GET /api/auth/logout
+ *
+ * Handle logout via GET request (useful for simple logout links)
+ */
+export async function GET() {
+  try {
+    await destroySession(false);
+
+    // Redirect to home page
+    return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'));
+  } catch (error) {
+    console.error('Logout error:', error);
+
+    // Still redirect even if there's an error
+    return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'));
+  }
+}

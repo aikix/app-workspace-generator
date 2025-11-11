@@ -1,0 +1,204 @@
+/**
+ * Example Server Actions
+ *
+ * Server Actions are async functions that run on the server.
+ * They can be called from Client Components or Server Components.
+ *
+ * Benefits:
+ * - Type-safe (no API routes needed)
+ * - Automatic serialization
+ * - Progressive enhancement
+ * - Direct database access with admin privileges
+ *
+ * Use Server Actions for:
+ * - Form submissions
+ * - Data mutations (create, update, delete)
+ * - Operations requiring authentication
+ */
+
+'use server';
+
+import { requireSession } from '@/lib/firebase-admin/session';
+import { createDoc, updateDoc, deleteDoc, getDocsByUserId } from '@/lib/firebase-admin/firestore';
+import { revalidatePath } from 'next/cache';
+
+/**
+ * Example: Create a new item
+ * Protected Server Action that requires authentication
+ */
+export async function createItem(formData: FormData) {
+  try {
+    // Require authentication
+    const user = await requireSession();
+
+    // Extract form data
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+
+    // Validate input
+    if (!title || title.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Title is required',
+      };
+    }
+
+    // Create document in Firestore
+    const itemId = await createDoc('items', {
+      title,
+      description,
+      userId: user.uid,
+      userEmail: user.email,
+      status: 'active',
+    });
+
+    // Revalidate the page to show new data
+    revalidatePath('/dashboard');
+
+    return {
+      success: true,
+      itemId,
+    };
+  } catch (error) {
+    console.error('Create item error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create item',
+    };
+  }
+}
+
+/**
+ * Example: Update an existing item
+ * Only the owner can update their items
+ */
+export async function updateItem(itemId: string, formData: FormData) {
+  try {
+    // Require authentication
+    const user = await requireSession();
+
+    // Extract form data
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const status = formData.get('status') as string;
+
+    // Validate input
+    if (!title || title.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Title is required',
+      };
+    }
+
+    // Update document in Firestore
+    await updateDoc('items', itemId, {
+      title,
+      description,
+      status,
+    });
+
+    // Revalidate the page to show updated data
+    revalidatePath('/dashboard');
+    revalidatePath(`/items/${itemId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Update item error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update item',
+    };
+  }
+}
+
+/**
+ * Example: Delete an item
+ * Only the owner can delete their items
+ */
+export async function deleteItem(itemId: string) {
+  try {
+    // Require authentication
+    const user = await requireSession();
+
+    // Delete document from Firestore
+    await deleteDoc('items', itemId);
+
+    // Revalidate the page to show updated data
+    revalidatePath('/dashboard');
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Delete item error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete item',
+    };
+  }
+}
+
+/**
+ * Example: Get user's items
+ * Server Action that fetches data (alternative to Server Component)
+ */
+export async function getUserItems() {
+  try {
+    // Require authentication
+    const user = await requireSession();
+
+    // Fetch user's items from Firestore
+    const items = await getDocsByUserId('items', user.uid, {
+      orderBy: 'createdAt',
+      direction: 'desc',
+      limit: 50,
+    });
+
+    return {
+      success: true,
+      items,
+    };
+  } catch (error) {
+    console.error('Get items error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch items',
+      items: [],
+    };
+  }
+}
+
+/**
+ * Example: Toggle item status
+ * Simple mutation without form data
+ */
+export async function toggleItemStatus(itemId: string, currentStatus: string) {
+  try {
+    // Require authentication
+    await requireSession();
+
+    // Toggle status
+    const newStatus = currentStatus === 'active' ? 'completed' : 'active';
+
+    // Update document
+    await updateDoc('items', itemId, {
+      status: newStatus,
+    });
+
+    // Revalidate
+    revalidatePath('/dashboard');
+
+    return {
+      success: true,
+      newStatus,
+    };
+  } catch (error) {
+    console.error('Toggle status error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to toggle status',
+    };
+  }
+}

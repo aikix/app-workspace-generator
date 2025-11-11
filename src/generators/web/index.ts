@@ -286,6 +286,59 @@ async function generateSourceStructure(
 
     // Add Admin SDK for server-first pattern
     if (context.firebasePattern === 'server-first') {
+      // Modular Firebase Admin SDK structure
+      operations.push(
+        {
+          type: 'template',
+          source: 'web/lib/firebase-admin/config.ts.hbs',
+          destination: 'src/lib/firebase-admin/config.ts',
+          context,
+        },
+        {
+          type: 'template',
+          source: 'web/lib/firebase-admin/auth.ts.hbs',
+          destination: 'src/lib/firebase-admin/auth.ts',
+          context,
+        },
+        {
+          type: 'template',
+          source: 'web/lib/firebase-admin/firestore.ts.hbs',
+          destination: 'src/lib/firebase-admin/firestore.ts',
+          context,
+        },
+        {
+          type: 'template',
+          source: 'web/lib/firebase-admin/session.ts.hbs',
+          destination: 'src/lib/firebase-admin/session.ts',
+          context,
+        }
+      );
+
+      // API routes for authentication
+      operations.push(
+        {
+          type: 'template',
+          source: 'web/src/app/api/auth/login/route.ts.hbs',
+          destination: 'src/app/api/auth/login/route.ts',
+          context,
+        },
+        {
+          type: 'template',
+          source: 'web/src/app/api/auth/logout/route.ts.hbs',
+          destination: 'src/app/api/auth/logout/route.ts',
+          context,
+        }
+      );
+
+      // Example Server Actions
+      operations.push({
+        type: 'template',
+        source: 'web/src/app/actions/example.ts.hbs',
+        destination: 'src/app/actions/example.ts',
+        context,
+      });
+    } else {
+      // Keep backward compatibility with the old firebase-admin.ts file
       operations.push({
         type: 'template',
         source: 'web/lib/firebase-admin.ts.hbs',
@@ -369,6 +422,16 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     destination: 'CLAUDE.md',
     context,
   });
+
+  // Add middleware.ts for Firebase server-first pattern
+  if (context.backend === 'firebase' && context.firebasePattern === 'server-first') {
+    operations.push({
+      type: 'template',
+      source: 'web/root/middleware.ts.hbs',
+      destination: 'middleware.ts',
+      context,
+    });
+  }
 
   // Create public directory
   operations.push({

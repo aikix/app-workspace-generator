@@ -1,0 +1,244 @@
+/**
+ * Firebase Admin Firestore Helpers
+ *
+ * Server-side database utilities for:
+ * - Server Components (data fetching)
+ * - Server Actions (mutations)
+ * - API Routes
+ * - Administrative operations
+ *
+ * Benefits of server-side Firestore:
+ * - No security rules (admin access)
+ * - Better performance (direct database connection)
+ * - SEO-friendly (SSR/RSC)
+ * - Secure (credentials never exposed to client)
+ */
+
+import { adminDb } from './config';
+import type { Firestore, DocumentData, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+
+/**
+ * Get the Firestore instance
+ * Use this to build custom queries
+ */
+export const db: Firestore = adminDb;
+
+/**
+ * Convert Firestore timestamp to Date
+ * Helper for dealing with Firestore Timestamp objects
+ */
+export function timestampToDate(timestamp: unknown): Date | null {
+  if (!timestamp || typeof timestamp !== 'object') return null;
+  if ('toDate' in timestamp && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate() as Date;
+  }
+  return null;
+}
+
+/**
+ * Convert Firestore document to plain object
+ * Removes undefined values and converts timestamps
+ */
+export function docToObject<T extends DocumentData>(doc: QueryDocumentSnapshot<T>): T & { id: string } {
+  const data = doc.data();
+  const cleaned: Record<string, unknown> = { id: doc.id };
+
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      cleaned[key] = value;
+    }
+  }
+
+  return cleaned as T & { id: string };
+}
+
+/**
+ * Get a single document by ID
+ *
+ * @param collection - Collection name
+ * @param docId - Document ID
+ * @returns Document data with ID, or null if not found
+ */
+export async function getDoc<T extends DocumentData>(
+  collection: string,
+  docId: string
+): Promise<(T & { id: string }) | null> {
+  const doc = await db.collection(collection).doc(docId).get();
+
+  if (!doc.exists) {
+    return null;
+  }
+
+  return docToObject(doc as QueryDocumentSnapshot<T>);
+}
+
+/**
+ * Get all documents from a collection
+ *
+ * @param collection - Collection name
+ * @param options - Query options (limit, orderBy, etc.)
+ * @returns Array of documents with IDs
+ */
+export async function getDocs<T extends DocumentData>(
+  collection: string,
+  options?: {
+    limit?: number;
+    orderBy?: string;
+    direction?: 'asc' | 'desc';
+    where?: Array<{ field: string; operator: FirebaseFirestore.WhereFilterOp; value: unknown }>;
+  }
+): Promise<Array<T & { id: string }>> {
+  let query: FirebaseFirestore.Query = db.collection(collection);
+
+  // Apply where clauses
+  if (options?.where) {
+    for (const condition of options.where) {
+      query = query.where(condition.field, condition.operator, condition.value);
+    }
+  }
+
+  // Apply ordering
+  if (options?.orderBy) {
+    query = query.orderBy(options.orderBy, options.direction || 'asc');
+  }
+
+  // Apply limit
+  if (options?.limit) {
+    query = query.limit(options.limit);
+  }
+
+  const snapshot = await query.get();
+  return snapshot.docs.map((doc) => docToObject(doc as QueryDocumentSnapshot<T>));
+}
+
+/**
+ * Create a new document
+ *
+ * @param collection - Collection name
+ * @param data - Document data
+ * @returns Created document ID
+ */
+export async function createDoc<T extends DocumentData>(collection: string, data: T): Promise<string> {
+  const docRef = await db.collection(collection).add({
+    ...data,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  return docRef.id;
+}
+
+/**
+ * Update an existing document
+ *
+ * @param collection - Collection name
+ * @param docId - Document ID
+ * @param data - Partial document data to update
+ */
+export async function updateDoc<T extends DocumentData>(
+  collection: string,
+  docId: string,
+  data: Partial<T>
+): Promise<void> {
+  await db
+    .collection(collection)
+    .doc(docId)
+    .update({
+      ...data,
+      updatedAt: new Date(),
+    });
+}
+
+/**
+ * Delete a document
+ *
+ * @param collection - Collection name
+ * @param docId - Document ID
+ */
+export async function deleteDoc(collection: string, docId: string): Promise<void> {
+  await db.collection(collection).doc(docId).delete();
+}
+
+/**
+ * Check if a document exists
+ *
+ * @param collection - Collection name
+ * @param docId - Document ID
+ * @returns True if document exists
+ */
+export async function docExists(collection: string, docId: string): Promise<boolean> {
+  const doc = await db.collection(collection).doc(docId).get();
+  return doc.exists;
+}
+
+/**
+ * Get documents by user ID
+ * Convenience method for user-specific queries
+ *
+ * @param collection - Collection name
+ * @param userId - User ID
+ * @param options - Additional query options
+ * @returns Array of documents owned by the user
+ */
+export async function getDocsByUserId<T extends DocumentData>(
+  collection: string,
+  userId: string,
+  options?: {
+    limit?: number;
+    orderBy?: string;
+    direction?: 'asc' | 'desc';
+  }
+): Promise<Array<T & { id: string }>> {
+  return getDocs<T>(collection, {
+    ...options,
+    where: [{ field: 'userId', operator: '==', value: userId }],
+  });
+}
+
+/**
+ * Batch write helper
+ * Use this for multiple writes in a single transaction
+ *
+ * @param operations - Array of batch operations
+ */
+export async function batchWrite(
+  operations: Array<{
+    type: 'create' | 'update' | 'delete';
+    collection: string;
+    docId?: string;
+    data?: DocumentData;
+  }>
+): Promise<void> {
+  const batch = db.batch();
+
+  for (const op of operations) {
+    const ref = op.docId
+      ? db.collection(op.collection).doc(op.docId)
+      : db.collection(op.collection).doc();
+
+    switch (op.type) {
+      case 'create':
+        if (op.data) {
+          batch.set(ref, {
+            ...op.data,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
+        break;
+      case 'update':
+        if (op.data) {
+          batch.update(ref, {
+            ...op.data,
+            updatedAt: new Date(),
+          });
+        }
+        break;
+      case 'delete':
+        batch.delete(ref);
+        break;
+    }
+  }
+
+  await batch.commit();
+}
