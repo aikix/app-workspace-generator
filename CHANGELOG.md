@@ -1,3 +1,7 @@
+## 1.1.0 (2025-11-11)
+
+- feat(workflow): add automated issue dependency management system ([01ddb61](https://github.com/aikix/app-workspace-generator/commit/01ddb61)), closes [4-#44](https://github.com/4-/issues/44) [#4](https://github.com/aikix/app-workspace-generator/issues/4) [#6](https://github.com/aikix/app-workspace-generator/issues/6) [#7](https://github.com/aikix/app-workspace-generator/issues/7) [#32](https://github.com/aikix/app-workspace-generator/issues/32) [#36](https://github.com/aikix/app-workspace-generator/issues/36)
+
 ## 1.0.0 (2025-11-11)
 
 - chore: configure for internal releases only ([1a53c64](https://github.com/aikix/app-workspace-generator/commit/1a53c64))
