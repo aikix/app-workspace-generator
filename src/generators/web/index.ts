@@ -233,9 +233,10 @@ async function generateSourceStructure(
       destination: 'src/types',
     },
     {
-      type: 'copy',
-      source: 'web/src/types/global.d.ts',
+      type: 'template',
+      source: 'web/src/types/global.d.ts.hbs',
       destination: 'src/types/global.d.ts',
+      context,
     },
     {
       type: 'copy',
@@ -246,6 +247,13 @@ async function generateSourceStructure(
       type: 'copy',
       source: 'web/src/types/index.ts',
       destination: 'src/types/index.ts',
+    },
+    // Environment variable validation and type-safe access
+    {
+      type: 'template',
+      source: 'web/lib/env.ts.hbs',
+      destination: 'src/lib/env.ts',
+      context,
     },
   ];
 

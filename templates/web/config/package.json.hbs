@@ -33,7 +33,8 @@
   "dependencies": {
     "next": "^16.0.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"{{#if (eq backend "firebase")}}{{#if (eq firebasePattern "client-side")}},
+    "react-dom": "^19.2.0",
+    "zod": "^3.24.1"{{#if (eq backend "firebase")}}{{#if (eq firebasePattern "client-side")}},
     "firebase": "^12.5.0"{{else}},
     "firebase": "^12.5.0",
     "firebase-admin": "^13.6.0"{{/if}}{{/if}}

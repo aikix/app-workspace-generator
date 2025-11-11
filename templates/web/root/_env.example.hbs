@@ -1,7 +1,25 @@
-# Firebase Configuration
-# Copy this file to .env.local and fill in your Firebase project credentials
+# Environment Variables Configuration
+# Copy this file to .env.local and fill in your values
+# Never commit .env.local to version control!
+
+# ========================================
+# Application Configuration
+# ========================================
+
+# Application name (used in meta tags, headers, etc.)
+NEXT_PUBLIC_APP_NAME={{projectName}}
+
+# Application URL (used for absolute URLs, redirects, etc.)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Node environment (development, production, test)
+NODE_ENV=development
 
 {{#if (eq backend "firebase")}}
+# ========================================
+# Firebase Configuration
+# ========================================
+
 {{#if (eq firebasePattern "client-side")}}
 # ========================================
 # Firebase Client SDK (Browser)
@@ -50,13 +68,9 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour private key here\n-----E
 
 {{/if}}
 {{else}}
-# No backend configured
-# If you add Firebase later, uncomment the appropriate section above
+# ========================================
+# No Backend Configured
+# ========================================
+# If you add Firebase later, you can add the configuration here.
+# Refer to Firebase Console > Project Settings for credentials.
 {{/if}}
-
-# ========================================
-# Other Environment Variables
-# ========================================
-
-# NODE_ENV=development
-# NEXT_PUBLIC_APP_URL=http://localhost:3000

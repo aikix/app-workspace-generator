@@ -45,6 +45,48 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Environment Variables
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. Update `.env.local` with your configuration:
+
+**Required Variables:**
+- `NEXT_PUBLIC_APP_NAME` - Your application name
+- `NEXT_PUBLIC_APP_URL` - Your application URL (default: `http://localhost:3000`)
+- `NODE_ENV` - Environment (development/production/test)
+
+{{#if (eq backend "firebase")}}
+**Firebase Configuration:**
+
+{{#if (eq firebasePattern "client-side")}}
+For client-side Firebase setup, you'll need:
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+
+Get these from: Firebase Console > Project Settings > General > Your apps
+{{else}}
+For server-side Firebase setup, you'll need:
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
+
+Get these from: Firebase Console > Project Settings > Service Accounts > Generate New Private Key
+
+⚠️ **Important**: Never commit `.env.local` to version control!
+{{/if}}
+{{/if}}
+
+All environment variables are validated on startup using Zod.
+If required variables are missing, you'll see helpful error messages.
+
 ## 📦 Tech Stack
 
 - **Framework**: {{capitalize framework}} {{#if (eq framework "next")}}15{{/if}}
