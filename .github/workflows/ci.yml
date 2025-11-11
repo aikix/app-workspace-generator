@@ -33,8 +33,16 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      - name: Run tests
-        run: npm run test -- --run --passWithNoTests
+      - name: Run tests with coverage
+        run: npm run test:coverage -- --run
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          fail_ci_if_error: false
 
   build:
     name: Build
