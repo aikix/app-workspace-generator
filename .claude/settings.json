@@ -1,11 +1,27 @@
 {
   "permissions": {
     "allow": [
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(npm:*)",
+      "Bash(yarn:*)",
+      "Bash(pnpm:*)",
+      "Bash(node:*)",
       "Bash(chmod:*)",
-      "Bash(./bin/cli.js --version)",
-      "Bash(npx husky init:*)",
-      "Bash(npx lint-staged:*)",
-      "Bash(npx commitlint:*)"
+      "Bash(./bin/cli.js:*)",
+      "Bash(./scripts/*:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(cd:*)",
+      "Bash(pwd)",
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(jq:*)"
     ],
     "deny": [],
     "ask": []
