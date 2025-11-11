@@ -1,3 +1,7 @@
+## 1.12.0 (2025-11-11)
+
+- feat(database): add Firestore schema and data models ([c909832](https://github.com/aikix/app-workspace-generator/commit/c909832)), closes [#16](https://github.com/aikix/app-workspace-generator/issues/16)
+
 ## 1.11.0 (2025-11-11)
 
 - feat(git): add comprehensive Git workflow and GitHub templates ([0436991](https://github.com/aikix/app-workspace-generator/commit/0436991)), closes [#32](https://github.com/aikix/app-workspace-generator/issues/32)
