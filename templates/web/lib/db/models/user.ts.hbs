@@ -1,0 +1,57 @@
+/**
+ * User Model
+ */
+
+{{#if (eq firebasePattern "server-first")}}
+import { createDoc, updateDoc, deleteDoc, getDoc } from '@/lib/firebase-admin/firestore';
+{{else}}
+import { createDocument, updateDocument, deleteDocument, getDocument } from '@/lib/firebase/firestore';
+{{/if}}
+
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type CreateUserInput = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'createdAt'>>;
+
+const COLLECTION = 'users';
+
+{{#if (eq firebasePattern "server-first")}}
+export async function createUser(data: CreateUserInput): Promise<string> {
+  return createDoc(COLLECTION, data);
+}
+
+export async function getUser(id: string): Promise<User | null> {
+  return getDoc<User>(COLLECTION, id);
+}
+
+export async function updateUser(id: string, data: UpdateUserInput): Promise<void> {
+  return updateDoc(COLLECTION, id, data);
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  return deleteDoc(COLLECTION, id);
+}
+{{else}}
+export async function createUser(data: CreateUserInput): Promise<string> {
+  return createDocument(COLLECTION, data);
+}
+
+export async function getUser(id: string): Promise<User | null> {
+  return getDocument<User>(COLLECTION, id);
+}
+
+export async function updateUser(id: string, data: UpdateUserInput): Promise<void> {
+  return updateDocument(COLLECTION, id, data);
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  return deleteDocument(COLLECTION, id);
+}
+{{/if}}

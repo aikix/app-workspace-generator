@@ -384,6 +384,22 @@ async function generateSourceStructure(
         context,
       });
     }
+
+    // Add database models for all Firebase patterns
+    operations.push(
+      {
+        type: 'template',
+        source: 'web/lib/db/models/user.ts.hbs',
+        destination: 'src/lib/db/models/user.ts',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/lib/db/models/post.ts.hbs',
+        destination: 'src/lib/db/models/post.ts',
+        context,
+      }
+    );
   }
 
   await executeFileOperations(operations, targetDir, 'Source structure');
@@ -469,6 +485,22 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
       destination: 'middleware.ts',
       context,
     });
+  }
+
+  // Add Firestore configuration files
+  if (context.backend === 'firebase') {
+    operations.push(
+      {
+        type: 'copy',
+        source: 'web/root/firestore.rules',
+        destination: 'firestore.rules',
+      },
+      {
+        type: 'copy',
+        source: 'web/root/firestore.indexes.json',
+        destination: 'firestore.indexes.json',
+      }
+    );
   }
 
   // Add Git configuration files

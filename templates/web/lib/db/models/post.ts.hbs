@@ -1,0 +1,76 @@
+/**
+ * Post Model (Example)
+ */
+
+{{#if (eq firebasePattern "server-first")}}
+import { createDoc, updateDoc, deleteDoc, getDoc, getDocs } from '@/lib/firebase-admin/firestore';
+{{else}}
+import { createDocument, updateDocument, deleteDocument, getDocument, getDocuments, where, orderBy, limit } from '@/lib/firebase/firestore';
+{{/if}}
+
+export interface Post {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  published: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type CreatePostInput = Omit<Post, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdatePostInput = Partial<Omit<Post, 'id' | 'userId' | 'createdAt'>>;
+
+const COLLECTION = 'posts';
+
+{{#if (eq firebasePattern "server-first")}}
+export async function createPost(data: CreatePostInput): Promise<string> {
+  return createDoc(COLLECTION, data);
+}
+
+export async function getPost(id: string): Promise<Post | null> {
+  return getDoc<Post>(COLLECTION, id);
+}
+
+export async function getUserPosts(userId: string, limit?: number): Promise<Post[]> {
+  return getDocs<Post>(COLLECTION, {
+    where: [{ field: 'userId', operator: '==', value: userId }],
+    orderBy: 'createdAt',
+    direction: 'desc',
+    limit,
+  });
+}
+
+export async function updatePost(id: string, data: UpdatePostInput): Promise<void> {
+  return updateDoc(COLLECTION, id, data);
+}
+
+export async function deletePost(id: string): Promise<void> {
+  return deleteDoc(COLLECTION, id);
+}
+{{else}}
+export async function createPost(data: CreatePostInput): Promise<string> {
+  return createDocument(COLLECTION, data);
+}
+
+export async function getPost(id: string): Promise<Post | null> {
+  return getDocument<Post>(COLLECTION, id);
+}
+
+export async function getUserPosts(userId: string, limitCount = 10): Promise<Post[]> {
+  return getDocuments<Post>(
+    COLLECTION,
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc'),
+    limit(limitCount)
+  );
+}
+
+export async function updatePost(id: string, data: UpdatePostInput): Promise<void> {
+  return updateDocument(COLLECTION, id, data);
+}
+
+export async function deletePost(id: string): Promise<void> {
+  return deleteDocument(COLLECTION, id);
+}
+{{/if}}
