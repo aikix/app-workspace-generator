@@ -1,3 +1,7 @@
+## 1.3.0 (2025-11-11)
+
+- feat(cli): add comprehensive error handling with rollback ([1d99c75](https://github.com/aikix/app-workspace-generator/commit/1d99c75)), closes [#7](https://github.com/aikix/app-workspace-generator/issues/7)
+
 ## 1.2.0 (2025-11-11)
 
 - Merge pull request #45 from aikix/feat/complete-nextjs-16-template-structure ([8d77b00](https://github.com/aikix/app-workspace-generator/commit/8d77b00)), closes [#45](https://github.com/aikix/app-workspace-generator/issues/45)
