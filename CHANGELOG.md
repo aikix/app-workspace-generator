@@ -1,3 +1,7 @@
+## 1.17.0 (2025-11-11)
+
+- feat(state-management): add React Context and Zustand support ([60ec085](https://github.com/aikix/app-workspace-generator/commit/60ec085)), closes [#18](https://github.com/aikix/app-workspace-generator/issues/18)
+
 ## 1.16.0 (2025-11-11)
 
 - feat(workflow): add Firebase CI/CD pipeline issue #48 ([aa4170f](https://github.com/aikix/app-workspace-generator/commit/aa4170f)), closes [#48](https://github.com/aikix/app-workspace-generator/issues/48) [#47](https://github.com/aikix/app-workspace-generator/issues/47)
