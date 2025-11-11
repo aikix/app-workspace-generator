@@ -13,19 +13,25 @@ import type { TemplateContext } from '../../types/config.js';
 export function registerHelpers(): void {
   // Helper: capitalize first letter
   Handlebars.registerHelper('capitalize', (str: string) => {
-    if (!str) return '';
+    if (!str) {
+      return '';
+    }
     return str.charAt(0).toUpperCase() + str.slice(1);
   });
 
   // Helper: uppercase
   Handlebars.registerHelper('uppercase', (str: string) => {
-    if (!str) return '';
+    if (!str) {
+      return '';
+    }
     return str.toUpperCase();
   });
 
   // Helper: kebab-case to PascalCase
   Handlebars.registerHelper('pascalCase', (str: string) => {
-    if (!str) return '';
+    if (!str) {
+      return '';
+    }
     return str
       .split('-')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

@@ -1,12 +1,6 @@
 import path from 'path';
 import ora from 'ora';
-import {
-  writeFile,
-  copyFile,
-  copyDir,
-  ensureDir,
-  getTemplatesDir,
-} from '../../utils/file-system.js';
+import { writeFile, copyFile, copyDir, ensureDir } from '../../utils/file-system.js';
 import { compileTemplateFile, getTemplatePath } from './templates.js';
 import type { TemplateContext } from '../../types/config.js';
 import { logger } from '../../utils/logger.js';
@@ -37,10 +31,7 @@ export async function generateFileFromTemplate(
 /**
  * Copy a static file
  */
-export async function copyStaticFile(
-  sourcePath: string,
-  destinationPath: string
-): Promise<void> {
+export async function copyStaticFile(sourcePath: string, destinationPath: string): Promise<void> {
   await copyFile(sourcePath, destinationPath);
 }
 

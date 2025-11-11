@@ -31,6 +31,9 @@ lerna-debug.log*
 *.sw?
 .DS_Store
 
+# Claude Code local settings (personal overrides)
+.claude/settings.local.json
+
 # Testing
 coverage/
 .nyc_output/
