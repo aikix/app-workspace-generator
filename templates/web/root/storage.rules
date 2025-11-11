@@ -1,0 +1,103 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules
+// These rules define who can read and write to Firebase Storage
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidImageUpload() {
+      return request.resource.size < 5 * 1024 * 1024 // 5MB
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    function isValidVideoUpload() {
+      return request.resource.size < 50 * 1024 * 1024 // 50MB
+        && request.resource.contentType.matches('video/.*');
+    }
+
+    function isValidDocumentUpload() {
+      return request.resource.size < 10 * 1024 * 1024 // 10MB
+        && (request.resource.contentType == 'application/pdf'
+          || request.resource.contentType.matches('application/.*document.*')
+          || request.resource.contentType == 'text/plain');
+    }
+
+    // Public uploads folder (authenticated users can read/write their own files)
+    match /uploads/{userId}/{allPaths=**} {
+      // Users can read their own uploads
+      allow read: if isAuthenticated() && isOwner(userId);
+
+      // Users can write to their own uploads folder
+      allow write: if isAuthenticated() && isOwner(userId)
+        && (isValidImageUpload() || isValidVideoUpload() || isValidDocumentUpload());
+    }
+
+    // Images folder with specific rules
+    match /images/{userId}/{imageId} {
+      // Allow authenticated users to read any image
+      allow read: if isAuthenticated();
+
+      // Only owner can upload images
+      allow write: if isAuthenticated() && isOwner(userId) && isValidImageUpload();
+    }
+
+    // User avatars (public read, owner write)
+    match /avatars/{userId} {
+      // Anyone can read avatars
+      allow read: if true;
+
+      // Only owner can update their avatar
+      allow write: if isAuthenticated() && isOwner(userId) && isValidImageUpload();
+    }
+
+    // Videos folder
+    match /videos/{userId}/{videoId} {
+      // Allow authenticated users to read videos
+      allow read: if isAuthenticated();
+
+      // Only owner can upload videos
+      allow write: if isAuthenticated() && isOwner(userId) && isValidVideoUpload();
+    }
+
+    // Documents folder
+    match /documents/{userId}/{documentId} {
+      // Only owner can read their documents
+      allow read: if isAuthenticated() && isOwner(userId);
+
+      // Only owner can upload documents
+      allow write: if isAuthenticated() && isOwner(userId) && isValidDocumentUpload();
+    }
+
+    // Shared files (read-only for authenticated users)
+    match /shared/{fileId} {
+      // All authenticated users can read shared files
+      allow read: if isAuthenticated();
+
+      // No one can write (managed through admin SDK)
+      allow write: if false;
+    }
+
+    // Public files (anyone can read)
+    match /public/{allPaths=**} {
+      // Anyone can read public files
+      allow read: if true;
+
+      // No one can write (managed through admin SDK)
+      allow write: if false;
+    }
+
+    // Deny all other access by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

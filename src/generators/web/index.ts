@@ -390,6 +390,30 @@ async function generateSourceStructure(
           source: 'web/src/hooks/firebase/useFirestore.tsx.hbs',
           destination: 'src/hooks/firebase/useFirestore.tsx',
           context,
+        },
+        {
+          type: 'copy',
+          source: 'web/src/hooks/firebase/useStorage.tsx',
+          destination: 'src/hooks/firebase/useStorage.tsx',
+        }
+      );
+
+      // Firebase Storage components
+      operations.push(
+        {
+          type: 'copy',
+          source: 'web/src/components/storage/FileUpload.tsx',
+          destination: 'src/components/storage/FileUpload.tsx',
+        },
+        {
+          type: 'copy',
+          source: 'web/src/components/storage/ImageUpload.tsx',
+          destination: 'src/components/storage/ImageUpload.tsx',
+        },
+        {
+          type: 'copy',
+          source: 'web/src/components/storage/FileManager.tsx',
+          destination: 'src/components/storage/FileManager.tsx',
         }
       );
     }
@@ -602,6 +626,11 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
         type: 'copy',
         source: 'web/root/firestore.indexes.json',
         destination: 'firestore.indexes.json',
+      },
+      {
+        type: 'copy',
+        source: 'web/root/storage.rules',
+        destination: 'storage.rules',
       }
     );
   }

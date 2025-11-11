@@ -207,7 +207,7 @@ export async function createWebApp(projectId: string, appName: string): Promise<
 
     // Extract app ID from output
     const appIdMatch = stdout.match(/App ID: ([^\s]+)/);
-    if (!appIdMatch) {
+    if (!appIdMatch || !appIdMatch[1]) {
       throw new Error('Failed to extract app ID from Firebase CLI output');
     }
 

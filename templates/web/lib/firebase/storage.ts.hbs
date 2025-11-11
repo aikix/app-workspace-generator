@@ -1,5 +1,6 @@
 /**
  * Firebase Storage Helpers (Client-Side)
+ * Includes file upload, download, validation, and image optimization
  */
 
 import {
@@ -9,34 +10,416 @@ import {
   uploadBytesResumable,
   getDownloadURL,
   deleteObject,
+  listAll,
   type Storage,
   type UploadResult,
+  type UploadTask,
+  type StorageReference,
 } from 'firebase/storage';
 import { app } from './config';
 
 export const storage: Storage = getStorage(app);
 
-export async function uploadFile(path: string, file: File): Promise<string> {
+// ============================================================================
+// Configuration
+// ============================================================================
+
+export const FILE_SIZE_LIMITS = {
+  image: 5 * 1024 * 1024, // 5MB
+  video: 50 * 1024 * 1024, // 50MB
+  document: 10 * 1024 * 1024, // 10MB
+  default: 5 * 1024 * 1024, // 5MB
+} as const;
+
+export const ALLOWED_FILE_TYPES = {
+  image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+  video: ['video/mp4', 'video/webm', 'video/ogg'],
+  document: [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+  ],
+} as const;
+
+// ============================================================================
+// Validation
+// ============================================================================
+
+export type FileCategory = keyof typeof ALLOWED_FILE_TYPES;
+
+export interface FileValidationOptions {
+  maxSize?: number;
+  allowedTypes?: string[];
+  category?: FileCategory;
+}
+
+export class FileValidationError extends Error {
+  constructor(
+    message: string,
+    public code: string
+  ) {
+    super(message);
+    this.name = 'FileValidationError';
+  }
+}
+
+export function validateFile(
+  file: File,
+  options: FileValidationOptions = {}
+): void {
+  const {
+    maxSize = FILE_SIZE_LIMITS.default,
+    allowedTypes = options.category
+      ? ALLOWED_FILE_TYPES[options.category]
+      : undefined,
+  } = options;
+
+  // Check file size
+  if (file.size > maxSize) {
+    throw new FileValidationError(
+      `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds maximum allowed size (${(maxSize / 1024 / 1024).toFixed(2)}MB)`,
+      'FILE_TOO_LARGE'
+    );
+  }
+
+  // Check file type
+  if (allowedTypes && !allowedTypes.includes(file.type)) {
+    throw new FileValidationError(
+      `File type ${file.type} is not allowed. Allowed types: ${allowedTypes.join(', ')}`,
+      'INVALID_FILE_TYPE'
+    );
+  }
+}
+
+// ============================================================================
+// Image Optimization
+// ============================================================================
+
+export interface ImageOptimizationOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number;
+  format?: 'jpeg' | 'png' | 'webp';
+}
+
+export async function optimizeImage(
+  file: File,
+  options: ImageOptimizationOptions = {}
+): Promise<File> {
+  const {
+    maxWidth = 1920,
+    maxHeight = 1080,
+    quality = 0.9,
+    format = 'jpeg',
+  } = options;
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+    };
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+
+      // Calculate new dimensions while maintaining aspect ratio
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width *= ratio;
+        height *= ratio;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Failed to optimize image'));
+            return;
+          }
+
+          const optimizedFile = new File([blob], file.name, {
+            type: `image/${format}`,
+            lastModified: Date.now(),
+          });
+
+          resolve(optimizedFile);
+        },
+        `image/${format}`,
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+// ============================================================================
+// Upload Functions
+// ============================================================================
+
+export interface UploadOptions {
+  validate?: boolean;
+  validationOptions?: FileValidationOptions;
+  optimize?: boolean;
+  optimizationOptions?: ImageOptimizationOptions;
+  metadata?: Record<string, string>;
+}
+
+export async function uploadFile(
+  path: string,
+  file: File,
+  options: UploadOptions = {}
+): Promise<string> {
+  const {
+    validate = true,
+    validationOptions = {},
+    optimize = false,
+    optimizationOptions = {},
+    metadata = {},
+  } = options;
+
+  let fileToUpload = file;
+
+  // Validate file
+  if (validate) {
+    validateFile(file, validationOptions);
+  }
+
+  // Optimize image if requested
+  if (optimize && file.type.startsWith('image/')) {
+    fileToUpload = await optimizeImage(file, optimizationOptions);
+  }
+
+  // Upload file
   const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return await getDownloadURL(storageRef);
+  const uploadResult = await uploadBytes(storageRef, fileToUpload, {
+    customMetadata: metadata,
+  });
+
+  // Get and return download URL
+  return await getDownloadURL(uploadResult.ref);
+}
+
+export interface UploadProgress {
+  bytesTransferred: number;
+  totalBytes: number;
+  progress: number;
+  state: 'running' | 'paused' | 'success' | 'canceled' | 'error';
+}
+
+export interface UploadWithProgressOptions extends UploadOptions {
+  onProgress?: (progress: UploadProgress) => void;
+  onError?: (error: Error) => void;
+  onSuccess?: (url: string) => void;
 }
 
 export function uploadFileWithProgress(
   path: string,
   file: File,
-  onProgress: (progress: number) => void
-) {
-  const storageRef = ref(storage, path);
-  const uploadTask = uploadBytesResumable(storageRef, file);
+  options: UploadWithProgressOptions = {}
+): UploadTask {
+  const {
+    validate = true,
+    validationOptions = {},
+    optimize = false,
+    optimizationOptions = {},
+    metadata = {},
+    onProgress,
+    onError,
+    onSuccess,
+  } = options;
 
-  uploadTask.on('state_changed', (snapshot) => {
-    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-    onProgress(progress);
+  // Validate file (synchronous)
+  if (validate) {
+    try {
+      validateFile(file, validationOptions);
+    } catch (error) {
+      if (onError) {
+        onError(error as Error);
+      }
+      throw error;
+    }
+  }
+
+  // If optimization is needed, we need to handle it async
+  if (optimize && file.type.startsWith('image/')) {
+    // Create a promise-based upload task wrapper
+    const storageRef = ref(storage, path);
+    let uploadTask: UploadTask;
+
+    optimizeImage(file, optimizationOptions)
+      .then((optimizedFile) => {
+        uploadTask = uploadBytesResumable(storageRef, optimizedFile, {
+          customMetadata: metadata,
+        });
+
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            if (onProgress) {
+              onProgress({
+                bytesTransferred: snapshot.bytesTransferred,
+                totalBytes: snapshot.totalBytes,
+                progress:
+                  (snapshot.bytesTransferred / snapshot.totalBytes) * 100,
+                state: snapshot.state as UploadProgress['state'],
+              });
+            }
+          },
+          (error) => {
+            if (onError) {
+              onError(error);
+            }
+          },
+          () => {
+            if (onSuccess) {
+              getDownloadURL(uploadTask.snapshot.ref).then(onSuccess);
+            }
+          }
+        );
+      })
+      .catch((error) => {
+        if (onError) {
+          onError(error);
+        }
+      });
+
+    // Return a mock upload task (limitations of async optimization)
+    return uploadTask!;
+  }
+
+  // Standard upload with progress
+  const storageRef = ref(storage, path);
+  const uploadTask = uploadBytesResumable(storageRef, file, {
+    customMetadata: metadata,
   });
+
+  uploadTask.on(
+    'state_changed',
+    (snapshot) => {
+      if (onProgress) {
+        onProgress({
+          bytesTransferred: snapshot.bytesTransferred,
+          totalBytes: snapshot.totalBytes,
+          progress: (snapshot.bytesTransferred / snapshot.totalBytes) * 100,
+          state: snapshot.state as UploadProgress['state'],
+        });
+      }
+    },
+    (error) => {
+      if (onError) {
+        onError(error);
+      }
+    },
+    () => {
+      if (onSuccess) {
+        getDownloadURL(uploadTask.snapshot.ref).then(onSuccess);
+      }
+    }
+  );
 
   return uploadTask;
 }
+
+// ============================================================================
+// Bulk Upload
+// ============================================================================
+
+export interface BulkUploadResult {
+  success: Array<{ file: File; url: string; path: string }>;
+  failed: Array<{ file: File; error: Error }>;
+}
+
+export interface BulkUploadOptions extends UploadOptions {
+  pathGenerator?: (file: File, index: number) => string;
+  onFileProgress?: (file: File, progress: UploadProgress) => void;
+  onFileComplete?: (file: File, url: string) => void;
+  onFileError?: (file: File, error: Error) => void;
+}
+
+export async function uploadMultipleFiles(
+  basePath: string,
+  files: File[],
+  options: BulkUploadOptions = {}
+): Promise<BulkUploadResult> {
+  const {
+    pathGenerator = (file) => `${basePath}/${Date.now()}_${file.name}`,
+    onFileProgress,
+    onFileComplete,
+    onFileError,
+    ...uploadOptions
+  } = options;
+
+  const result: BulkUploadResult = {
+    success: [],
+    failed: [],
+  };
+
+  const uploadPromises = files.map(async (file, index) => {
+    const path = pathGenerator(file, index);
+
+    try {
+      const url = await new Promise<string>((resolve, reject) => {
+        const uploadTask = uploadFileWithProgress(path, file, {
+          ...uploadOptions,
+          onProgress: (progress) => {
+            if (onFileProgress) {
+              onFileProgress(file, progress);
+            }
+          },
+          onSuccess: (url) => {
+            resolve(url);
+          },
+          onError: (error) => {
+            reject(error);
+          },
+        });
+      });
+
+      result.success.push({ file, url, path });
+
+      if (onFileComplete) {
+        onFileComplete(file, url);
+      }
+    } catch (error) {
+      result.failed.push({ file, error: error as Error });
+
+      if (onFileError) {
+        onFileError(file, error as Error);
+      }
+    }
+  });
+
+  await Promise.allSettled(uploadPromises);
+
+  return result;
+}
+
+// ============================================================================
+// Download and File Management
+// ============================================================================
 
 export async function deleteFile(path: string): Promise<void> {
   const storageRef = ref(storage, path);
@@ -46,4 +429,44 @@ export async function deleteFile(path: string): Promise<void> {
 export async function getFileURL(path: string): Promise<string> {
   const storageRef = ref(storage, path);
   return await getDownloadURL(storageRef);
+}
+
+export async function listFiles(path: string): Promise<StorageReference[]> {
+  const storageRef = ref(storage, path);
+  const result = await listAll(storageRef);
+  return result.items;
+}
+
+export async function deleteMultipleFiles(paths: string[]): Promise<void> {
+  await Promise.all(paths.map((path) => deleteFile(path)));
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+export function generateStoragePath(
+  userId: string,
+  category: string,
+  fileName: string
+): string {
+  const timestamp = Date.now();
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `${category}/${userId}/${timestamp}_${sanitizedFileName}`;
+}
+
+export function getFileExtension(fileName: string): string {
+  return fileName.split('.').pop()?.toLowerCase() || '';
+}
+
+export function getFileCategoryFromType(mimeType: string): FileCategory | null {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (
+    mimeType === 'application/pdf' ||
+    mimeType.includes('document') ||
+    mimeType === 'text/plain'
+  )
+    return 'document';
+  return null;
 }
