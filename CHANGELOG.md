@@ -1,3 +1,7 @@
+## 1.13.0 (2025-11-11)
+
+- feat(templates): add comprehensive Next.js configuration ([314eaaa](https://github.com/aikix/app-workspace-generator/commit/314eaaa)), closes [#9](https://github.com/aikix/app-workspace-generator/issues/9)
+
 ## 1.12.0 (2025-11-11)
 
 - feat(database): add Firestore schema and data models ([c909832](https://github.com/aikix/app-workspace-generator/commit/c909832)), closes [#16](https://github.com/aikix/app-workspace-generator/issues/16)
