@@ -1,3 +1,7 @@
+## 1.9.0 (2025-11-11)
+
+- feat(firebase): add comprehensive server-first pattern with Admin SDK ([f63ff71](https://github.com/aikix/app-workspace-generator/commit/f63ff71)), closes [#15](https://github.com/aikix/app-workspace-generator/issues/15)
+
 ## 1.8.0 (2025-11-11)
 
 - feat(templates): add example components library with accessibility ([8ba09fe](https://github.com/aikix/app-workspace-generator/commit/8ba09fe)), closes [#12](https://github.com/aikix/app-workspace-generator/issues/12)
