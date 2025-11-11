@@ -1,3 +1,7 @@
+## 1.16.0 (2025-11-11)
+
+- feat(workflow): add Firebase CI/CD pipeline issue #48 ([aa4170f](https://github.com/aikix/app-workspace-generator/commit/aa4170f)), closes [#48](https://github.com/aikix/app-workspace-generator/issues/48) [#47](https://github.com/aikix/app-workspace-generator/issues/47)
+
 ## 1.15.0 (2025-11-11)
 
 - feat(workflow): add Firebase auto-setup to Phase 2 dependencies ([1f4b476](https://github.com/aikix/app-workspace-generator/commit/1f4b476)), closes [#47](https://github.com/aikix/app-workspace-generator/issues/47)
