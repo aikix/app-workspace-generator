@@ -129,6 +129,40 @@ async function generateSourceStructure(targetDir: string, context: TemplateConte
       source: 'web/src/app/globals.css',
       destination: 'src/app/globals.css',
     },
+    {
+      type: 'copy',
+      source: 'web/src/app/loading.tsx',
+      destination: 'src/app/loading.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/error.tsx',
+      destination: 'src/app/error.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/not-found.tsx',
+      destination: 'src/app/not-found.tsx',
+    },
+    // Components
+    {
+      type: 'template',
+      source: 'web/src/components/Header.tsx.hbs',
+      destination: 'src/components/Header.tsx',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/src/components/Footer.tsx.hbs',
+      destination: 'src/components/Footer.tsx',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/src/components/Navigation.tsx.hbs',
+      destination: 'src/components/Navigation.tsx',
+      context,
+    },
     // Component directories
     {
       type: 'directory',

@@ -2,10 +2,30 @@ import type { Metadata } from 'next';
 {{#if (eq styling "tailwind")}}
 import './globals.css';
 {{/if}}
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: '{{pascalCase projectName}}',
   description: '{{description}}',
+  keywords: ['{{projectName}}', 'Next.js', 'React', 'TypeScript'{{#if (eq styling "tailwind")}}, 'Tailwind CSS'{{/if}}{{#if (eq backend "firebase")}}, 'Firebase'{{/if}}],
+  authors: [{ name: 'Your Name' }],
+  creator: 'Your Name',
+  publisher: '{{pascalCase projectName}}',
+  metadataBase: new URL('https://{{projectName}}.com'),
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://{{projectName}}.com',
+    title: '{{pascalCase projectName}}',
+    description: '{{description}}',
+    siteName: '{{pascalCase projectName}}',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '{{pascalCase projectName}}',
+    description: '{{description}}',
+  },
 };
 
 export default function RootLayout({
@@ -15,7 +35,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }
