@@ -9,29 +9,69 @@ import { logger } from '../../utils/logger.js';
  */
 export async function generateWebApp(options: GenerationOptions): Promise<void> {
   const { targetDir, templateContext } = options;
+  const startTime = Date.now();
+  let totalFiles = 0;
+
+  // Print banner
+  logger.banner();
 
   logger.header(`Creating ${templateContext.projectName}`);
 
   try {
-    // Create project directory
+    // Step 1: Create project directory
+    logger.stepIndicator(1, 5, 'Creating project directory');
     await ensureDir(targetDir);
+    logger.success('Project directory created');
+    totalFiles++;
 
-    // Generate configuration files
-    await generateConfigFiles(targetDir, templateContext);
+    // Step 2: Generate configuration files
+    logger.stepIndicator(2, 5, 'Generating configuration files');
+    const configCount = await generateConfigFiles(targetDir, templateContext);
+    logger.fileCount(configCount, 'configuration files created');
+    totalFiles += configCount;
 
-    // Generate source structure
-    await generateSourceStructure(targetDir, templateContext);
+    // Step 3: Generate source structure
+    logger.stepIndicator(3, 5, 'Generating source structure');
+    const sourceCount = await generateSourceStructure(targetDir, templateContext);
+    logger.fileCount(sourceCount, 'source files created');
+    totalFiles += sourceCount;
 
-    // Generate root files
-    await generateRootFiles(targetDir, templateContext);
+    // Step 4: Generate root files
+    logger.stepIndicator(4, 5, 'Generating documentation and root files');
+    const rootCount = await generateRootFiles(targetDir, templateContext);
+    logger.fileCount(rootCount, 'root files created');
+    totalFiles += rootCount;
 
-    // Generate documentation
-    if (templateContext.linting || templateContext.formatting) {
+    // Step 5: Generate dev tools
+    if (templateContext.linting || templateContext.formatting || templateContext.gitHooks) {
+      logger.stepIndicator(5, 5, 'Setting up development tools');
       await generateDevTools(targetDir, templateContext);
+      logger.success('Development tools configured');
+      totalFiles += 2; // git hooks
+    } else {
+      logger.stepIndicator(5, 5, 'Skipping development tools');
+      logger.info('No development tools configured');
     }
 
-    logger.success(`\n✨ Project created successfully at ${targetDir}`);
-    logger.newLine();
+    // Calculate elapsed time
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    // Print success summary
+    logger.celebrate('Project created successfully!');
+
+    logger.summaryBox([
+      `✨ ${templateContext.projectName}`,
+      '',
+      `📁 Location: ${targetDir}`,
+      `📝 Files: ${totalFiles} created`,
+      `⏱️  Time: ${elapsedTime}s`,
+      '',
+      `🚀 Framework: Next.js ${templateContext.typescript ? '+ TypeScript' : ''}`,
+      `🎨 Styling: ${templateContext.styling === 'tailwind' ? 'Tailwind CSS v4' : 'CSS'}`,
+      ...(templateContext.backend === 'firebase'
+        ? [`🔥 Backend: Firebase (${templateContext.firebasePattern})`]
+        : []),
+    ]);
 
     // Print next steps
     printNextSteps(templateContext);
@@ -44,9 +84,7 @@ export async function generateWebApp(options: GenerationOptions): Promise<void> 
 /**
  * Generate configuration files
  */
-async function generateConfigFiles(targetDir: string, context: TemplateContext): Promise<void> {
-  logger.section('Generating configuration files');
-
+async function generateConfigFiles(targetDir: string, context: TemplateContext): Promise<number> {
   const operations: FileOperation[] = [
     {
       type: 'template',
@@ -102,14 +140,16 @@ async function generateConfigFiles(targetDir: string, context: TemplateContext):
   }
 
   await executeFileOperations(operations, targetDir, 'Configuration files');
+  return operations.length;
 }
 
 /**
  * Generate source structure
  */
-async function generateSourceStructure(targetDir: string, context: TemplateContext): Promise<void> {
-  logger.section('Generating source structure');
-
+async function generateSourceStructure(
+  targetDir: string,
+  context: TemplateContext
+): Promise<number> {
   const operations: FileOperation[] = [
     // App directory
     {
@@ -223,22 +263,27 @@ async function generateSourceStructure(targetDir: string, context: TemplateConte
 export {};
 `;
 
+  let placeholderCount = 0;
   await writeFile(path.join(targetDir, 'src/components/ui/index.ts'), placeholderContent);
+  placeholderCount++;
   await writeFile(path.join(targetDir, 'src/hooks/index.ts'), placeholderContent);
+  placeholderCount++;
   await writeFile(path.join(targetDir, 'src/types/index.ts'), placeholderContent);
+  placeholderCount++;
 
   // Only create utils.ts placeholder if not using Firebase
   if (context.backend !== 'firebase') {
     await writeFile(path.join(targetDir, 'src/lib/utils.ts'), placeholderContent);
+    placeholderCount++;
   }
+
+  return operations.length + placeholderCount;
 }
 
 /**
  * Generate root files (.gitignore, README, etc.)
  */
-async function generateRootFiles(targetDir: string, context: TemplateContext): Promise<void> {
-  logger.section('Generating documentation');
-
+async function generateRootFiles(targetDir: string, context: TemplateContext): Promise<number> {
   const operations: FileOperation[] = [
     {
       type: 'template',
@@ -286,6 +331,7 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
   });
 
   await executeFileOperations(operations, targetDir, 'Documentation and root files');
+  return operations.length;
 }
 
 /**
