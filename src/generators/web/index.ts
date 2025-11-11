@@ -139,6 +139,15 @@ async function generateConfigFiles(targetDir: string, context: TemplateContext):
     });
   }
 
+  // Add Playwright configuration
+  if (context.testing === 'playwright') {
+    operations.push({
+      type: 'copy',
+      source: 'web/config/playwright.config.ts',
+      destination: 'playwright.config.ts',
+    });
+  }
+
   await executeFileOperations(operations, targetDir, 'Configuration files');
   return operations.length;
 }
@@ -525,6 +534,57 @@ async function generateSourceStructure(
         type: 'copy',
         source: 'web/src/stores/useThemeStore.ts',
         destination: 'src/stores/useThemeStore.ts',
+      }
+    );
+  }
+
+  // Add Playwright E2E tests
+  if (context.testing === 'playwright') {
+    operations.push(
+      // E2E test specs
+      {
+        type: 'copy',
+        source: 'web/tests/e2e/home.spec.ts',
+        destination: 'tests/e2e/home.spec.ts',
+      },
+      {
+        type: 'copy',
+        source: 'web/tests/e2e/api.spec.ts',
+        destination: 'tests/e2e/api.spec.ts',
+      },
+      {
+        type: 'copy',
+        source: 'web/tests/e2e/components.spec.ts',
+        destination: 'tests/e2e/components.spec.ts',
+      },
+      // Page objects
+      {
+        type: 'copy',
+        source: 'web/tests/page-objects/HomePage.ts',
+        destination: 'tests/page-objects/HomePage.ts',
+      },
+      {
+        type: 'copy',
+        source: 'web/tests/page-objects/ComponentsPage.ts',
+        destination: 'tests/page-objects/ComponentsPage.ts',
+      },
+      // Test helpers
+      {
+        type: 'copy',
+        source: 'web/tests/helpers/test-utils.ts',
+        destination: 'tests/helpers/test-utils.ts',
+      },
+      // Test fixtures
+      {
+        type: 'copy',
+        source: 'web/tests/fixtures/test-data.ts',
+        destination: 'tests/fixtures/test-data.ts',
+      },
+      // Test documentation
+      {
+        type: 'copy',
+        source: 'web/tests/README.md',
+        destination: 'tests/README.md',
       }
     );
   }
