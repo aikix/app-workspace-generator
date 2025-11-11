@@ -43,10 +43,10 @@ export async function runCLI(args: string[], options: CLIRunOptions = {}): Promi
     });
 
     return {
-      stdout: result.stdout,
-      stderr: result.stderr,
-      exitCode: result.exitCode,
-      failed: result.failed,
+      stdout: result.stdout || '',
+      stderr: result.stderr || '',
+      exitCode: result.exitCode ?? 1,
+      failed: result.failed ?? true,
     };
   } catch (error: unknown) {
     const err = error as { stdout?: string; stderr?: string; exitCode?: number };
@@ -123,10 +123,10 @@ export async function buildGeneratedProject(projectPath: string): Promise<CLIRes
     });
 
     return {
-      stdout: result.stdout,
-      stderr: result.stderr,
-      exitCode: result.exitCode,
-      failed: result.failed,
+      stdout: result.stdout || '',
+      stderr: result.stderr || '',
+      exitCode: result.exitCode ?? 1,
+      failed: result.failed ?? true,
     };
   } catch (error: unknown) {
     const err = error as { stdout?: string; stderr?: string; exitCode?: number };
@@ -151,10 +151,10 @@ export async function installDependencies(projectPath: string): Promise<CLIResul
     });
 
     return {
-      stdout: result.stdout,
-      stderr: result.stderr,
-      exitCode: result.exitCode,
-      failed: result.failed,
+      stdout: result.stdout || '',
+      stderr: result.stderr || '',
+      exitCode: result.exitCode ?? 1,
+      failed: result.failed ?? true,
     };
   } catch (error: unknown) {
     const err = error as { stdout?: string; stderr?: string; exitCode?: number };

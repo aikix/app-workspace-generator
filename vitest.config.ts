@@ -46,9 +46,12 @@ export default defineConfig({
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: false,
+        singleFork: true, // Run tests sequentially to avoid conflicts
       },
     },
+
+    // Run tests sequentially to avoid file system conflicts
+    fileParallelism: false,
   },
 
   resolve: {
