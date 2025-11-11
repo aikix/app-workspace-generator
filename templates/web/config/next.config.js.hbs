@@ -1,33 +1,169 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable React Strict Mode for better development experience
   reactStrictMode: true,
+
+  // Remove X-Powered-By header for security
   poweredByHeader: false,
 
-  // Security headers
+  // Compiler options for better performance
+  compiler: {
+    // Remove console logs in production
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  // Image optimization configuration
+  images: {
+    // Supported image formats (auto-detect WebP/AVIF support)
+    formats: ['image/avif', 'image/webp'],
+
+    // Image domains (add your CDN/image providers)
+    remotePatterns: [
+      // Example: Allow images from your domain
+      // {
+      //   protocol: 'https',
+      //   hostname: 'yourdomain.com',
+      //   port: '',
+      //   pathname: '/images/**',
+      // },
+{{#if (eq backend "firebase")}}
+      // Firebase Storage
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        pathname: '**',
+      },
+{{/if}}
+    ],
+
+    // Device sizes for responsive images
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+
+    // Image sizes for image optimization
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+
+    // Minimum cache time for optimized images (1 year)
+    minimumCacheTTL: 31536000,
+  },
+
+  // Security Headers
   async headers() {
+    const securityHeaders = [
+      // DNS Prefetching
+      {
+        key: 'X-DNS-Prefetch-Control',
+        value: 'on',
+      },
+      // Strict Transport Security (HSTS)
+      {
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload',
+      },
+      // Prevent clickjacking
+      {
+        key: 'X-Frame-Options',
+        value: 'SAMEORIGIN',
+      },
+      // Prevent MIME type sniffing
+      {
+        key: 'X-Content-Type-Options',
+        value: 'nosniff',
+      },
+      // XSS Protection
+      {
+        key: 'X-XSS-Protection',
+        value: '1; mode=block',
+      },
+      // Referrer Policy
+      {
+        key: 'Referrer-Policy',
+        value: 'strict-origin-when-cross-origin',
+      },
+      // Permissions Policy (formerly Feature Policy)
+      {
+        key: 'Permissions-Policy',
+        value: [
+          'camera=()',
+          'microphone=()',
+          'geolocation=()',
+          'interest-cohort=()',
+        ].join(', '),
+      },
+      // Content Security Policy (CSP)
+      // Note: This is a basic CSP. Adjust based on your needs.
+      {
+        key: 'Content-Security-Policy',
+        value: [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: https:",
+          "font-src 'self' data:",
+          "connect-src 'self'{{#if (eq backend "firebase")}} https://*.googleapis.com https://*.firebaseio.com{{/if}}",
+          "frame-ancestors 'self'",
+        ]
+          .join('; ')
+          .replace(/\s{2,}/g, ' ')
+          .trim(),
+      },
+    ];
+
     return [
       {
         source: '/:path*',
-        headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-        ],
+        headers: securityHeaders,
       },
     ];
+  },
+
+  // Redirects (add your redirects here)
+  async redirects() {
+    return [
+      // Example redirect
+      // {
+      //   source: '/old-page',
+      //   destination: '/new-page',
+      //   permanent: true,
+      // },
+    ];
+  },
+
+  // Rewrites (add your rewrites here)
+  async rewrites() {
+    return [
+      // Example rewrite
+      // {
+      //   source: '/api/:path*',
+      //   destination: 'https://api.example.com/:path*',
+      // },
+    ];
+  },
+
+  // Turbopack configuration (Next.js 16+ default bundler)
+  turbopack: {
+    // Custom turbopack config here if needed
+    // Empty config silences webpack compatibility warning
+  },
+
+  // Webpack configuration (optional customization for --webpack builds)
+  webpack: (config, { dev, isServer }) => {
+    // Custom webpack config here if needed
+    return config;
+  },
+
+  // Environment variables exposed to the browser
+  // (use NEXT_PUBLIC_ prefix for browser-accessible vars)
+  env: {
+    // Custom environment variables
+  },
+
+  // Enable experimental features (use with caution)
+  experimental: {
+    // Optimize package imports for faster builds
+    optimizePackageImports: ['@/components', '@/lib'],
+
+    // Other experimental features can be enabled here
+    // Check Next.js docs for latest experimental features
   },
 };
 
