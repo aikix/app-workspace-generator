@@ -1,0 +1,27 @@
+name: Update Issue Dependencies
+
+# Run when any issue is closed
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update blocked issues to ready
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "🔄 Issue #${{ github.event.issue.number }} was closed"
+          echo "Checking if any blocked issues can now be marked as ready..."
+
+          chmod +x ./scripts/update-ready-issues.sh
+          ./scripts/update-ready-issues.sh

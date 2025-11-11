@@ -1,0 +1,81 @@
+{
+  "waves": {
+    "wave-1": {
+      "description": "Foundation - No dependencies",
+      "issues": [4, 6, 7, 32, 36]
+    },
+    "wave-2": {
+      "description": "After #4 completes",
+      "issues": [5, 8, 9, 10],
+      "blockedBy": [4]
+    },
+    "wave-3": {
+      "description": "After wave-2 completes",
+      "issues": [12, 13],
+      "blockedBy": [5]
+    },
+    "phase-2-wave-1": {
+      "description": "Phase 2 - After env vars",
+      "issues": [14, 15, 17, 18, 20, 22],
+      "blockedBy": [4, 10]
+    },
+    "phase-2-wave-2": {
+      "description": "Phase 2 - After Firebase",
+      "issues": [16, 21],
+      "blockedBy": [14]
+    },
+    "phase-3-wave-1": {
+      "description": "Phase 3 - Capacitor setup",
+      "issues": [23],
+      "blockedBy": [17]
+    },
+    "phase-3-wave-2": {
+      "description": "Phase 3 - Native platforms",
+      "issues": [24, 25, 27],
+      "blockedBy": [23]
+    },
+    "phase-3-wave-3": {
+      "description": "Phase 3 - Native features",
+      "issues": [26, 28],
+      "blockedBy": [24, 25]
+    }
+  },
+  "dependencies": {
+    "5": [4],
+    "8": [4],
+    "9": [4],
+    "10": [4],
+    "11": [4, 5, 8, 9, 10],
+    "12": [4, 5],
+    "13": [10],
+    "14": [4, 10],
+    "15": [4, 10],
+    "16": [14],
+    "17": [4],
+    "18": [4],
+    "19": [5, 12],
+    "20": [4],
+    "21": [14],
+    "22": [4],
+    "23": [17],
+    "24": [23],
+    "25": [23],
+    "26": [24, 25],
+    "27": [23],
+    "28": [24, 25],
+    "29": [14, 15, 16],
+    "30": [14, 15, 16],
+    "31": [14, 15, 16],
+    "33": [11, 32],
+    "34": [14, 15],
+    "35": [14, 15],
+    "37": [4, 5],
+    "38": [5],
+    "39": [4],
+    "40": [4],
+    "41": [4],
+    "42": [4],
+    "43": [4, 14, 15],
+    "44": [9]
+  }
+}
