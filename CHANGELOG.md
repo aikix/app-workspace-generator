@@ -1,3 +1,7 @@
+## <small>1.13.1 (2025-11-11)</small>
+
+- docs(templates): enhance README with troubleshooting, deployment, and detailed structure ([1fcc31c](https://github.com/aikix/app-workspace-generator/commit/1fcc31c)), closes [#13](https://github.com/aikix/app-workspace-generator/issues/13)
+
 ## 1.13.0 (2025-11-11)
 
 - feat(templates): add comprehensive Next.js configuration ([314eaaa](https://github.com/aikix/app-workspace-generator/commit/314eaaa)), closes [#9](https://github.com/aikix/app-workspace-generator/issues/9)
