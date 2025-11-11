@@ -9,17 +9,20 @@ Generate production-ready project structures tailored to your needs through a si
 ## 🚀 Features
 
 ### Flexible Project Types
+
 - **Web App Only** - Standard Next.js web application
 - **Progressive Web App (PWA)** - Installable, offline-capable web app
 - **Multi-Platform** - PWA + Native iOS + Native Android apps
 
 ### Interactive CLI
+
 - Simple question-based setup
 - Smart defaults based on best practices
 - Configurable tech stack options
 - Automatic project structure generation
 
 ### Production-Ready Setup
+
 - TypeScript configuration
 - Linting and formatting (ESLint + Prettier)
 - Testing setup (Playwright for E2E)
@@ -30,6 +33,7 @@ Generate production-ready project structures tailored to your needs through a si
 ## 📋 Supported Tech Stacks
 
 ### Web/PWA
+
 - **Framework**: Next.js 15+ (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
@@ -39,6 +43,7 @@ Generate production-ready project structures tailored to your needs through a si
 - **Testing**: Playwright (E2E)
 
 ### Native Apps
+
 - **Wrapper**: PWABuilder + Capacitor
 - **iOS**: Xcode project with native capabilities
 - **Android**: Android Studio project with native capabilities
@@ -82,9 +87,114 @@ npx app-workspace-generator create
   npm run dev
 ```
 
+## 🖥️ CLI Commands
+
+### Create Command
+
+```bash
+npx app-workspace-generator create [project-name] [options]
+```
+
+#### Options
+
+- `-c, --config <path>` - Path to configuration file (JSON)
+- `--skip-install` - Skip dependency installation
+- `--firebase-auto-setup` - Automatically set up Firebase projects and configuration
+- `-v, --verbose` - Verbose output
+- `--debug` - Enable debug mode with detailed error information
+
+#### Usage Modes
+
+**Interactive Mode** (Default)
+
+```bash
+npx app-workspace-generator create
+# Prompts you for all configuration options
+```
+
+**Quick Start Mode**
+
+```bash
+npx app-workspace-generator create my-app
+# Creates project with default configuration
+```
+
+**Config File Mode**
+
+```bash
+npx app-workspace-generator create --config config.json
+# Creates project from JSON configuration file
+```
+
+#### Firebase Auto-Setup
+
+The `--firebase-auto-setup` flag automates the Firebase project creation and configuration process:
+
+```bash
+npx app-workspace-generator create my-app --firebase-auto-setup
+```
+
+When enabled, the CLI will:
+
+1. Verify Firebase CLI is installed and you're logged in
+2. Prompt for Firebase project settings:
+   - Base project name
+   - Environments to create (dev, staging, prod)
+   - Services to enable (Auth, Firestore, Storage)
+   - Authentication providers (Email/Password, Google, Anonymous)
+3. Create Firebase projects for each environment
+4. Create web apps in each project
+5. Retrieve Firebase SDK configurations
+6. Generate `.env.local`, `.env.example`, and environment-specific `.env` files
+
+**Prerequisites:**
+
+- Firebase CLI must be installed: `npm install -g firebase-tools`
+- You must be logged in: `firebase login`
+
+**Example:**
+
+```bash
+# Create project with Firebase auto-setup
+npx app-workspace-generator create my-app --firebase-auto-setup
+
+# During setup, you'll be prompted:
+🔥 Firebase Auto-Setup
+
+✓ Firebase CLI verified
+✓ Firebase login verified
+
+? Firebase project base name? my-app
+? Select environments to create: (Use arrow keys and space to select)
+  ✓ Development (my-app-dev)
+  ○ Staging (my-app-staging)
+  ✓ Production (my-app-prod)
+
+? Enable Firebase Authentication? (Y/n)
+? Select auth providers: (Use arrow keys and space to select)
+  ✓ Email/Password
+  ○ Google
+  ○ Anonymous
+
+? Enable Cloud Firestore? (Y/n)
+? Enable Cloud Storage? (Y/n)
+
+# CLI will then create Firebase projects and generate .env files
+✨ Firebase Projects Created:
+  ✓ my-app-dev
+  ✓ my-app-prod
+
+📝 Configuration Files:
+  • .env.local (primary config)
+  • .env.example (template)
+  • .env.dev
+  • .env.prod
+```
+
 ## 📁 Generated Project Structure
 
 ### Web App Only
+
 ```
 my-awesome-app/
 ├── src/
@@ -108,6 +218,7 @@ my-awesome-app/
 ```
 
 ### Multi-Platform
+
 ```
 my-awesome-app-workspace/
 ├── web/                  # PWA (same structure as above)
@@ -127,6 +238,7 @@ my-awesome-app-workspace/
 ## 🛠️ Development Roadmap
 
 ### Phase 1: Core CLI (Current)
+
 - [x] Initialize repository
 - [ ] Design CLI architecture
 - [ ] Implement interactive prompts
@@ -134,6 +246,7 @@ my-awesome-app-workspace/
 - [ ] Build file generation logic
 
 ### Phase 2: Template System
+
 - [ ] Web app template (Next.js + TypeScript + Tailwind)
 - [ ] PWA enhancements (manifest, service worker, offline)
 - [ ] Firebase integration templates
@@ -141,12 +254,14 @@ my-awesome-app-workspace/
 - [ ] Database schemas and seed data
 
 ### Phase 3: Native Apps
+
 - [ ] iOS project template (Capacitor)
 - [ ] Android project template (Capacitor)
 - [ ] Native capability integrations
 - [ ] Platform-specific configurations
 
 ### Phase 4: Developer Experience
+
 - [ ] Documentation generation
 - [ ] CLAUDE.md templates for AI assistance
 - [ ] Git setup and conventions
@@ -154,6 +269,7 @@ my-awesome-app-workspace/
 - [ ] Testing setup and examples
 
 ### Phase 5: Advanced Features
+
 - [ ] Custom component library option
 - [ ] Theme/design system setup
 - [ ] i18n/l10n setup
@@ -172,6 +288,7 @@ my-awesome-app-workspace/
 ## 🔧 Technical Architecture
 
 ### CLI Tool
+
 - **Framework**: Commander.js or Inquirer.js
 - **Language**: TypeScript
 - **Template Engine**: EJS or custom
@@ -179,6 +296,7 @@ my-awesome-app-workspace/
 - **Package Management**: npm/yarn/pnpm detection
 
 ### Template Management
+
 - Modular template system
 - Conditional file inclusion
 - Variable substitution
@@ -187,6 +305,7 @@ my-awesome-app-workspace/
 ## 📖 Documentation Structure
 
 Each generated project includes:
+
 - `README.md` - Project overview and quick start
 - `CLAUDE.md` - AI assistant guidance
 - `docs/getting-started/` - Setup guides

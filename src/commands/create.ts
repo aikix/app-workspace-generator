@@ -10,6 +10,7 @@ import {
   validateGenerationEnvironment,
   validateProjectNameForGeneration,
 } from '../utils/validation.js';
+import { runFirebaseSetupPrompts, executeFirebaseSetup } from '../prompts/firebase-setup.js';
 import type { GenerationOptions } from '../types/config.js';
 
 /**
@@ -20,6 +21,7 @@ export function createCommand(): Command {
     .argument('[project-name]', 'Name of the project to create')
     .option('-c, --config <path>', 'Path to configuration file (JSON)')
     .option('--skip-install', 'Skip dependency installation')
+    .option('--firebase-auto-setup', 'Automatically set up Firebase projects and configuration')
     .option('-v, --verbose', 'Verbose output')
     .option('--debug', 'Enable debug mode with detailed error information')
     .description('Create a new project')
@@ -55,7 +57,7 @@ export function createCommand(): Command {
 async function createFromConfig(
   configPath: string,
   cwd: string,
-  options: { skipInstall?: boolean; verbose?: boolean },
+  options: { skipInstall?: boolean; verbose?: boolean; firebaseAutoSetup?: boolean },
   debug: boolean
 ): Promise<void> {
   logger.info(`Loading configuration from ${configPath}...`);
@@ -80,6 +82,11 @@ async function createFromConfig(
 
   // Generate with error handling and rollback
   await withErrorHandling(async () => await generateWebApp(generationOptions), targetDir, debug);
+
+  // Firebase auto-setup if requested
+  if (options.firebaseAutoSetup && config.backend?.type === 'firebase') {
+    await runFirebaseAutoSetup(targetDir);
+  }
 }
 
 /**
@@ -88,7 +95,7 @@ async function createFromConfig(
 async function createQuickStart(
   projectName: string,
   cwd: string,
-  options: { skipInstall?: boolean; verbose?: boolean },
+  options: { skipInstall?: boolean; verbose?: boolean; firebaseAutoSetup?: boolean },
   debug: boolean
 ): Promise<void> {
   logger.info(`Creating ${projectName} with default configuration...`);
@@ -116,6 +123,11 @@ async function createQuickStart(
 
   // Generate with error handling and rollback
   await withErrorHandling(async () => await generateWebApp(generationOptions), targetDir, debug);
+
+  // Firebase auto-setup if requested
+  if (options.firebaseAutoSetup && config.backend?.type === 'firebase') {
+    await runFirebaseAutoSetup(targetDir);
+  }
 }
 
 /**
@@ -123,7 +135,7 @@ async function createQuickStart(
  */
 async function createInteractive(
   cwd: string,
-  options: { skipInstall?: boolean; verbose?: boolean },
+  options: { skipInstall?: boolean; verbose?: boolean; firebaseAutoSetup?: boolean },
   debug: boolean
 ): Promise<void> {
   const answers = await runInteractivePrompts(cwd);
@@ -147,4 +159,42 @@ async function createInteractive(
 
   // Generate with error handling and rollback
   await withErrorHandling(async () => await generateWebApp(generationOptions), targetDir, debug);
+
+  // Firebase auto-setup if requested
+  if (options.firebaseAutoSetup && config.backend?.type === 'firebase') {
+    await runFirebaseAutoSetup(targetDir);
+  }
+}
+
+/**
+ * Run Firebase auto-setup workflow
+ */
+async function runFirebaseAutoSetup(targetDir: string): Promise<void> {
+  try {
+    logger.newLine();
+    logger.newLine();
+
+    const answers = await runFirebaseSetupPrompts();
+
+    if (!answers) {
+      logger.info('Firebase setup skipped');
+      return;
+    }
+
+    const result = await executeFirebaseSetup(answers, targetDir);
+
+    if (!result.success) {
+      logger.error('Firebase setup failed');
+      if (result.error) {
+        logger.error(result.error.message);
+      }
+      logger.warning('You can set up Firebase manually later');
+    }
+  } catch (error) {
+    logger.error('Firebase setup encountered an error');
+    if (error instanceof Error) {
+      logger.error(error.message);
+    }
+    logger.warning('You can set up Firebase manually later');
+  }
 }

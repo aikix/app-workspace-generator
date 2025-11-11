@@ -285,43 +285,6 @@ export async function createWebApp(projectId: string, appName: string): Promise<
 }
 
 /**
-<<<<<<< HEAD
- * Get Firebase web app configuration (API keys, project settings)
- *
- * Retrieves the Firebase SDK configuration for a web app, which includes
- * API keys, auth domain, storage bucket, and other settings needed to
- * initialize the Firebase SDK in a client application.
- *
- * @param projectId - The Firebase project ID
- * @param appId - The web app ID (from createWebApp)
- * @returns Promise<Record<string, string>> - The Firebase web app configuration object
- * @throws Error if Firebase CLI command fails
- * @throws Error if config JSON parsing fails
- *
- * @example
- * ```typescript
- * const config = await getWebAppConfig('my-project', '1:123456789:web:abc123');
- * console.log(config);
- * // Output:
- * // {
- * //   apiKey: "AIzaSy...",
- * //   authDomain: "my-project.firebaseapp.com",
- * //   projectId: "my-project",
- * //   storageBucket: "my-project.appspot.com",
- * //   messagingSenderId: "123456789",
- * //   appId: "1:123456789:web:abc123"
- * // }
- * ```
- *
- * @example Using config in generated .env file
- * ```typescript
- * const config = await getWebAppConfig(projectId, appId);
- * const envContent = `
- * NEXT_PUBLIC_FIREBASE_API_KEY=${config.apiKey}
- * NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${config.authDomain}
- * NEXT_PUBLIC_FIREBASE_PROJECT_ID=${config.projectId}
- * `;
-=======
  * Get Firebase web app config (API keys, etc.)
  *
  * Retrieves the Firebase SDK configuration for a web app, including API keys
@@ -339,7 +302,6 @@ export async function createWebApp(projectId: string, appName: string): Promise<
  * const config = await getWebAppConfig('my-app-dev', '1:123456:web:abc123');
  * console.log(`API Key: ${config.apiKey}`);
  * console.log(`Project ID: ${config.projectId}`);
->>>>>>> 61c2fb2 (feat(firebase): complete web app creation and config retrieval)
  * ```
  */
 export async function getWebAppConfig(
@@ -419,6 +381,72 @@ export async function enableFirestore(projectId: string): Promise<void> {
   logger.warning('Firestore creation requires manual setup');
   logger.info('Enable Firestore in Firebase Console:');
   logger.info(`https://console.firebase.google.com/project/${projectId}/firestore`);
+}
+
+/**
+ * Write Firebase configuration to .env file
+ *
+ * Creates environment variable files with Firebase configuration.
+ * Supports both client-side and server-first patterns.
+ *
+ * @param targetDir - Directory where to write the .env file
+ * @param filename - Name of the env file (.env.local, .env.example, etc.)
+ * @param config - Firebase configuration object
+ * @param pattern - Firebase pattern (client-side or server-first)
+ *
+ * @example
+ * ```typescript
+ * await writeEnvFile(
+ *   '/path/to/project',
+ *   '.env.local',
+ *   config,
+ *   'client-side'
+ * );
+ * ```
+ */
+export async function writeEnvFile(
+  targetDir: string,
+  filename: string,
+  config: FirebaseWebAppConfig,
+  pattern: 'client-side' | 'server-first'
+): Promise<void> {
+  const { writeFile } = await import('./file-system.js');
+  const path = await import('path');
+
+  let content = '';
+
+  if (pattern === 'client-side') {
+    content = `# Firebase Configuration (Client-Side)
+# These variables are exposed to the browser
+NEXT_PUBLIC_FIREBASE_API_KEY=${config.apiKey}
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${config.authDomain}
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=${config.projectId}
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${config.storageBucket}
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${config.messagingSenderId}
+NEXT_PUBLIC_FIREBASE_APP_ID=${config.appId}
+${config.measurementId ? `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${config.measurementId}` : ''}
+`;
+  } else {
+    // Server-first pattern
+    content = `# Firebase Configuration (Server-First)
+# Admin SDK credentials - Keep these secret!
+FIREBASE_PROJECT_ID=${config.projectId}
+# FIREBASE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+# FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"
+
+# Client-side config (also needed for server-first)
+NEXT_PUBLIC_FIREBASE_API_KEY=${config.apiKey}
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${config.authDomain}
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=${config.projectId}
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${config.storageBucket}
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${config.messagingSenderId}
+NEXT_PUBLIC_FIREBASE_APP_ID=${config.appId}
+${config.measurementId ? `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${config.measurementId}` : ''}
+`;
+  }
+
+  const filePath = path.default.join(targetDir, filename);
+  await writeFile(filePath, content);
 }
 
 /**
