@@ -1,3 +1,7 @@
+## 1.10.0 (2025-11-11)
+
+- feat(firebase): add modular client-side SDK with React hooks ([b0bcbe9](https://github.com/aikix/app-workspace-generator/commit/b0bcbe9)), closes [#14](https://github.com/aikix/app-workspace-generator/issues/14)
+
 ## 1.9.0 (2025-11-11)
 
 - feat(firebase): add comprehensive server-first pattern with Admin SDK ([f63ff71](https://github.com/aikix/app-workspace-generator/commit/f63ff71)), closes [#15](https://github.com/aikix/app-workspace-generator/issues/15)
