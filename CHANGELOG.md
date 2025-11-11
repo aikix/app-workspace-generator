@@ -1,3 +1,7 @@
+## 1.8.0 (2025-11-11)
+
+- feat(templates): add example components library with accessibility ([8ba09fe](https://github.com/aikix/app-workspace-generator/commit/8ba09fe)), closes [#12](https://github.com/aikix/app-workspace-generator/issues/12)
+
 ## 1.7.0 (2025-11-11)
 
 - feat(templates): add environment variable management and validation ([051ee04](https://github.com/aikix/app-workspace-generator/commit/051ee04)), closes [#10](https://github.com/aikix/app-workspace-generator/issues/10)
