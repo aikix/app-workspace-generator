@@ -196,6 +196,30 @@ export async function createFirebaseProject(projectId: string): Promise<void> {
 
 /**
  * Create a web app in a Firebase project
+ *
+ * Creates a new web application in the specified Firebase project and returns
+ * the app ID. If an app with the same name already exists, it attempts to
+ * retrieve the existing app ID instead of failing.
+ *
+ * @param projectId - The Firebase project ID where the web app will be created
+ * @param appName - The display name for the web app
+ * @returns Promise<string> - The Firebase web app ID (format: 1:123456789:web:abc123def456)
+ * @throws Error if Firebase CLI command fails (except for "already exists")
+ * @throws Error if app ID cannot be extracted from CLI output
+ *
+ * @example
+ * ```typescript
+ * const appId = await createWebApp('my-project-dev', 'My Web App');
+ * console.log('Created app:', appId);
+ * // Output: Created app: 1:123456789:web:abc123def456
+ * ```
+ *
+ * @example Handling existing apps
+ * ```typescript
+ * // If app already exists, returns existing app ID
+ * const appId1 = await createWebApp('my-project', 'My App');
+ * const appId2 = await createWebApp('my-project', 'My App'); // Same as appId1
+ * ```
  */
 export async function createWebApp(projectId: string, appName: string): Promise<string> {
   logger.info(`Creating web app in ${projectId}...`);
@@ -227,7 +251,42 @@ export async function createWebApp(projectId: string, appName: string): Promise<
 }
 
 /**
- * Get Firebase web app config (API keys, etc.)
+ * Get Firebase web app configuration (API keys, project settings)
+ *
+ * Retrieves the Firebase SDK configuration for a web app, which includes
+ * API keys, auth domain, storage bucket, and other settings needed to
+ * initialize the Firebase SDK in a client application.
+ *
+ * @param projectId - The Firebase project ID
+ * @param appId - The web app ID (from createWebApp)
+ * @returns Promise<Record<string, string>> - The Firebase web app configuration object
+ * @throws Error if Firebase CLI command fails
+ * @throws Error if config JSON parsing fails
+ *
+ * @example
+ * ```typescript
+ * const config = await getWebAppConfig('my-project', '1:123456789:web:abc123');
+ * console.log(config);
+ * // Output:
+ * // {
+ * //   apiKey: "AIzaSy...",
+ * //   authDomain: "my-project.firebaseapp.com",
+ * //   projectId: "my-project",
+ * //   storageBucket: "my-project.appspot.com",
+ * //   messagingSenderId: "123456789",
+ * //   appId: "1:123456789:web:abc123"
+ * // }
+ * ```
+ *
+ * @example Using config in generated .env file
+ * ```typescript
+ * const config = await getWebAppConfig(projectId, appId);
+ * const envContent = `
+ * NEXT_PUBLIC_FIREBASE_API_KEY=${config.apiKey}
+ * NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${config.authDomain}
+ * NEXT_PUBLIC_FIREBASE_PROJECT_ID=${config.projectId}
+ * `;
+ * ```
  */
 export async function getWebAppConfig(
   projectId: string,
