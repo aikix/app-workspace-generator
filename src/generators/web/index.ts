@@ -282,6 +282,68 @@ async function generateSourceStructure(
       destination: 'src/lib/env.ts',
       context,
     },
+    // API utilities
+    {
+      type: 'copy',
+      source: 'web/src/lib/api/response.ts',
+      destination: 'src/lib/api/response.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/lib/api/errors.ts',
+      destination: 'src/lib/api/errors.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/lib/api/validation.ts',
+      destination: 'src/lib/api/validation.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/lib/api/middleware.ts',
+      destination: 'src/lib/api/middleware.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/lib/api/index.ts',
+      destination: 'src/lib/api/index.ts',
+    },
+    // Example API routes
+    {
+      type: 'copy',
+      source: 'web/src/app/api/hello/route.ts',
+      destination: 'src/app/api/hello/route.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/api/users/route.ts',
+      destination: 'src/app/api/users/route.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/api/users/[id]/route.ts',
+      destination: 'src/app/api/users/[id]/route.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/api/upload/route.ts',
+      destination: 'src/app/api/upload/route.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/api/auth/login/route.ts',
+      destination: 'src/app/api/auth/login/route.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/api/auth/logout/route.ts',
+      destination: 'src/app/api/auth/logout/route.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/api/webhooks/stripe/route.ts',
+      destination: 'src/app/api/webhooks/stripe/route.ts',
+    },
   ];
 
   // Add Firebase configuration files if backend is Firebase

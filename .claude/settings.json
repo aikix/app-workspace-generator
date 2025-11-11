@@ -21,7 +21,10 @@
       "Bash(cp:*)",
       "Bash(find:*)",
       "Bash(grep:*)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "Read(/Users/junchao.zhang/Projects/app-workspace-generator/**)",
+      "Edit(/Users/junchao.zhang/Projects/app-workspace-generator/**)",
+      "Write(/Users/junchao.zhang/Projects/app-workspace-generator/**)"
     ],
     "deny": [],
     "ask": []
