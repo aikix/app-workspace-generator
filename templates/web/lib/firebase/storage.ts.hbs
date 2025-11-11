@@ -1,0 +1,49 @@
+/**
+ * Firebase Storage Helpers (Client-Side)
+ */
+
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+  type Storage,
+  type UploadResult,
+} from 'firebase/storage';
+import { app } from './config';
+
+export const storage: Storage = getStorage(app);
+
+export async function uploadFile(path: string, file: File): Promise<string> {
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file);
+  return await getDownloadURL(storageRef);
+}
+
+export function uploadFileWithProgress(
+  path: string,
+  file: File,
+  onProgress: (progress: number) => void
+) {
+  const storageRef = ref(storage, path);
+  const uploadTask = uploadBytesResumable(storageRef, file);
+
+  uploadTask.on('state_changed', (snapshot) => {
+    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+    onProgress(progress);
+  });
+
+  return uploadTask;
+}
+
+export async function deleteFile(path: string): Promise<void> {
+  const storageRef = ref(storage, path);
+  await deleteObject(storageRef);
+}
+
+export async function getFileURL(path: string): Promise<string> {
+  const storageRef = ref(storage, path);
+  return await getDownloadURL(storageRef);
+}

@@ -1,0 +1,123 @@
+/**
+ * Firebase Firestore Helpers (Client-Side)
+ *
+ * Client-side Firestore utilities for:
+ * - CRUD operations
+ * - Real-time listeners
+ * - Queries and filtering
+ * - Collection management
+ */
+
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  addDoc,
+  updateDoc as firestoreUpdateDoc,
+  deleteDoc as firestoreDeleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  onSnapshot,
+  type Firestore,
+  type DocumentData,
+  type QueryConstraint,
+} from 'firebase/firestore';
+import { app } from './config';
+
+/**
+ * Firestore instance
+ */
+export const db: Firestore = getFirestore(app);
+
+/**
+ * Get a document by ID
+ */
+export async function getDocument<T = DocumentData>(collectionName: string, docId: string): Promise<T | null> {
+  const docRef = doc(db, collectionName, docId);
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? (docSnap.data() as T) : null;
+}
+
+/**
+ * Get all documents in a collection
+ */
+export async function getDocuments<T = DocumentData>(
+  collectionName: string,
+  ...queryConstraints: QueryConstraint[]
+): Promise<T[]> {
+  const q = query(collection(db, collectionName), ...queryConstraints);
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as T);
+}
+
+/**
+ * Create a new document
+ */
+export async function createDocument(collectionName: string, data: DocumentData): Promise<string> {
+  const docRef = await addDoc(collection(db, collectionName), {
+    ...data,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  return docRef.id;
+}
+
+/**
+ * Update an existing document
+ */
+export async function updateDocument(
+  collectionName: string,
+  docId: string,
+  data: Partial<DocumentData>
+): Promise<void> {
+  const docRef = doc(db, collectionName, docId);
+  await firestoreUpdateDoc(docRef, {
+    ...data,
+    updatedAt: new Date(),
+  });
+}
+
+/**
+ * Delete a document
+ */
+export async function deleteDocument(collectionName: string, docId: string): Promise<void> {
+  const docRef = doc(db, collectionName, docId);
+  await firestoreDeleteDoc(docRef);
+}
+
+/**
+ * Subscribe to document changes
+ */
+export function subscribeToDocument<T = DocumentData>(
+  collectionName: string,
+  docId: string,
+  callback: (data: T | null) => void
+): () => void {
+  const docRef = doc(db, collectionName, docId);
+  return onSnapshot(docRef, (doc) => {
+    callback(doc.exists() ? (doc.data() as T) : null);
+  });
+}
+
+/**
+ * Subscribe to collection changes
+ */
+export function subscribeToCollection<T = DocumentData>(
+  collectionName: string,
+  callback: (data: T[]) => void,
+  ...queryConstraints: QueryConstraint[]
+): () => void {
+  const q = query(collection(db, collectionName), ...queryConstraints);
+  return onSnapshot(q, (querySnapshot) => {
+    const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as T);
+    callback(data);
+  });
+}
+
+// Export commonly used query builders
+export { where, orderBy, limit };

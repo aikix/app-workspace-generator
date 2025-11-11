@@ -1,0 +1,165 @@
+/**
+ * Firebase Authentication Helpers (Client-Side)
+ *
+ * Client-side authentication utilities for:
+ * - Email/password authentication
+ * - Social sign-in (Google, GitHub, etc.)
+ * - Auth state monitoring
+ * - User management
+ */
+
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  sendPasswordResetEmail,
+  updateProfile,
+  updateEmail,
+  updatePassword,
+  onAuthStateChanged,
+  type User,
+  type Auth,
+} from 'firebase/auth';
+import { app } from './config';
+
+/**
+ * Firebase Auth instance
+ */
+export const auth: Auth = getAuth(app);
+
+/**
+ * Sign in with email and password
+ *
+ * @param email - User email
+ * @param password - User password
+ * @returns Promise resolving to User
+ */
+export async function signIn(email: string, password: string): Promise<User> {
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  return result.user;
+}
+
+/**
+ * Sign up with email and password
+ *
+ * @param email - User email
+ * @param password - User password
+ * @param displayName - Optional display name
+ * @returns Promise resolving to User
+ */
+export async function signUp(email: string, password: string, displayName?: string): Promise<User> {
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+
+  // Update profile if display name provided
+  if (displayName) {
+    await updateProfile(result.user, { displayName });
+  }
+
+  return result.user;
+}
+
+/**
+ * Sign out the current user
+ */
+export async function signOut(): Promise<void> {
+  await firebaseSignOut(auth);
+}
+
+/**
+ * Send password reset email
+ *
+ * @param email - User email
+ */
+export async function resetPassword(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
+}
+
+/**
+ * Update user profile
+ *
+ * @param updates - Profile updates (displayName, photoURL)
+ */
+export async function updateUserProfile(updates: {
+  displayName?: string | null;
+  photoURL?: string | null;
+}): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('No user is signed in');
+  }
+
+  await updateProfile(user, updates);
+}
+
+/**
+ * Update user email
+ *
+ * @param newEmail - New email address
+ */
+export async function updateUserEmail(newEmail: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('No user is signed in');
+  }
+
+  await updateEmail(user, newEmail);
+}
+
+/**
+ * Update user password
+ *
+ * @param newPassword - New password
+ */
+export async function updateUserPassword(newPassword: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('No user is signed in');
+  }
+
+  await updatePassword(user, newPassword);
+}
+
+/**
+ * Get current user
+ *
+ * @returns Current user or null
+ */
+export function getCurrentUser(): User | null {
+  return auth.currentUser;
+}
+
+/**
+ * Subscribe to auth state changes
+ *
+ * @param callback - Callback function to handle auth state changes
+ * @returns Unsubscribe function
+ */
+export function onAuthChange(callback: (user: User | null) => void): () => void {
+  return onAuthStateChanged(auth, callback);
+}
+
+/**
+ * Get ID token for the current user
+ * Use this to send to your backend for session creation
+ *
+ * @param forceRefresh - Force token refresh
+ * @returns ID token string
+ */
+export async function getIdToken(forceRefresh = false): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('No user is signed in');
+  }
+
+  return await user.getIdToken(forceRefresh);
+}
+
+/**
+ * Check if user is authenticated
+ *
+ * @returns True if user is signed in
+ */
+export function isAuthenticated(): boolean {
+  return auth.currentUser !== null;
+}

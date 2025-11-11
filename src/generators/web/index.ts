@@ -276,13 +276,51 @@ async function generateSourceStructure(
 
   // Add Firebase configuration files if backend is Firebase
   if (context.backend === 'firebase') {
-    // Always add client SDK
-    operations.push({
-      type: 'template',
-      source: 'web/lib/firebase-client.ts.hbs',
-      destination: 'src/lib/firebase-client.ts',
-      context,
-    });
+    // Client-side pattern: Modular Firebase client structure
+    if (context.firebasePattern === 'client-side') {
+      operations.push(
+        {
+          type: 'template',
+          source: 'web/lib/firebase/config.ts.hbs',
+          destination: 'src/lib/firebase/config.ts',
+          context,
+        },
+        {
+          type: 'template',
+          source: 'web/lib/firebase/auth.ts.hbs',
+          destination: 'src/lib/firebase/auth.ts',
+          context,
+        },
+        {
+          type: 'template',
+          source: 'web/lib/firebase/firestore.ts.hbs',
+          destination: 'src/lib/firebase/firestore.ts',
+          context,
+        },
+        {
+          type: 'template',
+          source: 'web/lib/firebase/storage.ts.hbs',
+          destination: 'src/lib/firebase/storage.ts',
+          context,
+        }
+      );
+
+      // React hooks for Firebase
+      operations.push(
+        {
+          type: 'template',
+          source: 'web/src/hooks/firebase/useAuth.tsx.hbs',
+          destination: 'src/hooks/firebase/useAuth.tsx',
+          context,
+        },
+        {
+          type: 'template',
+          source: 'web/src/hooks/firebase/useFirestore.tsx.hbs',
+          destination: 'src/hooks/firebase/useFirestore.tsx',
+          context,
+        }
+      );
+    }
 
     // Add Admin SDK for server-first pattern
     if (context.firebasePattern === 'server-first') {
