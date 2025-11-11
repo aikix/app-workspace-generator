@@ -1,0 +1,133 @@
+# {{pascalCase projectName}}
+
+{{description}}
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js >= 18.0.0
+{{#if (eq packageManager "pnpm")}}
+- pnpm
+{{else if (eq packageManager "yarn")}}
+- Yarn
+{{else if (eq packageManager "bun")}}
+- Bun
+{{else}}
+- npm
+{{/if}}
+
+### Installation
+
+```bash
+# Install dependencies
+{{#if (eq packageManager "pnpm")}}
+pnpm install
+{{else if (eq packageManager "yarn")}}
+yarn install
+{{else if (eq packageManager "bun")}}
+bun install
+{{else}}
+npm install
+{{/if}}
+
+# Run development server
+{{#if (eq packageManager "pnpm")}}
+pnpm dev
+{{else if (eq packageManager "yarn")}}
+yarn dev
+{{else if (eq packageManager "bun")}}
+bun dev
+{{else}}
+npm run dev
+{{/if}}
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## 📦 Tech Stack
+
+- **Framework**: {{capitalize framework}} {{#if (eq framework "next")}}15{{/if}}
+{{#if typescript}}
+- **Language**: TypeScript
+{{/if}}
+{{#if (eq styling "tailwind")}}
+- **Styling**: Tailwind CSS v4
+{{/if}}
+{{#if (ne testing "none")}}
+- **Testing**: {{capitalize testing}}
+{{/if}}
+{{#if (ne backend "none")}}
+- **Backend**: {{capitalize backend}}
+{{/if}}
+
+## 🛠️ Available Scripts
+
+### Development
+
+- `{{packageManager}} run dev` - Start development server
+- `{{packageManager}} run build` - Build for production
+- `{{packageManager}} run start` - Start production server
+- `{{packageManager}} run type-check` - Run TypeScript type checking
+
+{{#if linting}}
+### Code Quality
+
+- `{{packageManager}} run lint` - Run ESLint
+- `{{packageManager}} run lint:fix` - Fix ESLint errors
+{{/if}}
+
+{{#if formatting}}
+- `{{packageManager}} run format` - Format code with Prettier
+- `{{packageManager}} run format:check` - Check code formatting
+{{/if}}
+
+{{#if (eq testing "playwright")}}
+### Testing
+
+- `{{packageManager}} run e2e` - Run E2E tests
+- `{{packageManager}} run e2e:ui` - Run E2E tests with UI
+- `{{packageManager}} run e2e:headed` - Run E2E tests in headed mode
+- `{{packageManager}} run e2e:debug` - Debug E2E tests
+{{/if}}
+
+## 📁 Project Structure
+
+```
+{{projectName}}/
+├── src/
+│   ├── app/              # Next.js App Router pages
+│   ├── components/       # React components
+│   ├── lib/              # Utilities and helpers
+│   └── types/            # TypeScript type definitions
+├── public/               # Static assets
+{{#if (eq testing "playwright")}}
+├── tests/                # E2E tests
+{{/if}}
+├── .github/              # GitHub configuration
+{{#if documentation.architecture}}
+├── docs/                 # Documentation
+{{/if}}
+└── package.json
+```
+
+{{#if documentation.aiInstructions}}
+## 🤖 AI Assistant
+
+This project includes AI agent instructions in `CLAUDE.md` for Claude Code and similar AI assistants.
+{{/if}}
+
+## 📖 Documentation
+
+{{#if documentation.architecture}}
+- [Getting Started](docs/getting-started/development-guide.md)
+- [Architecture](docs/architecture/directory-structure.md)
+{{/if}}
+
+## 📝 License
+
+MIT
+
+---
+
+Built with ❤️ using [app-workspace-generator](https://github.com/yourusername/app-workspace-generator)

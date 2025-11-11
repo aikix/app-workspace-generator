@@ -1,0 +1,72 @@
+/**
+ * Firebase Client SDK Configuration
+ *
+ * This file initializes the Firebase client SDK for browser use.
+ * Use this for:
+ * - Client-side authentication
+ * - Real-time listeners (onSnapshot)
+ * - Client-side data fetching
+ * - Interactive features requiring real-time updates
+ */
+
+import { initializeApp, getApps } from 'firebase/app';
+{{#if hasAuth}}
+import { getAuth } from 'firebase/auth';
+{{/if}}
+{{#if hasDatabase}}
+import { getFirestore } from 'firebase/firestore';
+{{/if}}
+{{#if hasStorage}}
+import { getStorage } from 'firebase/storage';
+{{/if}}
+{{#if hasFunctions}}
+import { getFunctions } from 'firebase/functions';
+{{/if}}
+
+// Firebase configuration from environment variables
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+// Validate configuration
+const requiredConfig = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+];
+
+requiredConfig.forEach((key) => {
+  if (!process.env[key]) {
+    throw new Error(`Missing required Firebase config: ${key}`);
+  }
+});
+
+// Initialize Firebase (singleton pattern)
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]!;
+
+{{#if hasAuth}}
+// Firebase Authentication
+export const auth = getAuth(app);
+{{/if}}
+
+{{#if hasDatabase}}
+// Firestore Database
+export const db = getFirestore(app);
+{{/if}}
+
+{{#if hasStorage}}
+// Cloud Storage
+export const storage = getStorage(app);
+{{/if}}
+
+{{#if hasFunctions}}
+// Cloud Functions
+export const functions = getFunctions(app);
+{{/if}}
+
+export default app;

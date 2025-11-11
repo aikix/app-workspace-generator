@@ -1,0 +1,31 @@
+{
+  "name": "firebase-client-app",
+  "description": "A web application with Firebase (client-side pattern)",
+  "author": "",
+  "workspace": {
+    "type": "single",
+    "platforms": ["web"]
+  },
+  "web": {
+    "framework": "next",
+    "typescript": true,
+    "styling": "tailwind",
+    "ui": "none",
+    "testing": "playwright",
+    "linting": true,
+    "formatting": true,
+    "gitHooks": true
+  },
+  "backend": {
+    "type": "firebase",
+    "features": ["auth", "database"],
+    "firebasePattern": "client-side"
+  },
+  "documentation": {
+    "aiInstructions": true,
+    "architecture": true,
+    "apiDocs": false,
+    "styleguide": false
+  },
+  "packageManager": "npm"
+}

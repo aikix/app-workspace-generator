@@ -1,0 +1,63 @@
+/**
+ * Firebase Admin SDK Configuration
+ *
+ * This file initializes the Firebase Admin SDK for server-side use.
+ * Use this for:
+ * - Server Components (RSC)
+ * - Server Actions
+ * - API Routes
+ * - Secure data access (credentials never exposed to client)
+ *
+ * IMPORTANT: Admin SDK uses service account credentials - NEVER expose these to the client!
+ */
+
+import { initializeApp, getApps, cert, type ServiceAccount } from 'firebase-admin/app';
+{{#if hasAuth}}
+import { getAuth } from 'firebase-admin/auth';
+{{/if}}
+{{#if hasDatabase}}
+import { getFirestore } from 'firebase-admin/firestore';
+{{/if}}
+{{#if hasStorage}}
+import { getStorage } from 'firebase-admin/storage';
+{{/if}}
+
+// Service account credentials from environment variable
+// In production, store this as a JSON string in FIREBASE_SERVICE_ACCOUNT_KEY
+const serviceAccount: ServiceAccount = {
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+};
+
+// Validate service account
+if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
+  throw new Error(
+    'Missing Firebase Admin SDK credentials. Required: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY'
+  );
+}
+
+// Initialize Firebase Admin (singleton pattern)
+const app =
+  getApps().length === 0
+    ? initializeApp({
+        credential: cert(serviceAccount),
+      })
+    : getApps()[0]!;
+
+{{#if hasAuth}}
+// Firebase Admin Auth
+export const adminAuth = getAuth(app);
+{{/if}}
+
+{{#if hasDatabase}}
+// Firestore Admin Database
+export const adminDb = getFirestore(app);
+{{/if}}
+
+{{#if hasStorage}}
+// Cloud Storage Admin
+export const adminStorage = getStorage(app);
+{{/if}}
+
+export default app;

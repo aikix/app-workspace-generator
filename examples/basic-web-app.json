@@ -1,0 +1,26 @@
+{
+  "name": "my-web-app",
+  "description": "A basic web application built with Next.js and TypeScript",
+  "author": "",
+  "workspace": {
+    "type": "single",
+    "platforms": ["web"]
+  },
+  "web": {
+    "framework": "next",
+    "typescript": true,
+    "styling": "tailwind",
+    "ui": "none",
+    "testing": "playwright",
+    "linting": true,
+    "formatting": true,
+    "gitHooks": true
+  },
+  "documentation": {
+    "aiInstructions": true,
+    "architecture": true,
+    "apiDocs": false,
+    "styleguide": false
+  },
+  "packageManager": "npm"
+}
