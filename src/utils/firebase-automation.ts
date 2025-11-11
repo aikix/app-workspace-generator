@@ -6,6 +6,19 @@ const execAsync = promisify(exec);
 
 /**
  * Check if Firebase CLI is installed
+ *
+ * Verifies Firebase CLI installation by running `firebase --version`.
+ * Returns true if the command succeeds, false otherwise.
+ *
+ * @returns Promise<boolean> - true if Firebase CLI is installed, false otherwise
+ *
+ * @example
+ * ```typescript
+ * const isInstalled = await checkFirebaseCLI();
+ * if (!isInstalled) {
+ *   console.log('Please install Firebase CLI: npm install -g firebase-tools');
+ * }
+ * ```
  */
 export async function checkFirebaseCLI(): Promise<boolean> {
   try {
@@ -18,6 +31,19 @@ export async function checkFirebaseCLI(): Promise<boolean> {
 
 /**
  * Check if user is logged in to Firebase
+ *
+ * Verifies Firebase authentication by running `firebase login:list`.
+ * Checks if the output contains an email address (@ symbol).
+ *
+ * @returns Promise<boolean> - true if user is logged in, false otherwise
+ *
+ * @example
+ * ```typescript
+ * const isLoggedIn = await checkFirebaseLogin();
+ * if (!isLoggedIn) {
+ *   console.log('Please login: firebase login');
+ * }
+ * ```
  */
 export async function checkFirebaseLogin(): Promise<boolean> {
   try {
@@ -30,6 +56,24 @@ export async function checkFirebaseLogin(): Promise<boolean> {
 
 /**
  * Verify Firebase CLI and login status
+ *
+ * Combined verification function that checks both Firebase CLI installation
+ * and user authentication. Throws descriptive errors with instructions if
+ * either check fails.
+ *
+ * @throws Error if Firebase CLI is not installed
+ * @throws Error if user is not logged in to Firebase
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await verifyFirebaseCLI();
+ *   console.log('Firebase CLI ready!');
+ * } catch (error) {
+ *   console.error(error.message);
+ *   process.exit(1);
+ * }
+ * ```
  */
 export async function verifyFirebaseCLI(): Promise<void> {
   logger.step('Verifying Firebase CLI...');
@@ -103,7 +147,7 @@ export async function createWebApp(projectId: string, appName: string): Promise<
       throw new Error('Failed to extract app ID from Firebase CLI output');
     }
 
-    const appId = appIdMatch[1];
+    const appId = appIdMatch[1]!;
     logger.success(`Created web app: ${appName} (${appId})`);
     return appId;
   } catch (error) {
@@ -112,7 +156,7 @@ export async function createWebApp(projectId: string, appName: string): Promise<
       // Try to get existing app ID
       const { stdout } = await execAsync(`firebase apps:list --project ${projectId}`);
       const appIdMatch = stdout.match(/([^\s]+)\s+\(WEB\)/);
-      return appIdMatch ? appIdMatch[1] : '';
+      return appIdMatch?.[1] || '';
     }
     throw error;
   }
