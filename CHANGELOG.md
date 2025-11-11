@@ -1,3 +1,7 @@
+## 1.7.0 (2025-11-11)
+
+- feat(templates): add environment variable management and validation ([051ee04](https://github.com/aikix/app-workspace-generator/commit/051ee04)), closes [#10](https://github.com/aikix/app-workspace-generator/issues/10)
+
 ## 1.6.0 (2025-11-11)
 
 - feat(templates): add comprehensive TypeScript configuration and type definitions ([d116eb7](https://github.com/aikix/app-workspace-generator/commit/d116eb7)), closes [#8](https://github.com/aikix/app-workspace-generator/issues/8)
