@@ -226,11 +226,26 @@ async function generateSourceStructure(
       source: '',
       destination: 'src/hooks',
     },
-    // Types directory
+    // Types directory with type definition files
     {
       type: 'directory',
       source: '',
       destination: 'src/types',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/types/global.d.ts',
+      destination: 'src/types/global.d.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/types/utils.ts',
+      destination: 'src/types/utils.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/types/index.ts',
+      destination: 'src/types/index.ts',
     },
   ];
 
@@ -268,8 +283,7 @@ export {};
   placeholderCount++;
   await writeFile(path.join(targetDir, 'src/hooks/index.ts'), placeholderContent);
   placeholderCount++;
-  await writeFile(path.join(targetDir, 'src/types/index.ts'), placeholderContent);
-  placeholderCount++;
+  // Note: src/types/index.ts is now a real file, not a placeholder
 
   // Only create utils.ts placeholder if not using Firebase
   if (context.backend !== 'firebase') {
@@ -298,6 +312,15 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
       context,
     },
   ];
+
+  // Add next-env.d.ts for TypeScript projects
+  if (context.typescript) {
+    operations.push({
+      type: 'copy',
+      source: 'web/root/next-env.d.ts',
+      destination: 'next-env.d.ts',
+    });
+  }
 
   if (context.formatting) {
     operations.push({
