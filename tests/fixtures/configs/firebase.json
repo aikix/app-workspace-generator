@@ -1,0 +1,31 @@
+{
+  "name": "firebase-test-app",
+  "description": "Firebase integration test application",
+  "author": "Test Author",
+  "workspace": {
+    "type": "single",
+    "platforms": ["web"]
+  },
+  "web": {
+    "framework": "next",
+    "typescript": true,
+    "styling": "tailwind",
+    "ui": "none",
+    "testing": "none",
+    "linting": true,
+    "formatting": true,
+    "gitHooks": true
+  },
+  "backend": {
+    "type": "firebase",
+    "features": ["auth", "database", "storage"],
+    "firebasePattern": "client-side"
+  },
+  "documentation": {
+    "aiInstructions": true,
+    "architecture": false,
+    "apiDocs": false,
+    "styleguide": false
+  },
+  "packageManager": "npm"
+}

@@ -1,0 +1,31 @@
+{
+  "name": "full-features-app",
+  "description": "Full featured test application",
+  "author": "Test Author",
+  "workspace": {
+    "type": "single",
+    "platforms": ["web"]
+  },
+  "web": {
+    "framework": "next",
+    "typescript": true,
+    "styling": "tailwind",
+    "ui": "none",
+    "testing": "playwright",
+    "linting": true,
+    "formatting": true,
+    "gitHooks": true
+  },
+  "documentation": {
+    "aiInstructions": true,
+    "architecture": true,
+    "apiDocs": true,
+    "styleguide": true
+  },
+  "cicd": {
+    "platform": "github",
+    "semanticRelease": true,
+    "autoDeployment": false
+  },
+  "packageManager": "npm"
+}
