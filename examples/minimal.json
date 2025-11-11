@@ -1,0 +1,25 @@
+{
+  "name": "minimal-app",
+  "description": "A minimal Next.js application",
+  "workspace": {
+    "type": "single",
+    "platforms": ["web"]
+  },
+  "web": {
+    "framework": "next",
+    "typescript": true,
+    "styling": "tailwind",
+    "ui": "none",
+    "testing": "none",
+    "linting": false,
+    "formatting": false,
+    "gitHooks": false
+  },
+  "documentation": {
+    "aiInstructions": true,
+    "architecture": false,
+    "apiDocs": false,
+    "styleguide": false
+  },
+  "packageManager": "npm"
+}

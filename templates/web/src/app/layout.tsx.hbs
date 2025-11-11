@@ -1,0 +1,21 @@
+import type { Metadata } from 'next';
+{{#if (eq styling "tailwind")}}
+import './globals.css';
+{{/if}}
+
+export const metadata: Metadata = {
+  title: '{{pascalCase projectName}}',
+  description: '{{description}}',
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}

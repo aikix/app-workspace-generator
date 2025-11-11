@@ -1,0 +1,569 @@
+# CLAUDE.md - {{pascalCase projectName}}
+
+This file provides guidance to Claude Code (claude.ai/code) when working with this project.
+
+## Project Overview
+
+**{{pascalCase projectName}}** - {{description}}
+
+**Status**: 🚧 In Development
+
+**Tech Stack**: {{capitalize framework}}{{#if typescript}} + TypeScript{{/if}}{{#if (eq styling "tailwind")}} + Tailwind CSS{{/if}}{{#if (ne backend "none")}} + {{capitalize backend}}{{/if}}
+
+**Key Differentiator**: Modern {{framework}} application with production-ready setup and AI-friendly documentation.
+
+---
+
+## Common Commands
+
+### Daily Development
+```bash
+{{packageManager}} run dev              # Start dev server (localhost:3000)
+{{packageManager}} run build            # Production build
+{{packageManager}} run type-check       # TypeScript validation
+{{#if linting}}
+{{packageManager}} run lint:fix         # Auto-fix linting issues
+{{/if}}
+{{#if (eq testing "playwright")}}
+{{packageManager}} run e2e              # Run E2E tests
+{{/if}}
+```
+
+{{#if linting}}
+### Code Quality
+```bash
+{{packageManager}} run lint             # Check for linting errors
+{{packageManager}} run lint:fix         # Auto-fix linting errors
+{{#if formatting}}
+{{packageManager}} run format           # Format code with Prettier
+{{packageManager}} run format:check     # Check code formatting
+{{/if}}
+```
+{{/if}}
+
+{{#if (eq testing "playwright")}}
+### Testing
+```bash
+{{packageManager}} run e2e              # Run all E2E tests
+{{packageManager}} run e2e:ui           # Run tests with UI mode
+{{packageManager}} run e2e:headed       # Run tests in headed browser
+{{packageManager}} run e2e:debug        # Debug tests
+```
+{{/if}}
+
+{{#if (eq backend "firebase")}}
+### Database Operations (if using Firestore)
+```bash
+# Add your database seed scripts here
+{{packageManager}} run seed-db          # Seed database (TODO: implement)
+```
+{{/if}}
+
+---
+
+## Tech Stack
+
+### Frontend
+- **Framework**: {{capitalize framework}}{{#if (eq framework "next")}} 16 (App Router){{/if}}
+{{#if typescript}}
+- **Language**: TypeScript 5.9+ (strict mode)
+{{/if}}
+{{#if (eq styling "tailwind")}}
+- **Styling**: Tailwind CSS v4 (CSS-native configuration)
+{{/if}}
+{{#if (ne uiLibrary "none")}}
+- **UI Components**: {{capitalize uiLibrary}}
+{{/if}}
+- **React**: 19.x
+
+{{#if (ne backend "none")}}
+### Backend
+- **Platform**: {{capitalize backend}}
+{{#if (eq backend "firebase")}}
+{{#if hasAuth}}
+- **Authentication**: Firebase Auth
+{{/if}}
+{{#if hasDatabase}}
+- **Database**: Firestore
+{{/if}}
+{{#if hasStorage}}
+- **Storage**: Cloud Storage
+{{/if}}
+{{#if hasFunctions}}
+- **Functions**: Cloud Functions
+{{/if}}
+- **Architecture Pattern**: {{#if (eq firebasePattern "server-first")}}Server-First (Admin SDK){{else}}Client-Side{{/if}}
+{{/if}}
+{{/if}}
+
+### Development Tools
+{{#if linting}}
+- **Linting**: ESLint 9 (flat config)
+{{/if}}
+{{#if formatting}}
+- **Formatting**: Prettier + prettier-plugin-tailwindcss
+{{/if}}
+{{#if (eq testing "playwright")}}
+- **Testing**: Playwright (E2E)
+{{/if}}
+{{#if gitHooks}}
+- **Git Hooks**: Husky + lint-staged
+- **Commits**: Conventional Commits (enforced via commitlint)
+{{/if}}
+
+---
+
+## Architecture
+
+### Directory Structure
+
+```
+{{projectName}}/
+├── src/
+│   ├── app/              # Next.js App Router
+│   │   ├── layout.tsx    # Root layout
+│   │   ├── page.tsx      # Home page
+│   │   └── globals.css   # Global styles
+│   ├── components/       # React components
+│   │   ├── ui/           # Reusable UI components
+│   │   └── features/     # Feature-specific components
+│   ├── lib/              # Utilities and helpers
+│   │   ├── utils.ts      # General utilities
+{{#if (eq backend "firebase")}}
+│   │   └── firebase.ts   # Firebase configuration
+{{/if}}
+│   ├── hooks/            # Custom React hooks
+│   └── types/            # TypeScript type definitions
+├── public/               # Static assets
+│   ├── images/           # Images
+│   └── fonts/            # Custom fonts
+{{#if (eq testing "playwright")}}
+├── tests/                # E2E tests
+│   └── e2e/              # Playwright tests
+{{/if}}
+{{#if documentation.architecture}}
+├── docs/                 # Documentation
+│   ├── getting-started/  # Setup guides
+│   └── architecture/     # Architecture docs
+{{/if}}
+├── .github/              # GitHub workflows
+└── package.json
+```
+
+### Key Patterns
+
+1. **Component Organization**
+   - Place reusable UI components in `src/components/ui/`
+   - Place feature-specific components in `src/components/features/`
+   - Use `index.ts` for clean exports
+
+2. **Import Aliases**
+   - Use `@/` alias for imports: `import { Button } from '@/components/ui/button'`
+   - Configured in `tsconfig.json` paths
+
+3. **File Naming**
+   - Components: PascalCase (`Button.tsx`, `UserProfile.tsx`)
+   - Utilities: camelCase (`utils.ts`, `formatDate.ts`)
+   - Types: camelCase with `.types.ts` suffix (`user.types.ts`)
+
+{{#if (eq styling "tailwind")}}
+4. **Styling**
+   - Use Tailwind CSS utility classes
+   - Tailwind v4 uses CSS-native configuration in `globals.css`
+   - Use `className` prop for styling
+   - Prefer composition over custom CSS
+{{/if}}
+
+{{#if (eq backend "firebase")}}
+### Firebase Architecture Pattern: {{#if (eq firebasePattern "server-first")}}Server-First{{else}}Client-Side{{/if}}
+
+{{#if (eq firebasePattern "server-first")}}
+**Server-First Pattern** (Recommended for SEO & Security)
+
+This project uses Firebase Admin SDK for server-side operations with Next.js Server Components.
+
+**File Structure**:
+- `src/lib/firebase-client.ts` - Client SDK (for real-time listeners, client auth)
+- `src/lib/firebase-admin.ts` - Admin SDK (for Server Components, Server Actions)
+
+**When to Use Each**:
+
+1. **Server Components (Use Admin SDK)** - SEO-friendly, secure
+   ```typescript
+   // src/app/lists/page.tsx
+   import { adminDb } from '@/lib/firebase-admin';
+
+   export default async function ListsPage() {
+     // Runs on server - credentials never exposed
+     const snapshot = await adminDb.collection('lists').get();
+     const lists = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+     return <ListsView lists={lists} />;
+   }
+   ```
+
+2. **Client Components (Use Client SDK)** - Real-time, interactive
+   ```typescript
+   // src/components/RealtimeList.tsx
+   'use client';
+   import { db } from '@/lib/firebase-client';
+   import { onSnapshot, collection } from 'firebase/firestore';
+
+   export function RealtimeList() {
+     useEffect(() => {
+       const unsubscribe = onSnapshot(
+         collection(db, 'lists'),
+         (snapshot) => setLists(snapshot.docs)
+       );
+       return unsubscribe;
+     }, []);
+   }
+   ```
+
+3. **Server Actions (Use Admin SDK)** - Mutations, secure writes
+   ```typescript
+   // src/app/actions.ts
+   'use server';
+   import { adminDb } from '@/lib/firebase-admin';
+
+   export async function createList(formData: FormData) {
+     await adminDb.collection('lists').add({
+       name: formData.get('name'),
+       userId: await getCurrentUserId(),
+     });
+     revalidatePath('/lists');
+   }
+   ```
+
+**Environment Variables** (see `.env.example`):
+- Admin SDK requires: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`
+- Client SDK (optional): `NEXT_PUBLIC_FIREBASE_*` for real-time features
+
+**Security Benefits**:
+- Admin SDK credentials never exposed to browser
+- Service account has full access (use carefully!)
+- Perfect for secure data fetching and mutations
+
+{{else}}
+**Client-Side Pattern** (Simple, PWA-friendly)
+
+This project uses Firebase Client SDK for all operations in the browser.
+
+**File Structure**:
+- `src/lib/firebase-client.ts` - Client SDK configuration
+
+**Usage**:
+```typescript
+'use client';
+import { db, auth } from '@/lib/firebase-client';
+import { collection, addDoc, query, where, onSnapshot } from 'firebase/firestore';
+
+// In any Client Component
+export function MyComponent() {
+  const [lists, setLists] = useState([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'lists'), where('userId', '==', currentUser.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setLists(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleCreate = async () => {
+    await addDoc(collection(db, 'lists'), {
+      name: 'New List',
+      userId: currentUser.uid,
+    });
+  };
+}
+```
+
+**Environment Variables** (see `.env.example`):
+- Requires: `NEXT_PUBLIC_FIREBASE_*` variables (exposed to browser)
+
+**Best For**:
+- Progressive Web Apps (PWA)
+- Real-time applications
+- Offline-first apps
+- Simple authentication flows
+
+**Note**: Most components will need `'use client'` directive for Firebase operations.
+
+{{/if}}
+{{/if}}
+
+---
+
+## Coding Standards
+
+### TypeScript
+
+- **Strict Mode**: Always enabled
+- **Type Safety**: No `any` unless absolutely necessary (use `unknown` instead)
+- **Explicit Returns**: Prefer explicit return types for functions
+- **Null Safety**: Use optional chaining (`?.`) and nullish coalescing (`??`)
+
+```typescript
+// Good
+function getUser(id: string): Promise<User | null> {
+  return fetchUser(id);
+}
+
+// Avoid
+function getUser(id: string): Promise<any> {
+  return fetchUser(id);
+}
+```
+
+### React Patterns
+
+- **Functional Components**: Use function declarations, not arrow functions
+- **Hooks**: Follow Rules of Hooks (top level, same order)
+- **Props**: Define explicit prop types with TypeScript interfaces
+- **State**: Use `useState` for local state, consider Context for global state
+
+```tsx
+// Good
+interface ButtonProps {
+  onClick: () => void;
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary';
+}
+
+export function Button({ onClick, children, variant = 'primary' }: ButtonProps) {
+  return <button onClick={onClick}>{children}</button>;
+}
+```
+
+{{#if (eq styling "tailwind")}}
+### Tailwind CSS
+
+- **Utility-First**: Prefer Tailwind utilities over custom CSS
+- **Responsive**: Use responsive prefixes (`md:`, `lg:`)
+- **Dark Mode**: Use `dark:` prefix for dark mode styles
+- **Custom Classes**: Only create custom classes for repeated patterns
+
+```tsx
+// Good
+<div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg">
+
+// Avoid (too many custom classes)
+<div className="my-custom-container">
+```
+{{/if}}
+
+{{#if linting}}
+### Linting
+
+- Run `{{packageManager}} run lint:fix` before committing
+- Fix all errors; warnings are acceptable with justification
+- Disable rules sparingly using `eslint-disable-next-line` with comments
+{{/if}}
+
+---
+
+{{#if (eq testing "playwright")}}
+## Testing
+
+### E2E Testing (Playwright)
+
+- Tests in `tests/e2e/` directory
+- Test file naming: `*.spec.ts`
+- Run tests: `{{packageManager}} run e2e`
+- Debug tests: `{{packageManager}} run e2e:debug`
+
+**Test Structure**:
+```typescript
+import { test, expect } from '@playwright/test';
+
+test('home page loads', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading')).toContainText('Welcome');
+});
+```
+
+**Quality Standards**:
+- Write tests for critical user flows
+- Test accessibility (ARIA roles, labels)
+- Test responsive design (mobile, tablet, desktop)
+- Keep tests independent and idempotent
+
+---
+
+{{/if}}
+## Development Workflow
+
+### Branching Strategy
+
+- `main` → Production{{#if (ne backend "none")}} (auto-deploys){{/if}}
+- `develop` → Development
+- Feature branches → Create from `develop`, name as `feature/your-feature-name`
+- Bug fixes → `fix/bug-description`
+
+### Commit Convention
+
+{{#if gitHooks}}
+Use Conventional Commits (enforced by commitlint):
+{{else}}
+Use Conventional Commits:
+{{/if}}
+
+```bash
+feat: add user authentication
+fix: resolve navigation bug
+docs: update setup guide
+style: format code
+refactor: simplify data fetching
+test: add login tests
+chore: update dependencies
+```
+
+**Structure**: `type(scope): description`
+
+**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`
+
+{{#if gitHooks}}
+### Pre-Commit Hooks
+
+Husky runs these checks automatically:
+{{#if linting}}
+- ESLint on staged files
+{{/if}}
+{{#if formatting}}
+- Prettier formatting on staged files
+{{/if}}
+- Commit message linting (conventional commits)
+
+If checks fail, fix issues before committing.
+{{/if}}
+
+### Pull Request Process
+
+1. Create feature branch from `develop`
+2. Make changes and commit with conventional commits
+3. Run all checks locally:
+   - `{{packageManager}} run type-check`
+   {{#if linting}}
+   - `{{packageManager}} run lint`
+   {{/if}}
+   {{#if (eq testing "playwright")}}
+   - `{{packageManager}} run e2e`
+   {{/if}}
+4. Push branch and create PR
+5. Wait for CI checks to pass
+6. Request review
+7. Merge to `develop` after approval
+
+---
+
+## Architecture Decision Process
+
+### When to Pause and Discuss
+
+Before making significant changes, discuss with the team:
+
+1. **New Dependencies**: Adding new npm packages (security, bundle size)
+2. **Architecture Changes**: Changing folder structure, patterns
+3. **Breaking Changes**: API changes, database schema changes
+4. **Performance Impact**: Changes that might affect load time, rendering
+5. **Security**: Authentication, authorization, data handling
+
+### How to Propose Changes
+
+1. Create an issue describing the problem and proposed solution
+2. Share alternatives considered
+3. Discuss trade-offs (complexity, performance, maintainability)
+4. Get feedback before implementing
+5. Document decision in `docs/architecture/` (if applicable)
+
+---
+
+## Production Safety Rules
+
+{{#if (ne backend "none")}}
+### Environment Variables
+
+- **Never commit**: `.env.local`, `.env`
+- **Use `.env.example`**: Document required variables
+- **Production secrets**: Store in hosting platform (Vercel, Firebase, etc.)
+
+{{#if (eq backend "firebase")}}
+**Firebase Configuration**:
+```bash
+# .env.local (never commit)
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+# ... other Firebase config
+```
+{{/if}}
+
+---
+
+{{/if}}
+## Important Documentation
+
+{{#if documentation.architecture}}
+- **Getting Started**: `docs/getting-started/development-guide.md`
+- **Architecture**: `docs/architecture/directory-structure.md`
+- **Tech Stack**: `docs/architecture/tech-stack.md`
+{{/if}}
+- **README**: Project overview and quick start
+- **Package.json**: Scripts and dependencies
+
+---
+
+## Common Pitfalls
+
+{{#if (eq framework "next")}}
+1. **Client/Server Components**: Understand Next.js 13+ App Router patterns
+   - Use `'use client'` for interactive components
+   - Keep Server Components as default for better performance
+
+{{/if}}
+{{#if typescript}}
+2. **TypeScript Strict Mode**: Don't bypass with `@ts-ignore`
+   - Fix type errors properly
+   - Use type guards for runtime checks
+
+{{/if}}
+{{#if (eq styling "tailwind")}}
+3. **Tailwind v4**: Uses CSS-native configuration
+   - Configure in `globals.css` with `@theme` directive
+   - No JavaScript config (except stub for tooling)
+
+{{/if}}
+{{#if (ne backend "none")}}
+4. **Environment Variables**: Prefix public variables with `NEXT_PUBLIC_`
+   - `NEXT_PUBLIC_*` → Exposed to browser
+   - Non-prefixed → Server-side only
+
+{{/if}}
+---
+
+## Support & Resources
+
+- **Documentation**: `/docs` directory
+- **Issues**: Report bugs and request features via GitHub Issues
+{{#if (eq framework "next")}}
+- **Next.js Docs**: https://nextjs.org/docs
+{{/if}}
+{{#if (eq backend "firebase")}}
+- **Firebase Docs**: https://firebase.google.com/docs
+{{/if}}
+
+---
+
+## Core Principles
+
+1. **Type Safety**: TypeScript strict mode, no `any`
+2. **Performance**: Fast load times, optimized rendering
+3. **Accessibility**: ARIA labels, keyboard navigation, semantic HTML
+4. **Maintainability**: Clean code, documented decisions, consistent patterns
+5. **User Experience**: Responsive, intuitive, delightful interactions
+
+**Goal**: Build a production-ready, maintainable application with excellent developer experience.
+
+---
+
+Generated by [app-workspace-generator](https://github.com/yourusername/app-workspace-generator)
