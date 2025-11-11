@@ -195,6 +195,19 @@ export async function createFirebaseProject(projectId: string): Promise<void> {
 }
 
 /**
+ * Firebase web app configuration structure
+ */
+export interface FirebaseWebAppConfig {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  measurementId?: string; // Optional - for Google Analytics
+}
+
+/**
  * Create a web app in a Firebase project
  *
  * Creates a new web application in the specified Firebase project and returns
@@ -204,6 +217,8 @@ export async function createFirebaseProject(projectId: string): Promise<void> {
  * @param projectId - The Firebase project ID where the web app will be created
  * @param appName - The display name for the web app
  * @returns Promise<string> - The Firebase web app ID (format: 1:123456789:web:abc123def456)
+ * @throws Error if project ID is invalid
+ * @throws Error if app name is empty
  * @throws Error if Firebase CLI command fails (except for "already exists")
  * @throws Error if app ID cannot be extracted from CLI output
  *
@@ -222,6 +237,15 @@ export async function createFirebaseProject(projectId: string): Promise<void> {
  * ```
  */
 export async function createWebApp(projectId: string, appName: string): Promise<string> {
+  // Validate inputs
+  if (!validateProjectId(projectId)) {
+    throw new Error(`Invalid project ID: ${projectId}`);
+  }
+
+  if (!appName || appName.trim().length === 0) {
+    throw new Error('App name cannot be empty');
+  }
+
   logger.info(`Creating web app in ${projectId}...`);
 
   try {
@@ -240,17 +264,26 @@ export async function createWebApp(projectId: string, appName: string): Promise<
     return appId;
   } catch (error) {
     if (error instanceof Error && error.message.includes('already exists')) {
-      logger.warning(`Web app ${appName} already exists, skipping creation`);
+      logger.warning(`Web app ${appName} already exists, retrieving existing app ID...`);
       // Try to get existing app ID
       const { stdout } = await execAsync(`firebase apps:list --project ${projectId}`);
       const appIdMatch = stdout.match(/([^\s]+)\s+\(WEB\)/);
-      return appIdMatch?.[1] || '';
+      const existingAppId = appIdMatch?.[1];
+
+      if (!existingAppId) {
+        throw new Error(`Web app exists but could not retrieve app ID from: ${stdout}`);
+      }
+
+      logger.success(`Retrieved existing app ID: ${existingAppId}`);
+      return existingAppId;
     }
+    logger.error(`Failed to create web app in ${projectId}`);
     throw error;
   }
 }
 
 /**
+<<<<<<< HEAD
  * Get Firebase web app configuration (API keys, project settings)
  *
  * Retrieves the Firebase SDK configuration for a web app, which includes
@@ -286,12 +319,40 @@ export async function createWebApp(projectId: string, appName: string): Promise<
  * NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${config.authDomain}
  * NEXT_PUBLIC_FIREBASE_PROJECT_ID=${config.projectId}
  * `;
+=======
+ * Get Firebase web app config (API keys, etc.)
+ *
+ * Retrieves the Firebase SDK configuration for a web app, including API keys
+ * and service endpoints. This config is needed for client-side Firebase initialization.
+ *
+ * @param projectId - The Firebase project ID
+ * @param appId - The Firebase web app ID
+ * @returns Promise<FirebaseWebAppConfig> - Firebase SDK configuration
+ * @throws Error if project ID is invalid
+ * @throws Error if app ID is empty
+ * @throws Error if config is invalid or missing required fields
+ *
+ * @example
+ * ```typescript
+ * const config = await getWebAppConfig('my-app-dev', '1:123456:web:abc123');
+ * console.log(`API Key: ${config.apiKey}`);
+ * console.log(`Project ID: ${config.projectId}`);
+>>>>>>> 61c2fb2 (feat(firebase): complete web app creation and config retrieval)
  * ```
  */
 export async function getWebAppConfig(
   projectId: string,
   appId: string
-): Promise<Record<string, string>> {
+): Promise<FirebaseWebAppConfig> {
+  // Validate inputs
+  if (!validateProjectId(projectId)) {
+    throw new Error(`Invalid project ID: ${projectId}`);
+  }
+
+  if (!appId || appId.trim().length === 0) {
+    throw new Error('App ID cannot be empty');
+  }
+
   logger.info('Fetching web app configuration...');
 
   try {
@@ -300,11 +361,30 @@ export async function getWebAppConfig(
     );
 
     // Parse the SDK config JSON output
-    const config = JSON.parse(stdout);
+    const config = JSON.parse(stdout) as FirebaseWebAppConfig;
+
+    // Validate required fields
+    const requiredFields: (keyof FirebaseWebAppConfig)[] = [
+      'apiKey',
+      'authDomain',
+      'projectId',
+      'storageBucket',
+      'messagingSenderId',
+      'appId',
+    ];
+
+    const missingFields = requiredFields.filter((field) => !config[field]);
+    if (missingFields.length > 0) {
+      throw new Error(`Firebase config missing required fields: ${missingFields.join(', ')}`);
+    }
+
     logger.success('Web app config retrieved');
     return config;
   } catch (error) {
     logger.error('Failed to fetch web app config');
+    if (error instanceof SyntaxError) {
+      throw new Error('Failed to parse Firebase config JSON');
+    }
     throw error;
   }
 }
