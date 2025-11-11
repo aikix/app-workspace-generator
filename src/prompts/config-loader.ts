@@ -59,6 +59,7 @@ export function createDefaultConfig(projectName: string): WorkspaceConfig {
       styling: 'tailwind',
       ui: 'none',
       testing: 'playwright',
+      stateManagement: 'context',
       linting: true,
       formatting: true,
       gitHooks: true,

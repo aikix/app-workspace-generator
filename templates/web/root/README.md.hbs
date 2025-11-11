@@ -105,7 +105,172 @@ If required variables are missing, you'll see helpful error messages.
 {{#if pwa}}
 - **PWA**: Progressive Web App with offline support
 {{/if}}
+{{#if (ne stateManagement "none")}}
+- **State Management**: {{#if (eq stateManagement "context")}}React Context{{else if (eq stateManagement "zustand")}}Zustand{{/if}}
+{{/if}}
 
+{{#if (eq stateManagement "context")}}
+## 🔄 State Management with React Context
+
+This project uses React Context for state management, providing:
+
+### Available Contexts
+
+#### AuthContext
+Manages Firebase authentication state and provides auth methods.
+
+**Usage:**
+```tsx
+'use client';
+
+import { useAuth } from '@/contexts/AuthContext';
+
+export default function ProfilePage() {
+  const { user, loading, signOut } = useAuth();
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>Not signed in</div>;
+
+  return (
+    <div>
+      <p>Welcome, {user.email}!</p>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  );
+}
+```
+
+**Setup in your root layout:**
+```tsx
+import { AuthProvider } from '@/contexts/AuthContext';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+#### ThemeContext
+Manages theme state (light/dark mode) with system preference detection.
+
+**Usage:**
+```tsx
+'use client';
+
+import { useTheme } from '@/contexts/ThemeContext';
+
+export default function ThemeToggle() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  return (
+    <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
+      {resolvedTheme === 'dark' ? '🌙' : '☀️'}
+    </button>
+  );
+}
+```
+
+### Context Files
+- `/src/contexts/AuthContext.tsx` - Authentication context
+- `/src/contexts/ThemeContext.tsx` - Theme management context
+
+{{else if (eq stateManagement "zustand")}}
+## 🔄 State Management with Zustand
+
+This project uses Zustand for state management, providing lightweight and simple global state.
+
+### Available Stores
+
+#### useAuthStore
+Manages Firebase authentication state with Zustand.
+
+**Usage:**
+```tsx
+'use client';
+
+import { useAuthStore } from '@/stores/useAuthStore';
+
+export default function ProfilePage() {
+  const { user, loading, signOut } = useAuthStore();
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>Not signed in</div>;
+
+  return (
+    <div>
+      <p>Welcome, {user.email}!</p>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  );
+}
+```
+
+**Initialize auth listener in your root layout:**
+```tsx
+'use client';
+
+import { useEffect } from 'react';
+import { initializeAuthListener } from '@/stores/useAuthStore';
+
+export default function RootLayout({ children }) {
+  useEffect(() => {
+    const unsubscribe = initializeAuthListener();
+    return () => unsubscribe();
+  }, []);
+
+  return <html><body>{children}</body></html>;
+}
+```
+
+#### useThemeStore
+Manages theme state with persistence to localStorage.
+
+**Usage:**
+```tsx
+'use client';
+
+import { useThemeStore } from '@/stores/useThemeStore';
+
+export default function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useThemeStore();
+
+  return (
+    <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
+      {resolvedTheme === 'dark' ? '🌙 Dark' : '☀️ Light'}
+    </button>
+  );
+}
+```
+
+**Initialize theme in your root layout:**
+```tsx
+'use client';
+
+import { useEffect } from 'react';
+import { initializeTheme } from '@/stores/useThemeStore';
+
+export default function RootLayout({ children }) {
+  useEffect(() => {
+    const cleanup = initializeTheme();
+    return cleanup;
+  }, []);
+
+  return <html suppressHydrationWarning><body>{children}</body></html>;
+}
+```
+
+### Store Files
+- `/src/stores/useAuthStore.ts` - Authentication store
+- `/src/stores/useThemeStore.ts` - Theme management store
+
+{{/if}}
 {{#if pwa}}
 ## 📱 Progressive Web App (PWA)
 

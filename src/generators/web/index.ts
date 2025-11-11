@@ -412,6 +412,37 @@ async function generateSourceStructure(
     );
   }
 
+  // Add state management files
+  if (context.stateManagement === 'context') {
+    operations.push(
+      {
+        type: 'copy',
+        source: 'web/src/contexts/AuthContext.tsx',
+        destination: 'src/contexts/AuthContext.tsx',
+      },
+      {
+        type: 'copy',
+        source: 'web/src/contexts/ThemeContext.tsx',
+        destination: 'src/contexts/ThemeContext.tsx',
+      }
+    );
+  }
+
+  if (context.stateManagement === 'zustand') {
+    operations.push(
+      {
+        type: 'copy',
+        source: 'web/src/stores/useAuthStore.ts',
+        destination: 'src/stores/useAuthStore.ts',
+      },
+      {
+        type: 'copy',
+        source: 'web/src/stores/useThemeStore.ts',
+        destination: 'src/stores/useThemeStore.ts',
+      }
+    );
+  }
+
   await executeFileOperations(operations, targetDir, 'Source structure');
 
   // Create placeholder files for empty directories

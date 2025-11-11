@@ -6,6 +6,7 @@ import type {
   StylingType,
   UILibraryType,
   TestingType,
+  StateManagementType,
   BackendType,
   BackendFeature,
   FirebasePattern,
@@ -36,6 +37,7 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     styling: StylingType;
     uiLibrary: UILibraryType;
     testing: TestingType;
+    stateManagement: StateManagementType;
     backend: BackendType;
     backendFeatures: BackendFeature[];
     firebasePattern?: FirebasePattern;
@@ -216,6 +218,26 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
         },
       ],
       default: 'playwright',
+    },
+    {
+      type: 'list',
+      name: 'stateManagement',
+      message: 'State management solution?',
+      choices: [
+        {
+          name: 'React Context (Built-in, good for auth & theme)',
+          value: 'context',
+        },
+        {
+          name: 'Zustand (Lightweight, simple global state)',
+          value: 'zustand',
+        },
+        {
+          name: 'None (use local state only)',
+          value: 'none',
+        },
+      ],
+      default: 'context',
     },
     {
       type: 'list',

@@ -11,6 +11,7 @@ export type TestingType = 'playwright' | 'cypress' | 'vitest' | 'none';
 export type BackendType = 'firebase' | 'supabase' | 'custom' | 'none';
 export type BackendFeature = 'auth' | 'database' | 'storage' | 'functions';
 export type FirebasePattern = 'client-side' | 'server-first';
+export type StateManagementType = 'context' | 'zustand' | 'none';
 export type PackageManagerType = 'npm' | 'yarn' | 'pnpm' | 'bun';
 export type CICDPlatform = 'github' | 'gitlab' | 'none';
 
@@ -33,6 +34,7 @@ export interface WorkspaceConfig {
     styling: StylingType;
     ui: UILibraryType;
     testing: TestingType;
+    stateManagement: StateManagementType;
     linting: boolean;
     formatting: boolean;
     gitHooks: boolean;
@@ -93,6 +95,7 @@ export interface PromptAnswers {
   styling: StylingType;
   uiLibrary: UILibraryType;
   testing: TestingType;
+  stateManagement: StateManagementType;
   backend: BackendType;
   backendFeatures: BackendFeature[];
   firebasePattern?: FirebasePattern;
@@ -118,6 +121,7 @@ export interface TemplateContext {
   styling: StylingType;
   uiLibrary: UILibraryType;
   testing: TestingType;
+  stateManagement: StateManagementType;
   backend: BackendType;
   backendFeatures: BackendFeature[];
   firebasePattern?: FirebasePattern;

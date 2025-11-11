@@ -38,7 +38,8 @@
     "firebase": "^12.5.0"{{else}},
     "firebase": "^12.5.0",
     "firebase-admin": "^13.6.0"{{/if}}{{/if}}{{#if pwa}},
-    "next-pwa": "^5.6.0"{{/if}}
+    "next-pwa": "^5.6.0"{{/if}}{{#if (eq stateManagement "zustand")}},
+    "zustand": "^5.0.2"{{/if}}
   },
   "devDependencies": {
     {{#if typescript}}
