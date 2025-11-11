@@ -1,3 +1,8 @@
+## 1.2.0 (2025-11-11)
+
+- Merge pull request #45 from aikix/feat/complete-nextjs-16-template-structure ([8d77b00](https://github.com/aikix/app-workspace-generator/commit/8d77b00)), closes [#45](https://github.com/aikix/app-workspace-generator/issues/45)
+- feat(templates): complete Next.js 16 App Router template structure ([8e94351](https://github.com/aikix/app-workspace-generator/commit/8e94351)), closes [#4](https://github.com/aikix/app-workspace-generator/issues/4)
+
 ## 1.1.0 (2025-11-11)
 
 - feat(workflow): add automated issue dependency management system ([01ddb61](https://github.com/aikix/app-workspace-generator/commit/01ddb61)), closes [4-#44](https://github.com/4-/issues/44) [#4](https://github.com/aikix/app-workspace-generator/issues/4) [#6](https://github.com/aikix/app-workspace-generator/issues/6) [#7](https://github.com/aikix/app-workspace-generator/issues/7) [#32](https://github.com/aikix/app-workspace-generator/issues/32) [#36](https://github.com/aikix/app-workspace-generator/issues/36)
