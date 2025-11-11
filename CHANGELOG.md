@@ -1,3 +1,9 @@
+## 1.14.0 (2025-11-11)
+
+- test(cli): add comprehensive E2E test suite with Vitest ([540ba99](https://github.com/aikix/app-workspace-generator/commit/540ba99)), closes [#11](https://github.com/aikix/app-workspace-generator/issues/11)
+- test(cli): fix test failures and improve test reliability ([91cb35e](https://github.com/aikix/app-workspace-generator/commit/91cb35e)), closes [#11](https://github.com/aikix/app-workspace-generator/issues/11)
+- feat(pwa): add Progressive Web App configuration and service worker ([f0e04f8](https://github.com/aikix/app-workspace-generator/commit/f0e04f8)), closes [#17](https://github.com/aikix/app-workspace-generator/issues/17)
+
 ## <small>1.13.1 (2025-11-11)</small>
 
 - docs(templates): enhance README with troubleshooting, deployment, and detailed structure ([1fcc31c](https://github.com/aikix/app-workspace-generator/commit/1fcc31c)), closes [#13](https://github.com/aikix/app-workspace-generator/issues/13)
