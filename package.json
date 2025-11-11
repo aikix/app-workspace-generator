@@ -1,6 +1,7 @@
 {
   "name": "app-workspace-generator",
   "version": "0.1.0",
+  "private": true,
   "description": "Generate production-ready web app workspaces with AI agent instructions",
   "main": "dist/index.js",
   "bin": {
