@@ -5,6 +5,11 @@ import { loadConfigFromFile, createDefaultConfig } from '../prompts/config-loade
 import { answersToConfig, configToTemplateContext } from '../utils/config-builder.js';
 import { generateWebApp } from '../generators/web/index.js';
 import { logger } from '../utils/logger.js';
+import { displayError, withErrorHandling } from '../utils/errors.js';
+import {
+  validateGenerationEnvironment,
+  validateProjectNameForGeneration,
+} from '../utils/validation.js';
 import type { GenerationOptions } from '../types/config.js';
 
 /**
@@ -16,31 +21,29 @@ export function createCommand(): Command {
     .option('-c, --config <path>', 'Path to configuration file (JSON)')
     .option('--skip-install', 'Skip dependency installation')
     .option('-v, --verbose', 'Verbose output')
+    .option('--debug', 'Enable debug mode with detailed error information')
     .description('Create a new project')
     .action(async (projectName: string | undefined, options) => {
       try {
         const cwd = process.cwd();
+        const debug = options.debug || false;
 
         // Mode 1: Config file (for AI agents)
         if (options.config) {
-          await createFromConfig(options.config, cwd, options);
+          await createFromConfig(options.config, cwd, options, debug);
           return;
         }
 
         // Mode 2: Quick start with project name
         if (projectName && !options.config) {
-          await createQuickStart(projectName, cwd, options);
+          await createQuickStart(projectName, cwd, options, debug);
           return;
         }
 
         // Mode 3: Interactive prompts (for humans)
-        await createInteractive(cwd, options);
+        await createInteractive(cwd, options, debug);
       } catch (error) {
-        if (error instanceof Error) {
-          logger.error(error.message);
-        } else {
-          logger.error('An unexpected error occurred');
-        }
+        displayError(error, options.debug);
         process.exit(1);
       }
     });
@@ -52,7 +55,8 @@ export function createCommand(): Command {
 async function createFromConfig(
   configPath: string,
   cwd: string,
-  options: { skipInstall?: boolean; verbose?: boolean }
+  options: { skipInstall?: boolean; verbose?: boolean },
+  debug: boolean
 ): Promise<void> {
   logger.info(`Loading configuration from ${configPath}...`);
 
@@ -61,6 +65,11 @@ async function createFromConfig(
 
   const targetDir = path.join(cwd, config.name);
 
+  // Validate environment before starting
+  logger.step('Validating environment...');
+  await validateGenerationEnvironment(config.name, targetDir, options.skipInstall);
+  logger.success('Environment validation passed');
+
   const generationOptions: GenerationOptions = {
     targetDir,
     config,
@@ -69,7 +78,8 @@ async function createFromConfig(
     verbose: options.verbose,
   };
 
-  await generateWebApp(generationOptions);
+  // Generate with error handling and rollback
+  await withErrorHandling(async () => await generateWebApp(generationOptions), targetDir, debug);
 }
 
 /**
@@ -78,14 +88,23 @@ async function createFromConfig(
 async function createQuickStart(
   projectName: string,
   cwd: string,
-  options: { skipInstall?: boolean; verbose?: boolean }
+  options: { skipInstall?: boolean; verbose?: boolean },
+  debug: boolean
 ): Promise<void> {
   logger.info(`Creating ${projectName} with default configuration...`);
+
+  // Validate project name
+  await validateProjectNameForGeneration(projectName, cwd);
 
   const config = createDefaultConfig(projectName);
   const templateContext = configToTemplateContext(config);
 
   const targetDir = path.join(cwd, config.name);
+
+  // Validate environment before starting
+  logger.step('Validating environment...');
+  await validateGenerationEnvironment(config.name, targetDir, options.skipInstall);
+  logger.success('Environment validation passed');
 
   const generationOptions: GenerationOptions = {
     targetDir,
@@ -95,7 +114,8 @@ async function createQuickStart(
     verbose: options.verbose,
   };
 
-  await generateWebApp(generationOptions);
+  // Generate with error handling and rollback
+  await withErrorHandling(async () => await generateWebApp(generationOptions), targetDir, debug);
 }
 
 /**
@@ -103,13 +123,19 @@ async function createQuickStart(
  */
 async function createInteractive(
   cwd: string,
-  options: { skipInstall?: boolean; verbose?: boolean }
+  options: { skipInstall?: boolean; verbose?: boolean },
+  debug: boolean
 ): Promise<void> {
   const answers = await runInteractivePrompts(cwd);
   const config = answersToConfig(answers);
   const templateContext = configToTemplateContext(config);
 
   const targetDir = path.join(cwd, config.name);
+
+  // Validate environment before starting
+  logger.step('Validating environment...');
+  await validateGenerationEnvironment(config.name, targetDir, options.skipInstall);
+  logger.success('Environment validation passed');
 
   const generationOptions: GenerationOptions = {
     targetDir,
@@ -119,5 +145,6 @@ async function createInteractive(
     verbose: options.verbose,
   };
 
-  await generateWebApp(generationOptions);
+  // Generate with error handling and rollback
+  await withErrorHandling(async () => await generateWebApp(generationOptions), targetDir, debug);
 }

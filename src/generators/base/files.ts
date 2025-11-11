@@ -24,15 +24,27 @@ export async function generateFileFromTemplate(
   destinationPath: string,
   context: TemplateContext
 ): Promise<void> {
-  const content = await compileTemplateFile(templatePath, context);
-  await writeFile(destinationPath, content);
+  try {
+    const content = await compileTemplateFile(templatePath, context);
+    await writeFile(destinationPath, content);
+  } catch (error) {
+    throw new Error(
+      `Failed to generate file from template "${templatePath}": ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 }
 
 /**
  * Copy a static file
  */
 export async function copyStaticFile(sourcePath: string, destinationPath: string): Promise<void> {
-  await copyFile(sourcePath, destinationPath);
+  try {
+    await copyFile(sourcePath, destinationPath);
+  } catch (error) {
+    throw new Error(
+      `Failed to copy file from "${sourcePath}" to "${destinationPath}": ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 }
 
 /**
@@ -42,14 +54,26 @@ export async function copyStaticDirectory(
   sourcePath: string,
   destinationPath: string
 ): Promise<void> {
-  await copyDir(sourcePath, destinationPath);
+  try {
+    await copyDir(sourcePath, destinationPath);
+  } catch (error) {
+    throw new Error(
+      `Failed to copy directory from "${sourcePath}" to "${destinationPath}": ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 }
 
 /**
  * Create an empty directory
  */
 export async function createDirectory(dirPath: string): Promise<void> {
-  await ensureDir(dirPath);
+  try {
+    await ensureDir(dirPath);
+  } catch (error) {
+    throw new Error(
+      `Failed to create directory "${dirPath}": ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 }
 
 /**
