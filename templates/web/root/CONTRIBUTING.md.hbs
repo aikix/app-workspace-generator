@@ -1,0 +1,215 @@
+# Contributing to {{projectName}}
+
+Thank you for your interest in contributing to {{projectName}}! This document provides guidelines and instructions for contributing.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js >= 20.9.0
+{{#if (eq packageManager "pnpm")}}
+- pnpm
+{{else if (eq packageManager "yarn")}}
+- Yarn
+{{else if (eq packageManager "bun")}}
+- Bun
+{{/if}}
+- Git
+
+### Setup
+
+1. Fork the repository
+2. Clone your fork:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/{{projectName}}.git
+   cd {{projectName}}
+   ```
+
+3. Install dependencies:
+   ```bash
+{{#if (eq packageManager "pnpm")}}
+   pnpm install
+{{else if (eq packageManager "yarn")}}
+   yarn install
+{{else if (eq packageManager "bun")}}
+   bun install
+{{else}}
+   npm install
+{{/if}}
+   ```
+
+4. Create a branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+## Development Workflow
+
+### Running the Development Server
+
+```bash
+{{#if (eq packageManager "pnpm")}}
+pnpm dev
+{{else if (eq packageManager "yarn")}}
+yarn dev
+{{else if (eq packageManager "bun")}}
+bun dev
+{{else}}
+npm run dev
+{{/if}}
+```
+
+{{#if linting}}
+### Code Quality
+
+Before committing, ensure your code passes all checks:
+
+```bash
+# Run linter
+{{packageManager}} run lint
+
+# Fix linting issues automatically
+{{packageManager}} run lint:fix
+```
+{{/if}}
+
+{{#if formatting}}
+```bash
+# Format code
+{{packageManager}} run format
+
+# Check formatting
+{{packageManager}} run format:check
+```
+{{/if}}
+
+{{#if typescript}}
+```bash
+# Type check
+{{packageManager}} run type-check
+```
+{{/if}}
+
+{{#if (eq testing "playwright")}}
+### Testing
+
+```bash
+# Run E2E tests
+{{packageManager}} run e2e
+
+# Run tests in UI mode
+{{packageManager}} run e2e:ui
+```
+{{/if}}
+
+## Commit Guidelines
+
+{{#if gitHooks}}
+This project uses [Conventional Commits](https://www.conventionalcommits.org/). Your commit messages will be automatically validated.
+
+{{/if}}
+### Commit Message Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+#### Types
+
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that don't affect code meaning (formatting, etc.)
+- `refactor`: Code change that neither fixes a bug nor adds a feature
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `chore`: Changes to build process or auxiliary tools
+
+#### Examples
+
+```bash
+feat(auth): add password reset functionality
+fix(api): resolve CORS issue in production
+docs(readme): update installation instructions
+```
+
+## Pull Request Process
+
+1. Update documentation if needed
+2. Ensure all tests pass
+3. Update the README.md if you've made significant changes
+4. Follow the pull request template
+5. Request review from maintainers
+
+### Pull Request Checklist
+
+- [ ] Code follows the project's style guidelines
+- [ ] Self-review completed
+{{#if linting}}
+- [ ] Linting passes
+{{/if}}
+{{#if formatting}}
+- [ ] Code is formatted
+{{/if}}
+{{#if typescript}}
+- [ ] No TypeScript errors
+{{/if}}
+{{#if (eq testing "playwright")}}
+- [ ] Tests pass
+- [ ] New tests added for new features
+{{/if}}
+- [ ] Documentation updated
+- [ ] Commit messages follow conventions
+
+## Code Style
+
+{{#if typescript}}
+### TypeScript
+
+- Use strict TypeScript
+- Prefer interfaces over types for object shapes
+- Use type inference when possible
+- Avoid `any` type unless absolutely necessary
+
+{{/if}}
+{{#if (eq styling "tailwind")}}
+### Styling
+
+- Use Tailwind CSS utility classes
+- Follow mobile-first responsive design
+- Use consistent spacing (Tailwind spacing scale)
+
+{{/if}}
+### React Best Practices
+
+- Use functional components and hooks
+- Keep components small and focused
+- Use meaningful component and variable names
+- Add JSDoc comments for complex logic
+- Prefer composition over inheritance
+
+{{#if (eq backend "firebase")}}
+### Firebase
+
+- Never expose Firebase Admin credentials to client
+- Use security rules for client-side operations
+- Validate all data on the server
+- Handle errors appropriately
+
+{{/if}}
+## Questions?
+
+If you have questions, please:
+- Check existing issues
+- Create a new issue with the "question" label
+- Reach out to maintainers
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the same license as the project (see LICENSE file).
+
+Thank you for contributing! 🎉

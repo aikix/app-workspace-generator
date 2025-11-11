@@ -471,6 +471,45 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     });
   }
 
+  // Add Git configuration files
+  operations.push(
+    {
+      type: 'copy',
+      source: 'web/root/_gitattributes',
+      destination: '.gitattributes',
+    },
+    {
+      type: 'template',
+      source: 'web/root/CONTRIBUTING.md.hbs',
+      destination: 'CONTRIBUTING.md',
+      context,
+    }
+  );
+
+  // Add GitHub templates
+  operations.push(
+    {
+      type: 'copy',
+      source: 'web/github/PULL_REQUEST_TEMPLATE.md',
+      destination: '.github/PULL_REQUEST_TEMPLATE.md',
+    },
+    {
+      type: 'copy',
+      source: 'web/github/ISSUE_TEMPLATE/bug_report.md',
+      destination: '.github/ISSUE_TEMPLATE/bug_report.md',
+    },
+    {
+      type: 'copy',
+      source: 'web/github/ISSUE_TEMPLATE/feature_request.md',
+      destination: '.github/ISSUE_TEMPLATE/feature_request.md',
+    },
+    {
+      type: 'copy',
+      source: 'web/github/ISSUE_TEMPLATE/question.md',
+      destination: '.github/ISSUE_TEMPLATE/question.md',
+    }
+  );
+
   // Create public directory
   operations.push({
     type: 'directory',
