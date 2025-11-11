@@ -1,3 +1,7 @@
+## 1.6.0 (2025-11-11)
+
+- feat(templates): add comprehensive TypeScript configuration and type definitions ([d116eb7](https://github.com/aikix/app-workspace-generator/commit/d116eb7)), closes [#8](https://github.com/aikix/app-workspace-generator/issues/8)
+
 ## 1.5.0 (2025-11-11)
 
 - feat(templates): add Tailwind CSS v4 configuration and theme (#46) ([acda835](https://github.com/aikix/app-workspace-generator/commit/acda835)), closes [#46](https://github.com/aikix/app-workspace-generator/issues/46) [#5](https://github.com/aikix/app-workspace-generator/issues/5)
