@@ -1,3 +1,8 @@
+## 1.11.0 (2025-11-11)
+
+- feat(git): add comprehensive Git workflow and GitHub templates ([0436991](https://github.com/aikix/app-workspace-generator/commit/0436991)), closes [#32](https://github.com/aikix/app-workspace-generator/issues/32)
+- chore: add comprehensive command permissions to Claude Code settings ([59d2bc7](https://github.com/aikix/app-workspace-generator/commit/59d2bc7))
+
 ## 1.10.0 (2025-11-11)
 
 - feat(firebase): add modular client-side SDK with React hooks ([b0bcbe9](https://github.com/aikix/app-workspace-generator/commit/b0bcbe9)), closes [#14](https://github.com/aikix/app-workspace-generator/issues/14)
