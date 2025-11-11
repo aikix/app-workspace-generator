@@ -1,0 +1,37 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+const navItems = [
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+{{#if (eq backend "firebase")}}
+  { href: '/dashboard', label: 'Dashboard' },
+{{/if}}
+];
+
+export default function Navigation() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="flex items-center gap-6">
+      {navItems.map((item) => {
+        const isActive = pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`text-sm transition-colors ${
+              isActive
+                ? 'text-blue-600 font-semibold'
+                : 'hover:text-blue-600'
+            }`}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
