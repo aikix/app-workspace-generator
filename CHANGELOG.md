@@ -1,3 +1,7 @@
+## 1.4.0 (2025-11-11)
+
+- feat(cli): add progress indicators and enhanced UX ([29d9871](https://github.com/aikix/app-workspace-generator/commit/29d9871)), closes [#6](https://github.com/aikix/app-workspace-generator/issues/6)
+
 ## 1.3.0 (2025-11-11)
 
 - feat(cli): add comprehensive error handling with rollback ([1d99c75](https://github.com/aikix/app-workspace-generator/commit/1d99c75)), closes [#7](https://github.com/aikix/app-workspace-generator/issues/7)
