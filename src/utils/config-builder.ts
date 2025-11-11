@@ -52,7 +52,8 @@ export function configToTemplateContext(config: WorkspaceConfig): TemplateContex
 
   return {
     projectName: config.name,
-    description: config.description || `A modern web application built with ${config.web.framework}`,
+    description:
+      config.description || `A modern web application built with ${config.web.framework}`,
     author: config.author || '',
     framework: config.web.framework,
     typescript: config.web.typescript,

@@ -1,8 +1,6 @@
 import path from 'path';
-import ora from 'ora';
 import { executeFileOperations, type FileOperation } from '../base/files.js';
 import { ensureDir, writeFile } from '../../utils/file-system.js';
-import { compileTemplateFile } from '../base/templates.js';
 import type { GenerationOptions, TemplateContext } from '../../types/config.js';
 import { logger } from '../../utils/logger.js';
 
@@ -46,10 +44,7 @@ export async function generateWebApp(options: GenerationOptions): Promise<void> 
 /**
  * Generate configuration files
  */
-async function generateConfigFiles(
-  targetDir: string,
-  context: TemplateContext
-): Promise<void> {
+async function generateConfigFiles(targetDir: string, context: TemplateContext): Promise<void> {
   logger.section('Generating configuration files');
 
   const operations: FileOperation[] = [
@@ -112,10 +107,7 @@ async function generateConfigFiles(
 /**
  * Generate source structure
  */
-async function generateSourceStructure(
-  targetDir: string,
-  context: TemplateContext
-): Promise<void> {
+async function generateSourceStructure(targetDir: string, context: TemplateContext): Promise<void> {
   logger.section('Generating source structure');
 
   const operations: FileOperation[] = [
@@ -266,7 +258,9 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
  * Generate dev tools setup (Husky, etc.)
  */
 async function generateDevTools(targetDir: string, context: TemplateContext): Promise<void> {
-  if (!context.gitHooks) return;
+  if (!context.gitHooks) {
+    return;
+  }
 
   logger.section('Setting up Git hooks');
 
