@@ -113,10 +113,73 @@ export interface FirebaseProjectOptions {
 }
 
 /**
+ * Validate Firebase project ID format
+ *
+ * Firebase project IDs must:
+ * - Be 6-30 characters long
+ * - Start with a lowercase letter
+ * - Contain only lowercase letters, numbers, and hyphens
+ * - Not end with a hyphen
+ *
+ * @param projectId - The project ID to validate
+ * @returns boolean - true if valid, false otherwise
+ *
+ * @example
+ * ```typescript
+ * validateProjectId('my-app-dev'); // true
+ * validateProjectId('My-App'); // false (uppercase)
+ * validateProjectId('my-app-'); // false (ends with hyphen)
+ * ```
+ */
+export function validateProjectId(projectId: string): boolean {
+  // Must be 6-30 characters
+  if (projectId.length < 6 || projectId.length > 30) {
+    return false;
+  }
+
+  // Must start with lowercase letter
+  if (!/^[a-z]/.test(projectId)) {
+    return false;
+  }
+
+  // Can only contain lowercase letters, numbers, and hyphens
+  if (!/^[a-z][a-z0-9-]*$/.test(projectId)) {
+    return false;
+  }
+
+  // Cannot end with hyphen
+  if (projectId.endsWith('-')) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Create a Firebase project
+ *
+ * Creates a new Firebase project with the specified project ID.
+ * Handles existing projects gracefully and validates project ID format.
+ *
+ * @param projectId - The Firebase project ID (must follow Firebase naming rules)
+ * @throws Error if project ID is invalid
+ * @throws Error if Firebase CLI fails (except for "already exists")
+ *
+ * @example
+ * ```typescript
+ * await createFirebaseProject('my-app-dev');
+ * // Creates project with ID: my-app-dev
+ * ```
  */
 export async function createFirebaseProject(projectId: string): Promise<void> {
   logger.info(`Creating Firebase project: ${projectId}`);
+
+  // Validate project ID format
+  if (!validateProjectId(projectId)) {
+    throw new Error(
+      `Invalid project ID: ${projectId}. Must be 6-30 characters, start with lowercase letter, contain only lowercase letters/numbers/hyphens, and not end with hyphen.`
+    );
+  }
 
   try {
     await execAsync(`firebase projects:create ${projectId} --display-name "${projectId}"`);
@@ -125,6 +188,7 @@ export async function createFirebaseProject(projectId: string): Promise<void> {
     if (error instanceof Error && error.message.includes('already exists')) {
       logger.warning(`Project ${projectId} already exists, skipping creation`);
     } else {
+      logger.error(`Failed to create project: ${projectId}`);
       throw error;
     }
   }
