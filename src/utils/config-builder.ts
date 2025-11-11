@@ -13,7 +13,7 @@ export function answersToConfig(answers: PromptAnswers): WorkspaceConfig {
     name: answers.projectName,
     workspace: {
       type: answers.workspaceType,
-      platforms: ['web'],
+      platforms: answers.workspaceType === 'pwa' ? ['web', 'pwa'] : ['web'],
     },
     web: {
       framework: answers.framework,
@@ -33,6 +33,14 @@ export function answersToConfig(answers: PromptAnswers): WorkspaceConfig {
             firebasePattern: answers.firebasePattern,
           }
         : undefined,
+    pwa:
+      answers.workspaceType === 'pwa'
+        ? {
+            offline: answers.pwaOffline ?? true,
+            installable: answers.pwaInstallable ?? true,
+            notifications: answers.pwaNotifications ?? false,
+          }
+        : undefined,
     documentation: {
       aiInstructions: answers.aiInstructions,
       architecture: answers.architecture,
@@ -49,6 +57,7 @@ export function answersToConfig(answers: PromptAnswers): WorkspaceConfig {
 export function configToTemplateContext(config: WorkspaceConfig): TemplateContext {
   const backendFeatures = (config.backend?.features || []) as BackendFeature[];
   const firebasePattern = config.backend?.firebasePattern || 'client-side';
+  const isPwa = config.workspace.type === 'pwa' || config.workspace.platforms.includes('pwa');
 
   return {
     projectName: config.name,
@@ -67,10 +76,18 @@ export function configToTemplateContext(config: WorkspaceConfig): TemplateContex
     hasDatabase: backendFeatures.includes('database'),
     hasStorage: backendFeatures.includes('storage'),
     hasFunctions: backendFeatures.includes('functions'),
+    pwa: isPwa,
+    pwaOffline: config.pwa?.offline ?? false,
+    pwaInstallable: config.pwa?.installable ?? false,
+    pwaNotifications: config.pwa?.notifications ?? false,
     linting: config.web.linting,
     formatting: config.web.formatting,
     gitHooks: config.web.gitHooks,
     packageManager: config.packageManager || 'npm',
     year: new Date().getFullYear(),
+    documentation: {
+      aiInstructions: config.documentation.aiInstructions,
+      architecture: config.documentation.architecture,
+    },
   };
 }

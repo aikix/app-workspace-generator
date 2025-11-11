@@ -8,11 +8,23 @@ import Footer from '@/components/layout/Footer';
 export const metadata: Metadata = {
   title: '{{pascalCase projectName}}',
   description: '{{description}}',
-  keywords: ['{{projectName}}', 'Next.js', 'React', 'TypeScript'{{#if (eq styling "tailwind")}}, 'Tailwind CSS'{{/if}}{{#if (eq backend "firebase")}}, 'Firebase'{{/if}}],
+  keywords: ['{{projectName}}', 'Next.js', 'React', 'TypeScript'{{#if (eq styling "tailwind")}}, 'Tailwind CSS'{{/if}}{{#if (eq backend "firebase")}}, 'Firebase'{{/if}}{{#if pwa}}, 'PWA'{{/if}}],
   authors: [{ name: 'Your Name' }],
   creator: 'Your Name',
   publisher: '{{pascalCase projectName}}',
   metadataBase: new URL('https://{{projectName}}.com'),
+{{#if pwa}}
+  manifest: '/manifest.json',
+  themeColor: '#000000',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: '{{pascalCase projectName}}',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+{{/if}}
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -26,6 +38,24 @@ export const metadata: Metadata = {
     title: '{{pascalCase projectName}}',
     description: '{{description}}',
   },
+{{#if pwa}}
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    viewportFit: 'cover',
+  },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
+    ],
+  },
+{{/if}}
 };
 
 export default function RootLayout({

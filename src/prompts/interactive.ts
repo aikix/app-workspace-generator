@@ -39,6 +39,9 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     backend: BackendType;
     backendFeatures: BackendFeature[];
     firebasePattern?: FirebasePattern;
+    pwaOffline?: boolean;
+    pwaInstallable?: boolean;
+    pwaNotifications?: boolean;
     aiInstructions: boolean;
     architecture: boolean;
     linting: boolean;
@@ -74,9 +77,8 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
           value: 'single',
         },
         {
-          name: 'PWA (Progressive Web App) - Phase 2 (Coming soon)',
+          name: 'PWA (Progressive Web App - installable, offline-capable)',
           value: 'pwa',
-          disabled: true,
         },
         {
           name: 'Multi-platform (web + iOS + Android) - Phase 3 (Coming soon)',
@@ -85,6 +87,27 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
         },
       ],
       default: 'single',
+    },
+    {
+      type: 'confirm',
+      name: 'pwaOffline',
+      message: 'Enable offline support (service worker caching)?',
+      default: true,
+      when: (answers) => answers.workspaceType === 'pwa',
+    },
+    {
+      type: 'confirm',
+      name: 'pwaInstallable',
+      message: 'Make app installable (Add to Home Screen)?',
+      default: true,
+      when: (answers) => answers.workspaceType === 'pwa',
+    },
+    {
+      type: 'confirm',
+      name: 'pwaNotifications',
+      message: 'Enable push notifications (optional)?',
+      default: false,
+      when: (answers) => answers.workspaceType === 'pwa',
     },
     {
       type: 'list',

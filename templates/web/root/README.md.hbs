@@ -102,7 +102,79 @@ If required variables are missing, you'll see helpful error messages.
 {{#if (ne backend "none")}}
 - **Backend**: {{capitalize backend}}
 {{/if}}
+{{#if pwa}}
+- **PWA**: Progressive Web App with offline support
+{{/if}}
 
+{{#if pwa}}
+## 📱 Progressive Web App (PWA)
+
+This app is configured as a Progressive Web App with the following features:
+
+### Features
+
+{{#if pwaOffline}}
+- **Offline Support**: Service worker caching for offline functionality
+- **Offline Fallback**: Custom offline page when content is unavailable
+{{/if}}
+{{#if pwaInstallable}}
+- **Installable**: Add to home screen on mobile and desktop
+- **Install Prompt**: Custom install prompt component
+{{/if}}
+{{#if pwaNotifications}}
+- **Push Notifications**: Web push notification support
+{{/if}}
+- **App-like Experience**: Runs in standalone mode without browser UI
+- **Responsive Icons**: Multiple icon sizes for different devices
+- **Fast Loading**: Optimized caching strategies
+
+### Testing PWA Features
+
+1. **Lighthouse Audit**:
+   ```bash
+   # Open Chrome DevTools (F12)
+   # Go to Lighthouse tab
+   # Select "Progressive Web App" category
+   # Run audit
+   ```
+
+2. **Install Prompt**:
+   - Visit the app in Chrome/Edge
+   - Look for install icon in address bar
+   - Or use the custom install prompt component
+
+3. **Offline Mode**:
+   - Open DevTools Network tab
+   - Select "Offline" from throttling dropdown
+   - Refresh the page - you should see the offline fallback
+
+### PWA Configuration Files
+
+- `/public/manifest.json` - App manifest with metadata
+- `/public/offline.html` - Offline fallback page
+- `/public/icons/` - App icons in various sizes
+- `/public/screenshots/` - App screenshots for install prompts
+- `/next.config.js` - next-pwa configuration
+
+### Adding Icons
+
+Generate PWA icons from your logo:
+
+1. Create a square logo (1024x1024px recommended)
+2. Use [PWA Asset Generator](https://www.pwabuilder.com/imageGenerator)
+3. Place generated icons in `/public/icons/`
+4. Update paths in `/public/manifest.json`
+
+See `/public/icons/README.md` for detailed instructions.
+
+### Deployment Considerations
+
+- PWA features require HTTPS in production
+- Service workers only work over HTTPS (except localhost)
+- Test thoroughly on target devices before deploying
+- Check browser compatibility for your target audience
+
+{{/if}}
 ## 🛠️ Available Scripts
 
 ### Development

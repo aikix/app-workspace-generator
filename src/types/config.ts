@@ -2,7 +2,7 @@
  * Configuration schema for app-workspace-generator
  */
 
-export type WorkspaceType = 'single' | 'multi';
+export type WorkspaceType = 'single' | 'pwa' | 'multi';
 export type PlatformType = 'web' | 'pwa' | 'ios' | 'android';
 export type FrameworkType = 'next' | 'vite' | 'remix';
 export type StylingType = 'tailwind' | 'css-modules' | 'styled-components';
@@ -96,6 +96,9 @@ export interface PromptAnswers {
   backend: BackendType;
   backendFeatures: BackendFeature[];
   firebasePattern?: FirebasePattern;
+  pwaOffline?: boolean;
+  pwaInstallable?: boolean;
+  pwaNotifications?: boolean;
   aiInstructions: boolean;
   architecture: boolean;
   linting: boolean;
@@ -122,11 +125,19 @@ export interface TemplateContext {
   hasDatabase: boolean;
   hasStorage: boolean;
   hasFunctions: boolean;
+  pwa: boolean;
+  pwaOffline: boolean;
+  pwaInstallable: boolean;
+  pwaNotifications: boolean;
   linting: boolean;
   formatting: boolean;
   gitHooks: boolean;
   packageManager: PackageManagerType;
   year: number;
+  documentation: {
+    aiInstructions: boolean;
+    architecture: boolean;
+  };
 }
 
 /**

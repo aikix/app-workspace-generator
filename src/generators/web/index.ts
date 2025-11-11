@@ -231,6 +231,16 @@ async function generateSourceStructure(
       source: 'web/src/app/components/page.tsx',
       destination: 'src/app/components/page.tsx',
     },
+    // PWA components
+    ...(context.pwa && context.pwaInstallable
+      ? [
+          {
+            type: 'copy' as const,
+            source: 'web/src/components/pwa/InstallPrompt.tsx',
+            destination: 'src/components/pwa/InstallPrompt.tsx',
+          },
+        ]
+      : []),
     // Lib directory
     {
       type: 'directory',
@@ -548,6 +558,34 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     source: '',
     destination: 'public',
   });
+
+  // Add PWA files
+  if (context.pwa) {
+    operations.push(
+      {
+        type: 'template',
+        source: 'web/public/manifest.json.hbs',
+        destination: 'public/manifest.json',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/public/offline.html.hbs',
+        destination: 'public/offline.html',
+        context,
+      },
+      {
+        type: 'copy',
+        source: 'web/public/icons/README.md',
+        destination: 'public/icons/README.md',
+      },
+      {
+        type: 'copy',
+        source: 'web/public/screenshots/README.md',
+        destination: 'public/screenshots/README.md',
+      }
+    );
+  }
 
   await executeFileOperations(operations, targetDir, 'Documentation and root files');
   return operations.length;
