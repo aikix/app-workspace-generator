@@ -1,3 +1,7 @@
+## 1.5.0 (2025-11-11)
+
+- feat(templates): add Tailwind CSS v4 configuration and theme (#46) ([acda835](https://github.com/aikix/app-workspace-generator/commit/acda835)), closes [#46](https://github.com/aikix/app-workspace-generator/issues/46) [#5](https://github.com/aikix/app-workspace-generator/issues/5)
+
 ## 1.4.0 (2025-11-11)
 
 - feat(cli): add progress indicators and enhanced UX ([29d9871](https://github.com/aikix/app-workspace-generator/commit/29d9871)), closes [#6](https://github.com/aikix/app-workspace-generator/issues/6)
