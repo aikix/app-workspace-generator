@@ -1,3 +1,8 @@
+## 1.15.0 (2025-11-11)
+
+- feat(workflow): add Firebase auto-setup to Phase 2 dependencies ([1f4b476](https://github.com/aikix/app-workspace-generator/commit/1f4b476)), closes [#47](https://github.com/aikix/app-workspace-generator/issues/47)
+- ci: add test coverage reporting to CI workflow ([c5599db](https://github.com/aikix/app-workspace-generator/commit/c5599db)), closes [#11](https://github.com/aikix/app-workspace-generator/issues/11)
+
 ## 1.14.0 (2025-11-11)
 
 - test(cli): add comprehensive E2E test suite with Vitest ([540ba99](https://github.com/aikix/app-workspace-generator/commit/540ba99)), closes [#11](https://github.com/aikix/app-workspace-generator/issues/11)
