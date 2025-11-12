@@ -92,15 +92,24 @@ export const logger = {
    * Print final summary box
    */
   summaryBox: (lines: string[]) => {
-    const maxLength = Math.max(...lines.map((l) => l.length));
-    const width = Math.min(maxLength + 4, 60);
+    // Strip ANSI codes to get actual text length
+    // eslint-disable-next-line no-control-regex
+    const stripAnsi = (str: string) => str.replace(/\x1b\[\d+m/g, '');
+    const maxLength = Math.max(...lines.map((l) => stripAnsi(l).length));
+
+    // Get terminal width (with fallback to 120)
+    const terminalWidth = process.stdout.columns || 120;
+
+    // Allow box to expand to content width, but cap at terminal width - 4 (with min 60)
+    const width = Math.max(60, Math.min(maxLength + 4, terminalWidth - 4));
 
     console.log();
     console.log(chalk.green(`┌${'─'.repeat(width - 2)}┐`));
 
     lines.forEach((line) => {
-      const padding = ' '.repeat(Math.max(0, width - line.length - 4));
-      console.log(chalk.green('│ ') + chalk.white(line) + padding + chalk.green(' │'));
+      const lineLength = stripAnsi(line).length;
+      const padding = ' '.repeat(Math.max(0, width - lineLength - 4));
+      console.log(chalk.green('│ ') + line + padding + chalk.green(' │'));
     });
 
     console.log(chalk.green(`└${'─'.repeat(width - 2)}┘`));
