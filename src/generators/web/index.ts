@@ -785,6 +785,51 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     }
   );
 
+  // Add GitHub Actions workflows if git hooks are enabled
+  if (context.gitHooks) {
+    operations.push(
+      {
+        type: 'template',
+        source: 'web/github/workflows/ci-develop.yml.hbs',
+        destination: '.github/workflows/ci-develop.yml',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/github/workflows/ci-main.yml.hbs',
+        destination: '.github/workflows/ci-main.yml',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/github/workflows/release.yml.hbs',
+        destination: '.github/workflows/release.yml',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/github/workflows/scheduled-prod-release.yml.hbs',
+        destination: '.github/workflows/scheduled-prod-release.yml',
+        context,
+      },
+      {
+        type: 'copy',
+        source: 'web/root/_releaserc.json',
+        destination: '.releaserc.json',
+      }
+    );
+
+    // Add Firebase service account deployment guide if using Firebase
+    if (context.backend === 'firebase') {
+      operations.push({
+        type: 'template',
+        source: 'web/scripts/service-accounts/README.md.hbs',
+        destination: 'scripts/service-accounts/README.md',
+        context,
+      });
+    }
+  }
+
   // Create public directory
   operations.push({
     type: 'directory',

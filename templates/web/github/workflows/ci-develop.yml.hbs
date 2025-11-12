@@ -1,0 +1,58 @@
+name: CI - Develop
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  quality-checks:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: $\{{ matrix.node-version }}
+          cache: '{{packageManager}}'
+
+      - name: Install dependencies
+        run: {{#if (eq packageManager "npm")}}npm ci{{else if (eq packageManager "yarn")}}yarn install --frozen-lockfile{{else if (eq packageManager "pnpm")}}pnpm install --frozen-lockfile{{else}}bun install --frozen-lockfile{{/if}}
+
+{{#if (and (eq backend "firebase") hasFunctions)}}
+      - name: Install Firebase Functions dependencies
+        run: |
+          cd functions
+          {{#if (eq packageManager "npm")}}npm ci{{else if (eq packageManager "yarn")}}yarn install --frozen-lockfile{{else if (eq packageManager "pnpm")}}pnpm install --frozen-lockfile{{else}}bun install --frozen-lockfile{{/if}}
+{{/if}}
+
+{{#if typescript}}
+      - name: Type check
+        run: {{#if (eq packageManager "npm")}}npm run{{else if (eq packageManager "yarn")}}yarn{{else if (eq packageManager "pnpm")}}pnpm{{else}}bun run{{/if}} type-check
+{{/if}}
+
+{{#if linting}}
+      - name: Lint
+        run: {{#if (eq packageManager "npm")}}npm run{{else if (eq packageManager "yarn")}}yarn{{else if (eq packageManager "pnpm")}}pnpm{{else}}bun run{{/if}} lint
+{{/if}}
+
+{{#if formatting}}
+      - name: Format check
+        run: {{#if (eq packageManager "npm")}}npm run{{else if (eq packageManager "yarn")}}yarn{{else if (eq packageManager "pnpm")}}pnpm{{else}}bun run{{/if}} format:check
+{{/if}}
+
+      - name: Build
+        run: {{#if (eq packageManager "npm")}}npm run{{else if (eq packageManager "yarn")}}yarn{{else if (eq packageManager "pnpm")}}pnpm{{else}}bun run{{/if}} build
+        env:
+          NODE_ENV: production

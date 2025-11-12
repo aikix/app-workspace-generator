@@ -1,0 +1,158 @@
+# Firebase Service Account Deployment
+
+This directory contains Firebase service account credentials for manual deployment.
+
+## Why Manual Deployment?
+
+GitHub Actions has authentication limitations with Firebase deployment. Following the pattern from production projects, we use manual deployment with service account credentials.
+
+## Setup
+
+### 1. Generate Service Account Keys
+
+For each Firebase project (dev, staging, prod), generate a service account key:
+
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project
+3. Go to **Project Settings** > **Service Accounts**
+4. Click **Generate New Private Key**
+5. Save the JSON file to this directory with the appropriate name:
+   - `{{projectName}}-dev.json` (Development)
+   - `{{projectName}}-staging.json` (Staging - if applicable)
+   - `{{projectName}}-prod.json` (Production)
+
+### 2. Secure the Files
+
+**IMPORTANT**: These files contain sensitive credentials!
+
+- ✅ Files are already in `.gitignore`
+- ✅ Never commit these files to version control
+- ✅ Store production keys in a secure password manager
+- ✅ Rotate keys periodically
+
+## Deployment Commands
+
+### Development
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-dev.json" \\
+  firebase deploy --project {{projectName}}-dev
+```
+
+{{#if (eq backend "firebase")}}
+### Deploy Specific Services
+
+```bash
+# Hosting only
+GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-dev.json" \\
+  firebase deploy --only hosting --project {{projectName}}-dev
+
+{{#if hasFunctions}}
+# Functions only
+GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-dev.json" \\
+  firebase deploy --only functions --project {{projectName}}-dev
+{{/if}}
+
+{{#if hasDatabase}}
+# Firestore rules and indexes
+GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-dev.json" \\
+  firebase deploy --only firestore --project {{projectName}}-dev
+{{/if}}
+
+{{#if hasStorage}}
+# Storage rules
+GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-dev.json" \\
+  firebase deploy --only storage --project {{projectName}}-dev
+{{/if}}
+```
+{{/if}}
+
+### Production
+
+**⚠️ Production deployments require extra care:**
+
+1. Ensure all CI checks pass
+2. Test in development environment first
+3. Review all changes
+4. Have rollback plan ready
+
+```bash
+# Full production deployment
+GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-prod.json" \\
+  firebase deploy --project {{projectName}}-prod
+```
+
+## Troubleshooting
+
+### Permission Denied
+
+If you get permission errors:
+
+1. Verify the service account has required roles:
+   - Firebase Admin
+   - Cloud Functions Developer (if using functions)
+   - Storage Admin (if using storage)
+
+2. Check the JSON file path is correct
+
+3. Ensure `firebase-tools` is installed:
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+### Authentication Errors
+
+If authentication fails:
+
+1. Regenerate the service account key
+2. Replace the old JSON file
+3. Try again
+
+## CI/CD Integration (Future)
+
+Currently, deployments are manual. If you want to automate via GitHub Actions:
+
+1. Add service account JSON as GitHub Secret
+2. Uncomment Firebase deployment steps in `.github/workflows/release.yml`
+3. Be aware of potential authentication issues
+
+**Note**: Manual deployment is recommended for production environments.
+
+## Security Best Practices
+
+1. **Rotate Keys Regularly**: Generate new service account keys every 90 days
+2. **Limit Permissions**: Give service accounts only the permissions they need
+3. **Audit Access**: Review service account usage periodically
+4. **Monitor Deployments**: Set up alerts for deployment activities
+5. **Use Different Accounts**: Never use the same service account for dev and prod
+
+## Emergency Procedures
+
+### Compromised Key
+
+If a service account key is compromised:
+
+1. **Immediately revoke the key** in Firebase Console
+2. Generate a new key
+3. Update the file in this directory
+4. Review recent deployments for suspicious activity
+5. Audit all Firebase resources
+
+### Rollback
+
+To rollback a deployment:
+
+```bash
+# List recent deployments
+firebase hosting:channel:list --project {{projectName}}-prod
+
+# Rollback to previous version (Firebase Hosting only)
+# Note: This requires Firebase Hosting history
+# For Functions, redeploy the previous version
+```
+
+## Additional Resources
+
+- [Firebase Admin SDK Setup](https://firebase.google.com/docs/admin/setup)
+- [Service Account Documentation](https://cloud.google.com/iam/docs/service-accounts)
+- [Firebase CLI Reference](https://firebase.google.com/docs/cli)

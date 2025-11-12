@@ -38,6 +38,10 @@ yarn-error.log*
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Firebase service account credentials
+scripts/service-accounts/*.json
+!scripts/service-accounts/README.md
 {{/if}}
 
 # Vercel

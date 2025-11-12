@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Release (Production)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: '{{packageManager}}'
+
+      - name: Install dependencies
+        run: {{#if (eq packageManager "npm")}}npm ci{{else if (eq packageManager "yarn")}}yarn install --frozen-lockfile{{else if (eq packageManager "pnpm")}}pnpm install --frozen-lockfile{{else}}bun install --frozen-lockfile{{/if}}
+
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: $\{{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+  sync-develop:
+    name: Sync Main to Develop
+    needs: release
+    if: success()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: $\{{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge main into develop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin develop
+          git checkout develop
+          git merge origin/main --no-ff -m "chore: merge main into develop after release [skip ci]"
+          git push origin develop
+
+  beta-release:
+    name: Beta Release (Development)
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: '{{packageManager}}'
+
+      - name: Install dependencies
+        run: {{#if (eq packageManager "npm")}}npm ci{{else if (eq packageManager "yarn")}}yarn install --frozen-lockfile{{else if (eq packageManager "pnpm")}}pnpm install --frozen-lockfile{{else}}bun install --frozen-lockfile{{/if}}
+
+      - name: Semantic Release (Beta)
+        env:
+          GITHUB_TOKEN: $\{{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+{{#if (eq backend "firebase")}}
+  # Firebase deployment is manual due to GitHub Actions authentication limitations
+  # See scripts/service-accounts/README.md for deployment instructions
+  #
+  # To deploy manually:
+  # 1. Set up service account credentials
+  # 2. Run: GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-dev.json" firebase deploy --project {{projectName}}-dev
+  # 3. For production: GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-prod.json" firebase deploy --project {{projectName}}-prod
+{{/if}}

@@ -1,0 +1,129 @@
+name: Scheduled Production Release
+
+on:
+  schedule:
+    # Run daily at 10:00 AM UTC (adjust timezone as needed)
+    - cron: '0 10 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-release-pr:
+    name: Create/Update Release PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: $\{{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch branches
+        run: |
+          git fetch origin main
+          git fetch origin develop
+
+      - name: Check for changes
+        id: changes
+        run: |
+          # Get commits between main and develop (excluding [skip ci] commits)
+          COMMITS=$(git log origin/main..origin/develop --oneline --no-merges | grep -v '\[skip ci\]' || true)
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -c . || echo "0")
+
+          # Get changed files
+          FILES_CHANGED=$(git diff --name-only origin/main...origin/develop | wc -l)
+
+          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "files_changed=$FILES_CHANGED" >> $GITHUB_OUTPUT
+
+          # Store commits for PR body
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create or Update PR
+        if: steps.changes.outputs.commit_count > 0
+        env:
+          GH_TOKEN: $\{{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          PR_NUMBER=$(gh pr list --base main --head develop --json number --jq '.[0].number' || echo "")
+
+          COMMIT_COUNT="${{ steps.changes.outputs.commit_count }}"
+          FILES_CHANGED="${{ steps.changes.outputs.files_changed }}"
+
+          # Create PR body
+          PR_BODY=$(cat <<'EOF_BODY'
+          ## 📦 Production Release
+
+          This PR contains $COMMIT_COUNT commits affecting $FILES_CHANGED files.
+
+          ### Commits
+          \`\`\`
+          $COMMITS
+          \`\`\`
+
+          ### Pre-deployment Checklist
+          - [ ] All CI checks pass
+          - [ ] Security audit shows no critical vulnerabilities
+          - [ ] E2E tests pass (if enabled)
+          - [ ] Code review completed
+          - [ ] Breaking changes documented (if any)
+{{#if (eq backend "firebase")}}
+          - [ ] Firebase configuration reviewed
+          - [ ] Database migrations tested (if any)
+          - [ ] Firebase rules reviewed{{/if}}
+
+          ### Deployment Steps
+          After merging this PR:
+          1. Semantic release will create a new GitHub release
+          2. Tag and changelog will be generated automatically
+{{#if (eq backend "firebase")}}
+          3. Deploy to Firebase manually (see instructions below)
+
+          **Manual Firebase Deployment:**
+          \`\`\`bash
+          # Deploy to production
+          GOOGLE_APPLICATION_CREDENTIALS="scripts/service-accounts/{{projectName}}-prod.json" \\
+            firebase deploy --project {{projectName}}-prod
+          \`\`\`{{/if}}
+          4. Verify deployment in production
+          5. Monitor for errors
+
+          ### Post-deployment
+          - [ ] Production deployment verified
+          - [ ] Smoke tests completed
+          - [ ] No critical errors in logs
+
+          ---
+          *This PR was automatically created by the scheduled release workflow.*
+          EOF_BODY
+          )
+
+          if [ -n "$PR_NUMBER" ]; then
+            # Update existing PR
+            echo "Updating existing PR #$PR_NUMBER"
+            gh pr edit $PR_NUMBER --body "$PR_BODY"
+          else
+            # Create new PR
+            echo "Creating new PR"
+            gh pr create \
+              --base main \
+              --head develop \
+              --title "chore(release): deploy develop to production" \
+              --body "$PR_BODY" \
+              --label "release"
+          fi
+
+      - name: No changes to release
+        if: steps.changes.outputs.commit_count == 0
+        run: echo "No new commits to release. Skipping PR creation."
