@@ -29,6 +29,7 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
   console.log('└─────────────────────────────────────────────────┘');
   console.log();
 
+  // Type assertion needed due to version mismatch between inquirer v10 and @types/inquirer v9
   const answers = await inquirer.prompt<{
     projectName: string;
     workspaceType: WorkspaceType;
@@ -95,21 +96,21 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
       name: 'pwaOffline',
       message: 'Enable offline support (service worker caching)?',
       default: true,
-      when: (answers) => answers.workspaceType === 'pwa',
+      when: (answers: { workspaceType: WorkspaceType }): boolean => answers.workspaceType === 'pwa',
     },
     {
       type: 'confirm',
       name: 'pwaInstallable',
       message: 'Make app installable (Add to Home Screen)?',
       default: true,
-      when: (answers) => answers.workspaceType === 'pwa',
+      when: (answers: { workspaceType: WorkspaceType }): boolean => answers.workspaceType === 'pwa',
     },
     {
       type: 'confirm',
       name: 'pwaNotifications',
       message: 'Enable push notifications (optional)?',
       default: false,
-      when: (answers) => answers.workspaceType === 'pwa',
+      when: (answers: { workspaceType: WorkspaceType }): boolean => answers.workspaceType === 'pwa',
     },
     {
       type: 'list',
@@ -280,7 +281,7 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
         { name: 'Cloud Storage', value: 'storage', checked: false },
         { name: 'Cloud Functions', value: 'functions', checked: false },
       ],
-      when: (answers) => answers.backend === 'firebase',
+      when: (answers: { backend: BackendType }): boolean => answers.backend === 'firebase',
     },
     {
       type: 'list',
@@ -297,7 +298,7 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
         },
       ],
       default: 'server-first',
-      when: (answers) => answers.backend === 'firebase',
+      when: (answers: { backend: BackendType }): boolean => answers.backend === 'firebase',
     },
     {
       type: 'confirm',
@@ -335,7 +336,8 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
       ],
       default: 'npm',
     },
-  ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ] as any);
 
   // Default backendFeatures to empty array if not set
   if (!answers.backendFeatures) {
