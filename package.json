@@ -47,7 +47,7 @@
     "commander": "^12.1.0",
     "fs-extra": "^11.2.0",
     "handlebars": "^4.7.8",
-    "inquirer": "^10.2.2",
+    "inquirer": "^12.11.0",
     "ora": "^8.1.0",
     "validate-npm-package-name": "^5.0.1"
   },
@@ -63,7 +63,7 @@
     "@types/validate-npm-package-name": "^4.0.2",
     "@typescript-eslint/eslint-plugin": "^8.18.1",
     "@typescript-eslint/parser": "^8.18.1",
-    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/coverage-v8": "^4.0.8",
     "eslint": "^9.17.0",
     "execa": "^9.6.0",
     "husky": "^9.1.7",
@@ -72,7 +72,7 @@
     "semantic-release": "^25.0.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.0.8"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
