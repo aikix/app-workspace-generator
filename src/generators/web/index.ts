@@ -816,9 +816,26 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
         context,
       },
       {
+        type: 'template',
+        source: 'web/github/workflows/security.yml.hbs',
+        destination: '.github/workflows/security.yml',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/github/workflows/pr-checks.yml.hbs',
+        destination: '.github/workflows/pr-checks.yml',
+        context,
+      },
+      {
         type: 'copy',
         source: 'web/root/_releaserc.json',
         destination: '.releaserc.json',
+      },
+      {
+        type: 'copy',
+        source: 'web/github/dependabot.yml',
+        destination: '.github/dependabot.yml',
       }
     );
 

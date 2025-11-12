@@ -1,0 +1,150 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Skip if PR is draft
+  check-draft:
+    name: Check if PR is draft
+    runs-on: ubuntu-latest
+    outputs:
+      is_draft: {{'$'}}{{ steps.check.outputs.is_draft }}
+    steps:
+      - id: check
+        run: echo "is_draft={{'$'}}{{ github.event.pull_request.draft }}" >> {{'$'}}GITHUB_OUTPUT
+
+  quality-checks:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    needs: check-draft
+    if: needs.check-draft.outputs.is_draft == 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: '{{packageManager}}'
+
+      - name: Install dependencies
+        run: {{#if (eq packageManager "npm")}}npm ci{{else if (eq packageManager "yarn")}}yarn install --frozen-lockfile{{else if (eq packageManager "pnpm")}}pnpm install --frozen-lockfile{{else}}bun install --frozen-lockfile{{/if}}
+
+      {{#if typescript}}
+      - name: Type check
+        run: {{packageManager}} run type-check
+      {{/if}}
+
+      {{#if linting}}
+      - name: Lint
+        run: {{packageManager}} run lint
+      {{/if}}
+
+      {{#if formatting}}
+      - name: Format check
+        run: {{packageManager}} run format:check
+      {{/if}}
+
+      - name: Build
+        run: {{packageManager}} run build
+
+      {{#if (eq testing "playwright")}}
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: {{packageManager}} run e2e
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+      {{/if}}
+
+  pr-size-check:
+    name: PR Size Check
+    runs-on: ubuntu-latest
+    needs: check-draft
+    if: needs.check-draft.outputs.is_draft == 'false'
+
+    steps:
+      - name: Check PR size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const additions = pr.additions;
+            const deletions = pr.deletions;
+            const changes = additions + deletions;
+
+            let label = '';
+            let comment = '';
+
+            if (changes < 100) {
+              label = 'size/XS';
+            } else if (changes < 300) {
+              label = 'size/S';
+            } else if (changes < 600) {
+              label = 'size/M';
+            } else if (changes < 1000) {
+              label = 'size/L';
+              comment = '⚠️ This PR is getting large. Consider splitting it into smaller PRs for easier review.';
+            } else {
+              label = 'size/XL';
+              comment = '🚨 This PR is very large! Please consider breaking it into smaller, focused PRs.';
+            }
+
+            // Add size label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: [label]
+            });
+
+            // Add comment if PR is large
+            if (comment) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: comment
+              });
+            }
+
+  conventional-commits-check:
+    name: Conventional Commits Check
+    runs-on: ubuntu-latest
+    needs: check-draft
+    if: needs.check-draft.outputs.is_draft == 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            const conventionalCommitRegex = /^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\(.+\))?!?: .{1,100}/;
+
+            if (!conventionalCommitRegex.test(title)) {
+              core.setFailed('PR title does not follow Conventional Commits format.\\n\\nExpected format: type(scope): description\\n\\nExamples:\\n- feat: add user authentication\\n- fix(api): resolve null pointer exception\\n- docs: update README');
+            }
