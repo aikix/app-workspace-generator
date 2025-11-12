@@ -1,0 +1,392 @@
+# Data Flow
+
+Documentation of how data flows through {{projectName}}.
+
+## Request/Response Flow
+
+### Page Load Flow
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant N as Next.js Server
+    {{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}
+    participant F as Firebase
+    {{/if}}{{/if}}
+
+    B->>N: HTTP GET /page
+    N->>N: Render Server Component
+    {{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}
+    N->>F: Query data (Admin SDK)
+    F-->>N: Data response
+    {{/if}}{{/if}}
+    N-->>B: HTML + RSC Payload
+    B->>B: Hydrate React
+    B->>B: Render Client Components
+```
+
+{{#if (eq backend "firebase")}}
+### Authentication Flow
+
+{{#if (eq firebasePattern "server-first")}}
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Client
+    participant S as Server
+    participant F as Firebase Auth
+
+    U->>C: Click "Sign In"
+    C->>F: signInWithEmailAndPassword()
+    F-->>C: ID Token
+    C->>S: POST /api/auth/login
+    S->>F: verifyIdToken()
+    F-->>S: Decoded claims
+    S->>S: Create session cookie
+    S-->>C: HTTP-only cookie
+    C->>C: Redirect to /dashboard
+```
+{{else}}
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Client
+    participant F as Firebase Auth
+
+    U->>C: Click "Sign In"
+    C->>F: signInWithEmailAndPassword()
+    F-->>C: User object + token
+    C->>C: Update auth state
+    C->>C: Redirect to /dashboard
+```
+{{/if}}
+
+### Data CRUD Flow
+
+{{#if (eq firebasePattern "server-first")}}
+#### Server-Side Pattern
+
+```mermaid
+sequenceDiagram
+    participant UI as UI Component
+    participant SA as Server Action
+    participant SDK as Admin SDK
+    participant FS as Firestore
+
+    UI->>SA: createPost(data)
+    SA->>SA: Validate input
+    SA->>SDK: collection().add()
+    SDK->>FS: Write document
+    FS-->>SDK: Document ID
+    SDK-->>SA: Success
+    SA->>SA: revalidatePath()
+    SA-->>UI: \{ success: true, id }
+    UI->>UI: Update UI
+```
+{{else}}
+#### Client-Side Pattern
+
+```mermaid
+sequenceDiagram
+    participant UI as UI Component
+    participant SDK as Client SDK
+    participant FS as Firestore
+
+    UI->>SDK: addDoc(collection, data)
+    SDK->>FS: Write document
+    FS-->>SDK: Document snapshot
+    SDK-->>UI: Document reference
+    UI->>UI: Update UI
+    Note over SDK,FS: Real-time listener updates
+    FS->>SDK: onSnapshot callback
+    SDK->>UI: Updated data
+```
+{{/if}}
+
+### File Upload Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Client
+    {{#if (eq firebasePattern "server-first")}}
+    participant API as API Route
+    participant SDK as Admin SDK
+    {{else}}
+    participant SDK as Client SDK
+    {{/if}}
+    participant S as Storage
+
+    U->>C: Select file
+    C->>C: Validate file
+    {{#if (eq firebasePattern "server-first")}}
+    C->>API: POST /api/upload
+    API->>SDK: bucket().file().save()
+    SDK->>S: Upload file
+    S-->>SDK: File URL
+    SDK-->>API: URL
+    API-->>C: \{ url }
+    {{else}}
+    C->>SDK: uploadBytes(ref, file)
+    SDK->>S: Upload file
+    S-->>SDK: Upload snapshot
+    SDK->>SDK: getDownloadURL()
+    SDK-->>C: Download URL
+    {{/if}}
+    C->>C: Display uploaded file
+```
+{{/if}}
+
+## State Management Flow
+
+{{#if (eq stateManagement "context")}}
+### Context API Flow
+
+```mermaid
+graph TD
+    A[User Action] --> B[Component]
+    B --> C{Update Context?}
+    C -->|Yes| D[Context Provider]
+    D --> E[Update State]
+    E --> F[Notify Consumers]
+    F --> G[Re-render Components]
+    C -->|No| H[Local State Update]
+    H --> I[Re-render Component]
+```
+{{else if (eq stateManagement "zustand")}}
+### Zustand Store Flow
+
+```mermaid
+graph TD
+    A[User Action] --> B[Component]
+    B --> C[Call Store Action]
+    C --> D[Update Store State]
+    D --> E[Notify Subscribers]
+    E --> F[Re-render Components]
+```
+{{/if}}
+
+## API Request Flow
+
+### Client to API
+
+```mermaid
+sequenceDiagram
+    participant C as Client Component
+    participant API as API Route
+    {{#if (eq backend "firebase")}}
+    participant F as Firebase
+    {{else}}
+    participant DB as Database
+    {{/if}}
+
+    C->>API: fetch('/api/users')
+    API->>API: Validate request
+    {{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}
+    API->>F: Query users
+    F-->>API: User data
+    {{/if}}{{else}}
+    API->>DB: Query users
+    DB-->>API: User data
+    {{/if}}
+    API->>API: Transform data
+    API-->>C: JSON response
+    C->>C: Update UI
+```
+
+{{#if (eq backend "firebase")}}
+## Firebase Integration Flow
+
+### Firestore Query Flow
+
+```mermaid
+graph LR
+    A[Component] --> B{Pattern?}
+    B -->|Server-First| C[Server Action]
+    B -->|Client-Side| D[Client SDK]
+    C --> E[Admin SDK]
+    E --> F[Firestore]
+    D --> F
+    F --> G[Data]
+    G --> H[Component Update]
+```
+
+### Real-Time Updates
+
+{{#if (eq firebasePattern "client-side")}}
+```mermaid
+sequenceDiagram
+    participant C as Component
+    participant SDK as Firebase SDK
+    participant FS as Firestore
+
+    C->>SDK: onSnapshot(query, callback)
+    SDK->>FS: Subscribe to query
+    Note over SDK,FS: WebSocket connection
+    FS-->>SDK: Initial data
+    SDK-->>C: Invoke callback
+    C->>C: Render data
+
+    Note over FS: Document updated
+    FS->>SDK: Push update
+    SDK->>C: Invoke callback
+    C->>C: Re-render
+```
+{{/if}}
+{{/if}}
+
+## Form Submission Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Form
+    participant V as Validation
+    {{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}
+    participant SA as Server Action
+    {{else}}
+    participant API as API
+    {{/if}}{{else}}
+    participant API as API
+    {{/if}}
+
+    U->>F: Enter data
+    U->>F: Click submit
+    F->>V: Validate inputs
+    alt Validation passes
+        V-->>F: Valid
+        {{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}
+        F->>SA: Call server action
+        SA->>SA: Process & save
+        SA-->>F: Result
+        {{else}}
+        F->>API: POST request
+        API->>API: Process & save
+        API-->>F: Response
+        {{/if}}{{else}}
+        F->>API: POST request
+        API->>API: Process & save
+        API-->>F: Response
+        {{/if}}
+        F->>F: Show success
+    else Validation fails
+        V-->>F: Errors
+        F->>F: Show errors
+    end
+```
+
+## Error Handling Flow
+
+```mermaid
+graph TD
+    A[Operation] --> B{Success?}
+    B -->|Yes| C[Update UI]
+    B -->|No| D[Catch Error]
+    D --> E{Error Type}
+    E -->|Network| F[Show retry]
+    E -->|Validation| G[Show field errors]
+    E -->|Auth| H[Redirect to login]
+    E -->|Unknown| I[Show generic error]
+    F --> J[Log error]
+    G --> J
+    H --> J
+    I --> J
+```
+
+## Caching Strategy
+
+{{#if (eq backend "firebase")}}
+### Firestore Caching
+
+```mermaid
+graph TD
+    A[Query Request] --> B{Cache Hit?}
+    B -->|Yes| C[Return from cache]
+    B -->|No| D[Fetch from Firestore]
+    D --> E[Update cache]
+    E --> F[Return data]
+    
+    G[Real-time Update] --> H[Update cache]
+    H --> I[Notify listeners]
+```
+{{/if}}
+
+### Next.js Caching
+
+```mermaid
+graph LR
+    A[Request] --> B{Static?}
+    B -->|Yes| C[CDN Cache]
+    B -->|No| D{ISR?}
+    D -->|Yes| E[Revalidate]
+    D -->|No| F[SSR]
+    E --> G[Update Cache]
+```
+
+## Performance Optimization Flow
+
+### Code Splitting
+
+```mermaid
+graph TD
+    A[App Bundle] --> B[Route Bundles]
+    B --> C[Common Chunks]
+    B --> D[Lazy Components]
+    D --> E[Load on Demand]
+```
+
+### Image Loading
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant N as Next.js
+    participant CDN
+
+    B->>N: Request page
+    N-->>B: HTML (placeholder)
+    B->>B: IntersectionObserver
+    Note over B: Image enters viewport
+    B->>CDN: Request optimized image
+    CDN-->>B: WebP/AVIF image
+    B->>B: Display image
+```
+
+## Data Transformation Pipeline
+
+```mermaid
+graph LR
+    A[Raw Data] --> B[Validation]
+    B --> C[Sanitization]
+    C --> D[Type Conversion]
+    D --> E[Business Logic]
+    E --> F[Formatted Data]
+    F --> G[UI Component]
+```
+
+{{#if (eq backend "firebase")}}
+## Security Flow
+
+### Request Authorization
+
+```mermaid
+graph TD
+    A[Incoming Request] --> B{Authenticated?}
+    B -->|No| C[Return 401]
+    B -->|Yes| D{Authorized?}
+    D -->|No| E[Return 403]
+    D -->|Yes| F[Process Request]
+    F --> G{Valid Input?}
+    G -->|No| H[Return 400]
+    G -->|Yes| I[Execute Operation]
+    I --> J{Success?}
+    J -->|Yes| K[Return 200]
+    J -->|No| L[Return 500]
+```
+{{/if}}
+
+## Resources
+
+- [Next.js Data Fetching](https://nextjs.org/docs/app/building-your-application/data-fetching)
+{{#if (eq backend "firebase")}}- [Firebase Data Flow](https://firebase.google.com/docs/firestore/query-data/get-data)
+{{/if}}- [React State Management](https://react.dev/learn/managing-state)

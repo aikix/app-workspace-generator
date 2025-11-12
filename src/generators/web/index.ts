@@ -971,6 +971,64 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     }
   );
 
+  // Add architecture documentation
+  operations.push(
+    {
+      type: 'template',
+      source: 'web/docs/architecture/README.md.hbs',
+      destination: 'docs/architecture/README.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/architecture/system-design.md.hbs',
+      destination: 'docs/architecture/system-design.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/architecture/data-flow.md.hbs',
+      destination: 'docs/architecture/data-flow.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/architecture/components.md.hbs',
+      destination: 'docs/architecture/components.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/architecture/api.md.hbs',
+      destination: 'docs/architecture/api.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/architecture/database.md.hbs',
+      destination: 'docs/architecture/database.md',
+      context,
+    }
+  );
+
+  // Add Firebase-specific architecture docs
+  if (context.backend === 'firebase') {
+    operations.push(
+      {
+        type: 'template',
+        source: 'web/docs/architecture/auth.md.hbs',
+        destination: 'docs/architecture/auth.md',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/docs/architecture/deployment.md.hbs',
+        destination: 'docs/architecture/deployment.md',
+        context,
+      }
+    );
+  }
+
   // Add PWA files
   if (context.pwa) {
     operations.push(

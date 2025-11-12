@@ -1,0 +1,91 @@
+{{#if (eq backend "firebase")}}
+# Authentication Architecture
+
+Firebase Authentication flows for {{projectName}}.
+
+## Authentication Flow
+
+{{#if (eq firebasePattern "server-first")}}
+### Server-First Pattern
+
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant Firebase Auth
+    participant Server
+    
+    Client->>Firebase Auth: signInWithEmailAndPassword()
+    Firebase Auth-->>Client: ID Token
+    Client->>Server: POST /api/auth/login + token
+    Server->>Firebase Auth: verifyIdToken()
+    Firebase Auth-->>Server: Verified claims
+    Server->>Server: Create session cookie
+    Server-->>Client: Set HTTP-only cookie
+\`\`\`
+
+### Session Management
+
+- HTTP-only cookies for security
+- Server-side token verification
+- Session expiration handling
+
+{{else}}
+### Client-Side Pattern
+
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant Firebase Auth
+    
+    Client->>Firebase Auth: signInWithEmailAndPassword()
+    Firebase Auth-->>Client: User + ID Token
+    Client->>Client: Update auth state
+    Client->>Client: Store in Context/Zustand
+\`\`\`
+
+### Token Management
+
+- Automatic token refresh
+- Client-side auth state
+- Real-time auth updates
+{{/if}}
+
+## Protected Routes
+
+{{#if (eq firebasePattern "server-first")}}
+\`\`\`typescript
+// middleware.ts
+export async function middleware(request: NextRequest) {
+  const session = request.cookies.get('session');
+  if (!session) {
+    return NextResponse.redirect('/login');
+  }
+  await verifySessionCookie(session.value);
+  return NextResponse.next();
+}
+\`\`\`
+{{else}}
+\`\`\`typescript
+// Client-side protection
+const { user } = useAuth();
+if (!user) return <Navigate to="/login" />;
+\`\`\`
+{{/if}}
+
+## Security Rules
+
+\`\`\`javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null 
+        && request.auth.uid == userId;
+    }
+  }
+}
+\`\`\`
+
+## Resources
+- [Firebase Auth](https://firebase.google.com/docs/auth)
+{{/if}}

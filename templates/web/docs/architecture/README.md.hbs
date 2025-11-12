@@ -1,0 +1,448 @@
+# Architecture Overview
+
+Documentation of {{projectName}} system architecture and design decisions.
+
+## System Overview
+
+{{projectName}} is built using modern web technologies with a focus on performance, scalability, and developer experience.
+
+### Tech Stack
+
+**Frontend:**
+- **Framework:** Next.js 16 (App Router)
+{{#if typescript}}- **Language:** TypeScript (strict mode){{/if}}
+- **Styling:** {{#if (eq styling "tailwind")}}Tailwind CSS v4{{else}}CSS{{/if}}
+{{#if animations}}- **Animations:** Framer Motion{{/if}}
+{{#if (eq testing "playwright")}}- **E2E Testing:** Playwright{{/if}}
+
+{{#if (eq backend "firebase")}}
+**Backend:**
+- **Platform:** Firebase{{#if (eq firebasePattern "server-first")}} (Server-First Pattern){{else if (eq firebasePattern "client-side")}} (Client-Side Pattern){{/if}}
+- **Authentication:** Firebase Authentication
+- **Database:** Cloud Firestore (NoSQL)
+- **Storage:** Firebase Storage
+- **Hosting:** Firebase App Hosting
+{{/if}}
+
+**State Management:**
+{{#if (eq stateManagement "context")}}- React Context API{{else if (eq stateManagement "zustand")}}- Zustand{{else}}- Component-level state (useState, useReducer){{/if}}
+
+**Development Tools:**
+{{#if linting}}- ESLint (code linting){{/if}}
+{{#if formatting}}- Prettier (code formatting){{/if}}
+{{#if gitHooks}}- Husky + lint-staged (pre-commit hooks)
+- Commitlint (conventional commits){{/if}}
+
+## Architecture Diagrams
+
+### System Architecture
+
+```mermaid
+graph TB
+    subgraph "Client"
+        Browser[Web Browser]
+        React[React Components]
+        State[State Management]
+    end
+
+    subgraph "Next.js Server"
+        AppRouter[App Router]
+        ServerComponents[Server Components]
+        {{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}ServerActions[Server Actions]{{/if}}{{/if}}
+        API[API Routes]
+    end
+
+    {{#if (eq backend "firebase")}}
+    subgraph "Firebase"
+        Auth[Authentication]
+        Firestore[Cloud Firestore]
+        Storage[Cloud Storage]
+        {{#if (eq firebasePattern "server-first")}}AdminSDK[Admin SDK]{{/if}}
+    end
+    {{/if}}
+
+    Browser --> React
+    React --> State
+    React --> AppRouter
+    AppRouter --> ServerComponents
+    {{#if (eq backend "firebase")}}
+    {{#if (eq firebasePattern "server-first")}}
+    ServerComponents --> ServerActions
+    ServerActions --> AdminSDK
+    AdminSDK --> Auth
+    AdminSDK --> Firestore
+    AdminSDK --> Storage
+    {{else}}
+    React --> Auth
+    React --> Firestore
+    React --> Storage
+    {{/if}}
+    {{/if}}
+    AppRouter --> API
+    {{#if (eq backend "firebase")}}
+    {{#if (eq firebasePattern "server-first")}}
+    API --> AdminSDK
+    {{else}}
+    API --> Auth
+    API --> Firestore
+    {{/if}}
+    {{/if}}
+```
+
+### Request Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant NextJS as Next.js Server
+    {{#if (eq backend "firebase")}}
+    participant Firebase
+    {{/if}}
+
+    User->>Browser: Navigate to page
+    Browser->>NextJS: HTTP Request
+    NextJS->>NextJS: Server-side rendering
+    {{#if (eq backend "firebase")}}
+    {{#if (eq firebasePattern "server-first")}}
+    NextJS->>Firebase: Fetch data (Admin SDK)
+    Firebase-->>NextJS: Data response
+    {{/if}}
+    {{/if}}
+    NextJS-->>Browser: HTML + React
+    Browser->>Browser: Hydrate React
+    {{#if (eq backend "firebase")}}
+    {{#if (eq firebasePattern "client-side")}}
+    Browser->>Firebase: Fetch data (Client SDK)
+    Firebase-->>Browser: Data response
+    {{/if}}
+    {{/if}}
+    Browser-->>User: Interactive page
+```
+
+## Key Design Decisions
+
+### 1. Next.js App Router
+
+**Why:** Modern React architecture with:
+- Server Components by default (better performance)
+- Streaming and Suspense support
+- Simplified data fetching
+- File-system based routing
+- Built-in API routes
+
+### 2. {{#if typescript}}TypeScript{{else}}JavaScript{{/if}}
+
+{{#if typescript}}
+**Why:** Type safety provides:
+- Catch errors at compile time
+- Better IDE support and autocomplete
+- Self-documenting code
+- Easier refactoring
+{{else}}
+**Why:** Simpler setup and faster development for small projects
+{{/if}}
+
+{{#if (eq styling "tailwind")}}
+### 3. Tailwind CSS v4
+
+**Why:** Utility-first CSS framework offers:
+- Rapid UI development
+- Consistent design system
+- Small production bundle (purged CSS)
+- No naming conventions needed
+- Easy responsive design
+{{/if}}
+
+{{#if (eq backend "firebase")}}
+### 4. Firebase Backend
+
+**Why:** Serverless platform provides:
+- No server management required
+- Automatic scaling
+- Real-time data synchronization
+- Built-in authentication
+- Global CDN for static assets
+- Pay-as-you-go pricing
+
+### 5. {{#if (eq firebasePattern "server-first")}}Server-First{{else}}Client-Side{{/if}} Pattern
+
+{{#if (eq firebasePattern "server-first")}}
+**Why Server-First:**
+- Better security (credentials on server only)
+- Server-side rendering with data
+- Reduced client bundle size
+- Direct database access in Server Actions
+- Better SEO with pre-rendered data
+{{else}}
+**Why Client-Side:**
+- Real-time data synchronization
+- Simpler architecture
+- Direct Firebase SDK usage
+- Offline persistence built-in
+- Optimistic updates
+{{/if}}
+{{/if}}
+
+{{#if (eq stateManagement "context")}}
+### {{#if (eq backend "firebase")}}6{{else}}4{{/if}}. React Context for State Management
+
+**Why:** Built-in solution offers:
+- No additional dependencies
+- Simple API
+- Works well with Server Components
+- Sufficient for most use cases
+{{else if (eq stateManagement "zustand")}}
+### {{#if (eq backend "firebase")}}6{{else}}4{{/if}}. Zustand for State Management
+
+**Why:** Lightweight library provides:
+- Minimal boilerplate
+- No providers needed
+- DevTools support
+- Easy persistence
+- Better performance than Context
+{{/if}}
+
+## Security Considerations
+
+{{#if (eq backend "firebase")}}
+### Firebase Security
+
+1. **Firestore Security Rules**
+   - Row-level security for all data
+   - User-based access control
+   - Data validation at database level
+
+2. **Storage Security Rules**
+   - File access based on authentication
+   - File size and type validation
+   - User-specific file storage
+
+3. **Authentication**
+   - Secure token-based auth
+   - Email verification required
+   - Password strength requirements
+   {{#if (eq firebasePattern "server-first")}}
+   - HTTP-only session cookies
+   - Server-side token verification
+   {{/if}}
+
+4. **Environment Variables**
+   - Secrets stored in Google Cloud Secret Manager
+   - No hardcoded credentials
+   - Different secrets for dev/prod
+{{/if}}
+
+### API Security
+
+1. **Input Validation**
+   - Zod schema validation
+   - Type checking with TypeScript
+   - Sanitization of user input
+
+2. **Authentication Guards**
+   - Protected API routes
+   {{#if (eq backend "firebase")}}
+   - Firebase token verification
+   {{/if}}
+   - Role-based access control
+
+3. **CORS Configuration**
+   - Restricted origins
+   - Allowed methods specified
+   - Credentials handling
+
+## Performance Optimizations
+
+### 1. Server Components
+
+- Default to Server Components
+- Reduce client JavaScript bundle
+- Faster initial page loads
+- Better SEO
+
+### 2. Code Splitting
+
+- Automatic route-based splitting
+- Dynamic imports for heavy components
+- Lazy loading for below-the-fold content
+
+### 3. Image Optimization
+
+- Next.js Image component
+- Automatic WebP conversion
+- Responsive images
+- Lazy loading
+
+{{#if (eq styling "tailwind")}}
+### 4. CSS Optimization
+
+- Tailwind CSS purging
+- Only used utilities in production
+- Critical CSS inlined
+{{/if}}
+
+{{#if (eq backend "firebase")}}
+### 5. Database Optimization
+
+- Indexed queries
+- Pagination with cursors
+- Denormalized data where needed
+- Client-side caching
+{{/if}}
+
+## Scalability
+
+{{#if (eq backend "firebase")}}
+### Horizontal Scaling
+
+Firebase automatically scales:
+- **Cloud Firestore:** Auto-scales to millions of users
+- **Firebase Storage:** Global CDN distribution
+- **Firebase App Hosting:** Auto-scaling Cloud Run instances
+
+### Caching Strategy
+
+1. **CDN Caching**
+   - Static assets cached globally
+   - Automatic cache invalidation
+
+2. **Client Caching**
+   {{#if (eq firebasePattern "client-side")}}
+   - Firestore offline persistence
+   {{/if}}
+   - React Query or SWR for API data
+   - Browser cache for images
+
+3. **Server Caching**
+   - Next.js static generation where possible
+   - Incremental Static Regeneration (ISR)
+{{else}}
+### Scalability Considerations
+
+- Server-side rendering for dynamic content
+- Static generation for static pages
+- API route optimization
+- Database connection pooling
+{{/if}}
+
+## Monitoring & Observability
+
+{{#if (eq backend "firebase")}}
+### Firebase Monitoring
+
+1. **Performance Monitoring**
+   - Real user metrics
+   - Page load times
+   - API response times
+
+2. **Crash Reporting**
+   - Client-side error tracking
+   - Stack traces with source maps
+
+3. **Analytics**
+   - User behavior tracking
+   - Conversion funnels
+   - Custom events
+
+4. **Cloud Logging**
+   - Server-side logs
+   - Error aggregation
+   - Log-based alerts
+{{else}}
+### Monitoring Setup
+
+Consider adding:
+- Error tracking (Sentry, Bugsnag)
+- Performance monitoring (New Relic, Datadog)
+- Analytics (Google Analytics, Plausible)
+- Uptime monitoring (Pingdom, UptimeRobot)
+{{/if}}
+
+## Documentation Structure
+
+```
+docs/
+├── README.md                    # This file
+├── architecture/
+│   ├── README.md                # Architecture overview
+│   ├── system-design.md         # High-level system design
+│   ├── components.md            # Component architecture
+│   ├── data-flow.md             # Data flow diagrams
+│   ├── database.md              # Database schema
+│   ├── api.md                   # API architecture
+{{#if (eq backend "firebase")}}│   ├── auth.md                  # Authentication flow
+│   └── deployment.md            # Deployment architecture
+{{/if}}├── getting-started/
+│   ├── README.md                # Quick start guide
+│   ├── prerequisites.md         # System requirements
+│   ├── installation.md          # Setup instructions
+│   ├── first-run.md             # Initial configuration
+│   ├── development.md           # Development workflow
+│   ├── debugging.md             # Debugging guide
+│   └── troubleshooting.md       # Common issues
+├── features/
+│   ├── authentication.md        # Auth guide
+│   ├── database.md              # Database usage
+│   ├── storage.md               # File storage
+│   ├── api.md                   # API routes
+│   ├── state-management.md      # State patterns
+│   └── styling.md               # Styling guide
+└── deployment/
+    ├── README.md                # Deployment overview
+{{#if (eq backend "firebase")}}    ├── firebase.md              # Firebase App Hosting
+{{/if}}    ├── environment.md           # Environment variables
+    └── domain.md                # Custom domain setup
+```
+
+## Architecture Documents
+
+1. **[System Design](./system-design.md)** - High-level architecture and tech stack decisions
+2. **[Component Architecture](./components.md)** - React component organization and patterns
+3. **[Data Flow](./data-flow.md)** - How data moves through the application
+4. **[API Architecture](./api.md)** - API design and endpoint structure
+5. **[Database Schema](./database.md)** - Data models and relationships
+{{#if (eq backend "firebase")}}
+6. **[Authentication Flow](./auth.md)** - User authentication and authorization
+7. **[Deployment Architecture](./deployment.md)** - Infrastructure and deployment process
+{{/if}}
+
+## Contributing to Architecture
+
+When making architectural changes:
+
+1. **Document the Decision**
+   - Update relevant architecture docs
+   - Explain the reasoning
+   - Note alternatives considered
+
+2. **Update Diagrams**
+   - Keep Mermaid diagrams current
+   - Show new components/flows
+   - Remove deprecated elements
+
+3. **Communicate Changes**
+   - Discuss in team meetings
+   - Create ADR (Architecture Decision Records)
+   - Update CLAUDE.md for AI agents
+
+4. **Validate Changes**
+   - Ensure security is maintained
+   - Check performance impact
+   - Test scalability implications
+
+## Resources
+
+- [Next.js Documentation](https://nextjs.org/docs)
+{{#if (eq backend "firebase")}}- [Firebase Documentation](https://firebase.google.com/docs)
+{{/if}}- [Mermaid Diagram Syntax](https://mermaid.js.org/)
+{{#if (eq styling "tailwind")}}- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+{{/if}}- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+
+## Next Steps
+
+- Review [System Design](./system-design.md) for detailed architecture
+- Check [Component Architecture](./components.md) for React patterns
+- See [Data Flow](./data-flow.md) for request/response flows
+{{#if (eq backend "firebase")}}- Read [Authentication Flow](./auth.md) for security model
+{{/if}}

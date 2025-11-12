@@ -1,0 +1,447 @@
+# System Design
+
+High-level system architecture and design decisions for {{projectName}}.
+
+## System Architecture
+
+### Overview
+
+{{projectName}} follows a modern {{#if (eq backend "firebase")}}serverless{{else}}server-rendered{{/if}} architecture using Next.js 16 with the App Router.
+
+```mermaid
+C4Context
+    title System Context Diagram
+
+    Person(user, "User", "End user accessing the application")
+    System(webapp, "{{projectName}}", "Next.js web application")
+    {{#if (eq backend "firebase")}}
+    System_Ext(firebase, "Firebase", "Backend services")
+    System_Ext(gcloud, "Google Cloud", "Infrastructure")
+    {{/if}}
+
+    Rel(user, webapp, "Uses", "HTTPS")
+    {{#if (eq backend "firebase")}}
+    Rel(webapp, firebase, "Uses", "Firebase SDK")
+    Rel(firebase, gcloud, "Runs on")
+    {{/if}}
+```
+
+{{#if (eq backend "firebase")}}
+## Firebase Architecture
+
+### {{#if (eq firebasePattern "server-first")}}Server-First Pattern{{else}}Client-Side Pattern{{/if}}
+
+{{#if (eq firebasePattern "server-first")}}
+```mermaid
+graph TB
+    Client[Client Browser]
+    NextServer[Next.js Server]
+    AdminSDK[Firebase Admin SDK]
+    Auth[Firebase Auth]
+    Firestore[Cloud Firestore]
+    Storage[Cloud Storage]
+
+    Client -->|HTTPS| NextServer
+    NextServer -->|Server Actions| AdminSDK
+    NextServer -->|API Routes| AdminSDK
+    AdminSDK --> Auth
+    AdminSDK --> Firestore
+    AdminSDK --> Storage
+
+    style AdminSDK fill:#4285f4
+    style NextServer fill:#000000,color:#fff
+```
+
+**Benefits:**
+- Server-side data fetching
+- Secure credentials
+- Better SEO
+- Reduced client bundle
+
+{{else}}
+```mermaid
+graph TB
+    Client[Client Browser]
+    NextServer[Next.js Server]
+    ClientSDK[Firebase Client SDK]
+    Auth[Firebase Auth]
+    Firestore[Cloud Firestore]
+    Storage[Cloud Storage]
+
+    Client -->|HTTPS| NextServer
+    NextServer -->|SSR| Client
+    Client --> ClientSDK
+    ClientSDK --> Auth
+    ClientSDK --> Firestore
+    ClientSDK --> Storage
+
+    style ClientSDK fill:#ffca28
+    style NextServer fill:#000000,color:#fff
+```
+
+**Benefits:**
+- Real-time updates
+- Offline persistence
+- Simple architecture
+- Direct SDK access
+{{/if}}
+{{/if}}
+
+## Component Architecture
+
+### Layered Architecture
+
+```
+┌─────────────────────────────────────┐
+│         Presentation Layer          │
+│   (React Components + UI Logic)     │
+├─────────────────────────────────────┤
+│         Business Logic Layer        │
+│   (Hooks, Utils, State Management)  │
+├─────────────────────────────────────┤
+│          Data Access Layer          │
+│   (API calls{{#if (eq backend "firebase")}}, Firebase SDK{{/if}})  │
+├─────────────────────────────────────┤
+│         Infrastructure Layer        │
+│   (Next.js{{#if (eq backend "firebase")}}, Firebase{{/if}}, Browser)     │
+└─────────────────────────────────────┘
+```
+
+## Data Flow
+
+### Page Rendering Flow
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant NextJS
+    {{#if (eq backend "firebase")}}
+    participant Firebase
+    {{/if}}
+
+    Browser->>NextJS: Request page
+    NextJS->>NextJS: Server Component renders
+    {{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}
+    NextJS->>Firebase: Fetch data (Admin SDK)
+    Firebase-->>NextJS: Return data
+    {{/if}}{{/if}}
+    NextJS-->>Browser: HTML + RSC Payload
+    Browser->>Browser: Hydrate Client Components
+    {{#if (eq backend "firebase")}}{{#if (eq firebasePattern "client-side")}}
+    Browser->>Firebase: Subscribe to real-time data
+    Firebase-->>Browser: Data updates
+    {{/if}}{{/if}}
+```
+
+## State Management
+
+{{#if (eq stateManagement "context")}}
+### React Context Architecture
+
+```mermaid
+graph TD
+    App[App Root]
+    {{#if (eq backend "firebase")}}AuthProvider[Auth Context Provider]{{/if}}
+    ThemeProvider[Theme Context Provider]
+    Pages[Page Components]
+    Components[Child Components]
+
+    App --> {{#if (eq backend "firebase")}}AuthProvider{{else}}ThemeProvider{{/if}}
+    {{#if (eq backend "firebase")}}AuthProvider{{/if}} --> ThemeProvider
+    ThemeProvider --> Pages
+    Pages --> Components
+    Components -.->|useAuth| {{#if (eq backend "firebase")}}AuthProvider{{/if}}
+    Components -.->|useTheme| ThemeProvider
+```
+{{else if (eq stateManagement "zustand")}}
+### Zustand Store Architecture
+
+```mermaid
+graph LR
+    Store1[Auth Store]
+    Store2[Theme Store]
+    Store3[Data Store]
+    Comp1[Component A]
+    Comp2[Component B]
+    Comp3[Component C]
+
+    Comp1 -.->|useAuthStore| Store1
+    Comp2 -.->|useThemeStore| Store2
+    Comp3 -.->|useDataStore| Store3
+    Comp1 -.->|useThemeStore| Store2
+```
+{{/if}}
+
+## API Architecture
+
+### API Route Structure
+
+```
+/api
+├── /hello              GET    - Health check
+├── /users              GET    - List users
+│                       POST   - Create user
+├── /users/[id]         GET    - Get user
+│                       PUT    - Update user
+│                       DELETE - Delete user
+{{#if (eq backend "firebase")}}├── /auth
+│   ├── /login          POST   - Sign in
+│   └── /logout         POST   - Sign out
+{{/if}}└── /webhooks
+    └── /stripe         POST   - Stripe webhook
+```
+
+{{#if (eq backend "firebase")}}
+## Security Architecture
+
+### Authentication Flow
+
+{{#if (eq firebasePattern "server-first")}}
+```mermaid
+sequenceDiagram
+    participant User
+    participant Client
+    participant Server
+    participant Firebase
+
+    User->>Client: Enter credentials
+    Client->>Firebase: signInWithEmailAndPassword
+    Firebase-->>Client: ID Token
+    Client->>Server: POST /api/auth/login + token
+    Server->>Firebase: verifyIdToken (Admin SDK)
+    Firebase-->>Server: Decoded token
+    Server->>Server: Create session cookie
+    Server-->>Client: Set HTTP-only cookie
+    Client-->>User: Redirect to dashboard
+```
+{{else}}
+```mermaid
+sequenceDiagram
+    participant User
+    participant Client
+    participant Firebase
+
+    User->>Client: Enter credentials
+    Client->>Firebase: signInWithEmailAndPassword
+    Firebase-->>Client: User object
+    Client->>Client: Update auth state
+    Client-->>User: Show authenticated UI
+```
+{{/if}}
+
+### Security Layers
+
+1. **Network Security**
+   - HTTPS only
+   - CORS configuration
+   - Rate limiting
+
+2. **Authentication**
+   - Firebase Authentication
+   {{#if (eq firebasePattern "server-first")}}- Session cookies{{/if}}
+   - Token verification
+
+3. **Authorization**
+   - Firestore Security Rules
+   - Storage Security Rules
+   - API route guards
+
+4. **Data Validation**
+   - Input sanitization
+   - Schema validation (Zod)
+   - Type checking (TypeScript)
+{{/if}}
+
+## Deployment Architecture
+
+{{#if (eq backend "firebase")}}
+```mermaid
+graph TB
+    subgraph "Development"
+        Dev[Developer]
+        Git[GitHub]
+    end
+
+    subgraph "CI/CD"
+        Actions[GitHub Actions]
+        Build[Build Process]
+    end
+
+    subgraph "Firebase"
+        AppHosting[App Hosting]
+        CDN[Global CDN]
+        CloudRun[Cloud Run]
+    end
+
+    subgraph "Firebase Services"
+        Auth[Authentication]
+        Firestore[Cloud Firestore]
+        Storage[Cloud Storage]
+    end
+
+    Dev -->|Push| Git
+    Git -->|Trigger| Actions
+    Actions --> Build
+    Build -->|Deploy| AppHosting
+    AppHosting --> CloudRun
+    AppHosting --> CDN
+    CloudRun --> Auth
+    CloudRun --> Firestore
+    CloudRun --> Storage
+```
+
+### Deployment Flow
+
+1. **Code Push** → GitHub repository
+2. **CI Build** → GitHub Actions runs tests & build
+3. **Deploy** → Firebase App Hosting
+4. **Cloud Run** → Auto-scaling containers
+5. **CDN** → Global content delivery
+
+{{else}}
+### Deployment Considerations
+
+- Choose hosting platform (Vercel, Netlify, etc.)
+- Set up CI/CD pipeline
+- Configure environment variables
+- Enable CDN and caching
+{{/if}}
+
+## Performance Optimizations
+
+### 1. Server-Side Rendering (SSR)
+
+- Fast initial page load
+- Better SEO
+- Dynamic content at request time
+
+### 2. Static Site Generation (SSG)
+
+- Pre-rendered at build time
+- Served from CDN
+- Instant page loads
+
+### 3. Incremental Static Regeneration (ISR)
+
+- Automatic page updates
+- Static performance
+- Fresh content
+
+### 4. Code Splitting
+
+```mermaid
+graph LR
+    Bundle[App Bundle]
+    Route1[Home Route]
+    Route2[Dashboard Route]
+    Route3[Settings Route]
+    Common[Common Chunks]
+
+    Bundle --> Common
+    Bundle --> Route1
+    Bundle --> Route2
+    Bundle --> Route3
+```
+
+## Scalability Considerations
+
+{{#if (eq backend "firebase")}}
+### Auto-Scaling
+
+Firebase App Hosting automatically scales based on:
+- Request volume
+- CPU usage
+- Memory usage
+- Response times
+
+### Database Scaling
+
+- Automatic Firestore scaling
+- Indexed queries for performance
+- Denormalized data for reads
+- Batched writes for efficiency
+
+{{else}}
+### Scaling Strategy
+
+- Horizontal scaling for server instances
+- Database connection pooling
+- CDN for static assets
+- Caching strategy (Redis, Memcached)
+{{/if}}
+
+## Monitoring Strategy
+
+{{#if (eq backend "firebase")}}
+1. **Firebase Performance Monitoring**
+   - Real user metrics
+   - Network requests
+   - Custom traces
+
+2. **Cloud Logging**
+   - Error logs
+   - Access logs
+   - Custom logs
+
+3. **Firebase Analytics**
+   - User behavior
+   - Conversion tracking
+   - Custom events
+
+4. **Alerts**
+   - Error rate thresholds
+   - Performance degradation
+   - Quota warnings
+{{/if}}
+
+## Technology Decisions
+
+### Why Next.js?
+
+- ✅ React Server Components
+- ✅ Built-in routing
+- ✅ API routes
+- ✅ Image optimization
+- ✅ Strong TypeScript support
+
+{{#if (eq backend "firebase")}}
+### Why Firebase?
+
+- ✅ No server management
+- ✅ Auto-scaling
+- ✅ Real-time capabilities
+- ✅ Built-in security
+- ✅ Global infrastructure
+{{/if}}
+
+{{#if (eq styling "tailwind")}}
+### Why Tailwind CSS?
+
+- ✅ Utility-first approach
+- ✅ Small production bundle
+- ✅ Consistent design system
+- ✅ Responsive by default
+{{/if}}
+
+## Future Improvements
+
+### Short Term
+
+- [ ] Add error tracking (Sentry)
+- [ ] Implement A/B testing
+- [ ] Add performance monitoring
+- [ ] Set up automated backups
+
+### Long Term
+
+- [ ] Multi-region deployment
+- [ ] Advanced caching strategy
+- [ ] Microservices architecture
+- [ ] Machine learning integration
+
+## Resources
+
+- [Next.js Architecture](https://nextjs.org/docs/app/building-your-application)
+{{#if (eq backend "firebase")}}- [Firebase Architecture Best Practices](https://firebase.google.com/docs/rules/best-practices)
+{{/if}}- [System Design Primer](https://github.com/donnemartin/system-design-primer)
+- [Web Architecture 101](https://engineering.videoblocks.com/web-architecture-101-a3224e126947)

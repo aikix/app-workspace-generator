@@ -1,0 +1,63 @@
+# API Architecture
+API structure and endpoint design for {{projectName}}.
+
+## API Routes
+
+\`\`\`
+/api
+├── /hello              # Health check
+├── /users              # User CRUD
+│   └── /[id]
+├── /auth               # Authentication
+│   ├── /login
+│   └── /logout
+└── /webhooks           # External webhooks
+\`\`\`
+
+## Route Handlers
+
+\`\`\`typescript
+// src/app/api/users/route.ts
+export async function GET(request: NextRequest) {
+  // Handle GET /api/users
+}
+
+export async function POST(request: NextRequest) {
+  // Handle POST /api/users
+}
+\`\`\`
+
+{{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}
+## Server Actions
+
+\`\`\`typescript
+// src/app/actions/posts.ts
+'use server';
+
+export async function createPost(data) {
+  const db = getFirestore();
+  const docRef = await db.collection('posts').add(data);
+  return { id: docRef.id };
+}
+\`\`\`
+{{/if}}{{/if}}
+
+## API Patterns
+
+### REST Principles
+- GET: Retrieve data
+- POST: Create resource
+- PUT: Update resource
+- DELETE: Remove resource
+
+### Response Format
+\`\`\`json
+{
+  "data": {},
+  "error": null,
+  "meta": { "timestamp": "..." }
+}
+\`\`\`
+
+## Resources
+- [Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)

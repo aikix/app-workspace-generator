@@ -1,0 +1,102 @@
+# Component Architecture
+Component structure and organization for {{projectName}}.
+
+## Directory Structure
+
+\`\`\`
+src/
+├── app/                    # Next.js App Router
+│   ├── layout.tsx          # Root layout
+│   ├── page.tsx            # Home page
+│   ├── loading.tsx         # Loading UI
+│   ├── error.tsx           # Error UI
+│   ├── not-found.tsx       # 404 page
+│   └── api/                # API routes
+├── components/
+│   ├── layout/             # Layout components
+│   │   ├── Header.tsx
+│   │   ├── Footer.tsx
+│   │   └── Navigation.tsx
+│   ├── ui/                 # Reusable UI components
+│   │   ├── Button.tsx
+│   │   └── Card.tsx
+│   └── features/           # Feature-specific components
+{{#if (eq backend "firebase")}}├── contexts/               # React contexts (if using Context API)
+├── stores/                 # Zustand stores (if using Zustand)
+{{/if}}├── hooks/                  # Custom React hooks
+├── lib/                    # Utility libraries
+└── types/                  # TypeScript types
+\`\`\`
+
+## Component Patterns
+
+### Server Components (Default)
+
+\`\`\`tsx
+// src/app/posts/page.tsx
+{{#if (eq backend "firebase")}}{{#if (eq firebasePattern "server-first")}}
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+export default async function PostsPage() {
+  const db = getFirestore();
+  const snapshot = await db.collection('posts').limit(10).get();
+  const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  return <PostsList posts={posts} />;
+}
+{{else}}
+export default function PostsPage() {
+  return <ClientPostsList />;
+}
+{{/if}}{{else}}
+export default async function PostsPage() {
+  const posts = await fetchPosts();
+  return <PostsList posts={posts} />;
+}
+{{/if}}
+\`\`\`
+
+### Client Components
+
+\`\`\`tsx
+// src/components/PostsList.tsx
+'use client';
+
+export function PostsList({ posts }) {
+  const [filter, setFilter] = useState('');
+  
+  return (
+    <div>
+      <input value={filter} onChange={(e) => setFilter(e.target.value)} />
+      {posts.filter(p => p.title.includes(filter)).map(post => (
+        <Post key={post.id} {...post} />
+      ))}
+    </div>
+  );
+}
+\`\`\`
+
+## Component Categories
+
+### 1. Layout Components
+- Header, Footer, Navigation
+- Page wrappers
+- Sidebar, Drawer
+
+### 2. UI Components
+- Button, Input, Card
+- Modal, Dialog
+- Loading, Error states
+
+### 3. Feature Components
+- Auth forms
+- Data tables
+- File upload
+
+### 4. Page Components
+- Route-specific pages
+- Layouts for sections
+
+## Resources
+- [Next.js Components](https://nextjs.org/docs/app/building-your-application/rendering)
+- [React Patterns](https://react.dev/learn)

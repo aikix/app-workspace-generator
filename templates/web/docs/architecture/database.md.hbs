@@ -1,0 +1,85 @@
+{{#if (eq backend "firebase")}}
+# Database Schema
+
+Firestore data models and schema for {{projectName}}.
+
+## Collections
+
+### Users
+\`\`\`
+users/{userId}
+  ├── email: string
+  ├── displayName: string
+  ├── photoURL: string
+  ├── createdAt: timestamp
+  └── updatedAt: timestamp
+\`\`\`
+
+### Posts
+\`\`\`
+posts/{postId}
+  ├── title: string
+  ├── content: string
+  ├── authorId: string
+  ├── published: boolean
+  ├── createdAt: timestamp
+  └── updatedAt: timestamp
+  └── comments/{commentId}
+      ├── content: string
+      ├── authorId: string
+      └── createdAt: timestamp
+\`\`\`
+
+## Data Models
+
+\`\`\`typescript
+interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  published: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+\`\`\`
+
+## Indexes
+
+\`\`\`json
+{
+  "indexes": [
+    {
+      "collectionGroup": "posts",
+      "fields": [
+        { "fieldPath": "authorId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ]
+}
+\`\`\`
+
+## Resources
+- [Firestore Data Modeling](https://firebase.google.com/docs/firestore/manage-data/structure-data)
+{{else}}
+# Database Schema
+
+Database schema documentation for {{projectName}}.
+
+Add your database schema documentation here based on your chosen database.
+
+## Resources
+- Choose a database (PostgreSQL, MongoDB, MySQL, etc.)
+- Document your data models
+- Create entity relationship diagrams
+{{/if}}

@@ -1,0 +1,74 @@
+{{#if (eq backend "firebase")}}
+# Deployment Architecture
+
+Firebase App Hosting deployment for {{projectName}}.
+
+## Infrastructure
+
+\`\`\`mermaid
+graph TB
+    subgraph "Firebase Platform"
+        AppHosting[App Hosting]
+        CloudRun[Cloud Run]
+        CDN[Global CDN]
+        Auth[Authentication]
+        Firestore[Cloud Firestore]
+        Storage[Cloud Storage]
+    end
+    
+    AppHosting --> CloudRun
+    AppHosting --> CDN
+    CloudRun --> Auth
+    CloudRun --> Firestore
+    CloudRun --> Storage
+\`\`\`
+
+## CI/CD Pipeline
+
+{{#if gitHooks}}
+\`\`\`mermaid
+graph LR
+    A[Git Push] --> B[GitHub Actions]
+    B --> C[Build & Test]
+    C --> D[Deploy to Firebase]
+    D --> E[Cloud Run]
+    E --> F[Live]
+\`\`\`
+
+### GitHub Actions Workflow
+
+- **Develop branch** → Preview deployment
+- **Main branch** → Production deployment
+
+{{else}}
+### Manual Deployment
+
+\`\`\`bash
+firebase deploy --only apphosting
+\`\`\`
+{{/if}}
+
+## Environment Configuration
+
+\`\`\`yaml
+# apphosting.yaml
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  maxInstances: 10
+  minInstances: 0
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: FIREBASE_API_KEY
+\`\`\`
+
+## Scaling Strategy
+
+- **Auto-scaling**: Based on traffic
+- **Global distribution**: CDN caching
+- **Regional deployment**: Multi-region support
+
+## Resources
+- [Firebase App Hosting](https://firebase.google.com/docs/app-hosting)
+{{/if}}
