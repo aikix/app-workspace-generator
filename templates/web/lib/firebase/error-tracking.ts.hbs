@@ -1,0 +1,387 @@
+/**
+ * Error Tracking with Firebase Analytics
+ *
+ * Provides error tracking and logging using Firebase Analytics.
+ * Integrates with React Error Boundaries for comprehensive error capture.
+ */
+
+import { logError, logWarning, initAnalytics } from './analytics';
+
+export interface ErrorContext {
+  component?: string;
+  action?: string;
+  userId?: string;
+  severity?: 'fatal' | 'error' | 'warning' | 'info';
+  [key: string]: unknown;
+}
+
+/**
+ * Error Tracker Singleton
+ */
+class ErrorTracker {
+  private static instance: ErrorTracker;
+  private initialized = false;
+
+  private constructor() {
+    this.initialize();
+  }
+
+  static getInstance(): ErrorTracker {
+    if (!ErrorTracker.instance) {
+      ErrorTracker.instance = new ErrorTracker();
+    }
+    return ErrorTracker.instance;
+  }
+
+  private initialize(): void {
+    if (this.initialized) return;
+
+    // Initialize Analytics
+    initAnalytics();
+
+    // Set up global error handlers
+    if (typeof window !== 'undefined') {
+      // Unhandled errors
+      window.addEventListener('error', (event) => {
+        this.trackError(
+          new Error(event.message),
+          {
+            severity: 'fatal',
+            source: 'unhandled_error',
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+          }
+        );
+      });
+
+      // Unhandled promise rejections
+      window.addEventListener('unhandledrejection', (event) => {
+        this.trackError(
+          event.reason instanceof Error
+            ? event.reason
+            : new Error(String(event.reason)),
+          {
+            severity: 'error',
+            source: 'unhandled_rejection',
+          }
+        );
+      });
+    }
+
+    this.initialized = true;
+    console.log('[ErrorTracker] Initialized');
+  }
+
+  /**
+   * Track an error
+   */
+  trackError(error: Error, context?: ErrorContext): void {
+    const severity = context?.severity || 'error';
+
+    // Log to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Error Tracked]:', error, context);
+    }
+
+    // Log to Firebase Analytics
+    logError(error, {
+      ...context,
+      severity,
+    });
+  }
+
+  /**
+   * Track a warning
+   */
+  trackWarning(message: string, context?: ErrorContext): void {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Warning Tracked]:', message, context);
+    }
+
+    logWarning(message, {
+      ...context,
+      severity: 'warning',
+    });
+  }
+
+  /**
+   * Track an info message
+   */
+  trackInfo(message: string, context?: ErrorContext): void {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[Info Tracked]:', message, context);
+    }
+
+    logWarning(message, {
+      ...context,
+      severity: 'info',
+    });
+  }
+
+  /**
+   * Wrap a function to automatically track errors
+   */
+  wrapFunction<T extends (...args: any[]) => any>(
+    fn: T,
+    context?: Omit<ErrorContext, 'severity'>
+  ): T {
+    return ((...args: Parameters<T>) => {
+      try {
+        const result = fn(...args);
+
+        // Handle async functions
+        if (result instanceof Promise) {
+          return result.catch((error) => {
+            this.trackError(error, {
+              ...context,
+              severity: 'error',
+            });
+            throw error;
+          });
+        }
+
+        return result;
+      } catch (error) {
+        this.trackError(
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            ...context,
+            severity: 'error',
+          }
+        );
+        throw error;
+      }
+    }) as T;
+  }
+
+  /**
+   * Track API errors
+   */
+  trackAPIError(
+    endpoint: string,
+    error: Error,
+    statusCode?: number,
+    context?: Omit<ErrorContext, 'action'>
+  ): void {
+    this.trackError(error, {
+      ...context,
+      action: 'api_request',
+      endpoint,
+      status_code: statusCode?.toString(),
+      severity: statusCode && statusCode >= 500 ? 'error' : 'warning',
+    });
+  }
+
+  /**
+   * Track validation errors
+   */
+  trackValidationError(
+    field: string,
+    message: string,
+    context?: Omit<ErrorContext, 'action'>
+  ): void {
+    this.trackWarning(`Validation error: ${field} - ${message}`, {
+      ...context,
+      action: 'validation',
+      field,
+    });
+  }
+
+  /**
+   * Track authentication errors
+   */
+  trackAuthError(error: Error, context?: Omit<ErrorContext, 'action'>): void {
+    this.trackError(error, {
+      ...context,
+      action: 'authentication',
+      severity: 'warning',
+    });
+  }
+
+  /**
+   * Track database errors
+   */
+  trackDatabaseError(
+    operation: string,
+    error: Error,
+    context?: Omit<ErrorContext, 'action'>
+  ): void {
+    this.trackError(error, {
+      ...context,
+      action: 'database',
+      operation,
+      severity: 'error',
+    });
+  }
+}
+
+// Export singleton instance
+export const errorTracker = ErrorTracker.getInstance();
+
+/**
+ * React hook for error tracking
+ *
+ * @example
+ * ```tsx
+ * function MyComponent() {
+ *   const { trackError, trackWarning, wrapAsync } = useErrorTracking();
+ *
+ *   const handleSubmit = wrapAsync(async () => {
+ *     // This will automatically track errors
+ *     await submitForm();
+ *   }, { component: 'MyComponent', action: 'submit_form' });
+ *
+ *   return <button onClick={handleSubmit}>Submit</button>;
+ * }
+ * ```
+ */
+export function useErrorTracking() {
+  return {
+    trackError: (error: Error, context?: ErrorContext) => {
+      errorTracker.trackError(error, context);
+    },
+
+    trackWarning: (message: string, context?: ErrorContext) => {
+      errorTracker.trackWarning(message, context);
+    },
+
+    trackInfo: (message: string, context?: ErrorContext) => {
+      errorTracker.trackInfo(message, context);
+    },
+
+    wrapAsync: <T extends (...args: any[]) => Promise<any>>(
+      fn: T,
+      context?: Omit<ErrorContext, 'severity'>
+    ): T => {
+      return errorTracker.wrapFunction(fn, context);
+    },
+
+    wrapSync: <T extends (...args: any[]) => any>(
+      fn: T,
+      context?: Omit<ErrorContext, 'severity'>
+    ): T => {
+      return errorTracker.wrapFunction(fn, context);
+    },
+
+    trackAPIError: (
+      endpoint: string,
+      error: Error,
+      statusCode?: number,
+      context?: Omit<ErrorContext, 'action'>
+    ) => {
+      errorTracker.trackAPIError(endpoint, error, statusCode, context);
+    },
+
+    trackValidationError: (
+      field: string,
+      message: string,
+      context?: Omit<ErrorContext, 'action'>
+    ) => {
+      errorTracker.trackValidationError(field, message, context);
+    },
+
+    trackAuthError: (error: Error, context?: Omit<ErrorContext, 'action'>) => {
+      errorTracker.trackAuthError(error, context);
+    },
+
+    trackDatabaseError: (
+      operation: string,
+      error: Error,
+      context?: Omit<ErrorContext, 'action'>
+    ) => {
+      errorTracker.trackDatabaseError(operation, error, context);
+    },
+  };
+}
+
+/**
+ * Higher-order function to add error tracking to async functions
+ *
+ * @example
+ * ```ts
+ * const fetchUserData = withErrorTracking(
+ *   async (userId: string) => {
+ *     return fetch(`/api/users/${userId}`).then(r => r.json());
+ *   },
+ *   { action: 'fetch_user_data' }
+ * );
+ * ```
+ */
+export function withErrorTracking<T extends (...args: any[]) => any>(
+  fn: T,
+  context?: Omit<ErrorContext, 'severity'>
+): T {
+  return errorTracker.wrapFunction(fn, context);
+}
+
+/**
+ * Decorator for class methods (if using decorators)
+ */
+export function TrackErrors(context?: Omit<ErrorContext, 'severity'>) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const originalMethod = descriptor.value;
+
+    descriptor.value = function (...args: any[]) {
+      try {
+        const result = originalMethod.apply(this, args);
+
+        if (result instanceof Promise) {
+          return result.catch((error) => {
+            errorTracker.trackError(error, {
+              ...context,
+              component: target.constructor.name,
+              method: propertyKey,
+            });
+            throw error;
+          });
+        }
+
+        return result;
+      } catch (error) {
+        errorTracker.trackError(
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            ...context,
+            component: target.constructor.name,
+            method: propertyKey,
+          }
+        );
+        throw error;
+      }
+    };
+
+    return descriptor;
+  };
+}
+
+/**
+ * Usage examples
+ */
+
+// Example 1: Track API errors
+// try {
+//   const response = await fetch('/api/data');
+//   if (!response.ok) throw new Error('API request failed');
+// } catch (error) {
+//   errorTracker.trackAPIError('/api/data', error as Error, response.status);
+// }
+
+// Example 2: Wrap async function
+// const fetchData = withErrorTracking(
+//   async () => fetch('/api/data').then(r => r.json()),
+//   { component: 'DataFetcher', action: 'fetch_data' }
+// );
+
+// Example 3: Use in React component
+// function MyComponent() {
+//   const { wrapAsync } = useErrorTracking();
+//
+//   const handleClick = wrapAsync(async () => {
+//     await someAsyncOperation();
+//   }, { component: 'MyComponent', action: 'button_click' });
+// }

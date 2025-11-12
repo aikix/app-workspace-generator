@@ -582,6 +582,46 @@ async function generateSourceStructure(
         context,
       }
     );
+
+    // Add Firebase Analytics and Performance Monitoring
+    operations.push(
+      {
+        type: 'template',
+        source: 'web/lib/firebase/analytics.ts.hbs',
+        destination: 'src/lib/firebase/analytics.ts',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/lib/firebase/performance.ts.hbs',
+        destination: 'src/lib/firebase/performance.ts',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/lib/firebase/error-tracking.ts.hbs',
+        destination: 'src/lib/firebase/error-tracking.ts',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/src/lib/firebase/monitoring-provider.tsx.hbs',
+        destination: 'src/lib/firebase/monitoring-provider.tsx',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/src/components/errors/ErrorBoundary.tsx.hbs',
+        destination: 'src/components/errors/ErrorBoundary.tsx',
+        context,
+      },
+      {
+        type: 'template',
+        source: 'web/src/components/errors/ErrorFallback.tsx.hbs',
+        destination: 'src/components/errors/ErrorFallback.tsx',
+        context,
+      }
+    );
   }
 
   // Add state management files

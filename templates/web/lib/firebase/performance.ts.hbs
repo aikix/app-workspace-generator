@@ -1,0 +1,397 @@
+/**
+ * Firebase Performance Monitoring
+ *
+ * Provides performance monitoring using Firebase Performance.
+ * Tracks page loads, network requests, and custom traces.
+ */
+
+import { getPerformance, trace } from 'firebase/performance';
+import type { Performance, PerformanceTrace } from 'firebase/performance';
+import { app } from './config';
+
+let performance: Performance | null = null;
+const activeTraces = new Map<string, PerformanceTrace>();
+
+/**
+ * Initialize Firebase Performance
+ * Only runs in browser environment
+ */
+export function initPerformance(): Performance | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  if (!performance) {
+    try {
+      performance = getPerformance(app);
+      console.log('[Performance] Firebase Performance initialized');
+    } catch (error) {
+      console.error('[Performance] Failed to initialize:', error);
+    }
+  }
+
+  return performance;
+}
+
+/**
+ * Get Performance instance
+ */
+export function getPerformanceInstance(): Performance | null {
+  return performance;
+}
+
+/**
+ * Start a custom trace
+ *
+ * @example
+ * ```ts
+ * startTrace('fetch_user_data');
+ * // ... perform operation
+ * stopTrace('fetch_user_data');
+ * ```
+ */
+export function startTrace(traceName: string, attributes?: Record<string, string>): void {
+  if (!performance) return;
+
+  try {
+    const t = trace(performance, traceName);
+
+    if (attributes) {
+      Object.entries(attributes).forEach(([key, value]) => {
+        t.putAttribute(key, value);
+      });
+    }
+
+    t.start();
+    activeTraces.set(traceName, t);
+  } catch (error) {
+    console.error('[Performance] Failed to start trace:', traceName, error);
+  }
+}
+
+/**
+ * Stop a custom trace
+ */
+export function stopTrace(traceName: string): void {
+  const t = activeTraces.get(traceName);
+
+  if (!t) {
+    console.warn('[Performance] Trace not found:', traceName);
+    return;
+  }
+
+  try {
+    t.stop();
+    activeTraces.delete(traceName);
+  } catch (error) {
+    console.error('[Performance] Failed to stop trace:', traceName, error);
+  }
+}
+
+/**
+ * Record a custom metric for a trace
+ */
+export function recordMetric(
+  traceName: string,
+  metricName: string,
+  value: number
+): void {
+  const t = activeTraces.get(traceName);
+
+  if (!t) {
+    console.warn('[Performance] Trace not found:', traceName);
+    return;
+  }
+
+  try {
+    t.putMetric(metricName, value);
+  } catch (error) {
+    console.error('[Performance] Failed to record metric:', error);
+  }
+}
+
+/**
+ * Measure an async operation
+ *
+ * @example
+ * ```ts
+ * const data = await measureAsync('fetch_user_data', async () => {
+ *   return fetch('/api/user').then(r => r.json());
+ * }, { userId: user.id });
+ * ```
+ */
+export async function measureAsync<T>(
+  traceName: string,
+  fn: () => Promise<T>,
+  attributes?: Record<string, string>
+): Promise<T> {
+  if (!performance) {
+    return fn();
+  }
+
+  const t = trace(performance, traceName);
+
+  if (attributes) {
+    Object.entries(attributes).forEach(([key, value]) => {
+      t.putAttribute(key, value);
+    });
+  }
+
+  t.start();
+  const startTime = Date.now();
+
+  try {
+    const result = await fn();
+    const duration = Date.now() - startTime;
+    t.putMetric('duration_ms', duration);
+    t.stop();
+    return result;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    t.putMetric('duration_ms', duration);
+    t.putAttribute('error', 'true');
+    t.stop();
+    throw error;
+  }
+}
+
+/**
+ * Measure a synchronous operation
+ *
+ * @example
+ * ```ts
+ * const result = measure('calculate_total', () => {
+ *   return items.reduce((sum, item) => sum + item.price, 0);
+ * });
+ * ```
+ */
+export function measure<T>(
+  traceName: string,
+  fn: () => T,
+  attributes?: Record<string, string>
+): T {
+  if (!performance) {
+    return fn();
+  }
+
+  const t = trace(performance, traceName);
+
+  if (attributes) {
+    Object.entries(attributes).forEach(([key, value]) => {
+      t.putAttribute(key, value);
+    });
+  }
+
+  t.start();
+  const startTime = Date.now();
+
+  try {
+    const result = fn();
+    const duration = Date.now() - startTime;
+    t.putMetric('duration_ms', duration);
+    t.stop();
+    return result;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    t.putMetric('duration_ms', duration);
+    t.putAttribute('error', 'true');
+    t.stop();
+    throw error;
+  }
+}
+
+/**
+ * Common performance traces
+ */
+export const PerformanceTraces = {
+  // API calls
+  apiCall: async <T>(endpoint: string, fn: () => Promise<T>): Promise<T> => {
+    return measureAsync(`api_${endpoint.replace(/\//g, '_')}`, fn, {
+      endpoint,
+    });
+  },
+
+  // Database queries
+  dbQuery: async <T>(collection: string, fn: () => Promise<T>): Promise<T> => {
+    return measureAsync(`db_query_${collection}`, fn, {
+      collection,
+    });
+  },
+
+  // Component rendering
+  componentRender: (componentName: string, fn: () => void): void => {
+    measure(`render_${componentName}`, fn, {
+      component: componentName,
+    });
+  },
+
+  // Data processing
+  dataProcessing: <T>(operationName: string, fn: () => T): T => {
+    return measure(`process_${operationName}`, fn);
+  },
+
+  // File operations
+  fileOperation: async <T>(
+    operation: string,
+    fn: () => Promise<T>
+  ): Promise<T> => {
+    return measureAsync(`file_${operation}`, fn, {
+      operation,
+    });
+  },
+};
+
+/**
+ * React hook for performance monitoring
+ *
+ * @example
+ * ```tsx
+ * function MyComponent() {
+ *   const perf = usePerformance();
+ *
+ *   useEffect(() => {
+ *     perf.startTrace('component_mount');
+ *     return () => perf.stopTrace('component_mount');
+ *   }, []);
+ *
+ *   const handleFetch = async () => {
+ *     const data = await perf.measureAsync('fetch_data', async () => {
+ *       return fetch('/api/data').then(r => r.json());
+ *     });
+ *   };
+ * }
+ * ```
+ */
+export function usePerformance() {
+  return {
+    startTrace,
+    stopTrace,
+    recordMetric,
+    measureAsync,
+    measure,
+    traces: PerformanceTraces,
+  };
+}
+
+/**
+ * Higher-order function to measure component render time
+ *
+ * @example
+ * ```tsx
+ * const MeasuredComponent = withPerformanceTracking(
+ *   MyComponent,
+ *   'MyComponent'
+ * );
+ * ```
+ */
+export function withPerformanceTracking<P extends object>(
+  Component: React.ComponentType<P>,
+  componentName: string
+): React.ComponentType<P> {
+  return function PerformanceTrackedComponent(props: P) {
+    const traceName = `render_${componentName}`;
+
+    // Start trace on mount
+    React.useEffect(() => {
+      if (performance) {
+        const t = trace(performance, traceName);
+        t.start();
+
+        return () => {
+          t.stop();
+        };
+      }
+    }, []);
+
+    return <Component {...props} />;
+  };
+}
+
+/**
+ * Measure Web Vitals and send to Firebase
+ */
+export function measureWebVitals(): void {
+  if (typeof window === 'undefined' || !performance) {
+    return;
+  }
+
+  // CLS (Cumulative Layout Shift)
+  try {
+    import('web-vitals').then(({ onCLS }) => {
+      onCLS((metric) => {
+        if (performance) {
+          const t = trace(performance, 'web_vitals_cls');
+          t.putMetric('cls', metric.value);
+          t.start();
+          t.stop();
+        }
+      });
+    });
+  } catch (error) {
+    console.error('[Performance] Failed to measure CLS:', error);
+  }
+
+  // FID (First Input Delay)
+  try {
+    import('web-vitals').then(({ onFID }) => {
+      onFID((metric) => {
+        if (performance) {
+          const t = trace(performance, 'web_vitals_fid');
+          t.putMetric('fid', metric.value);
+          t.start();
+          t.stop();
+        }
+      });
+    });
+  } catch (error) {
+    console.error('[Performance] Failed to measure FID:', error);
+  }
+
+  // LCP (Largest Contentful Paint)
+  try {
+    import('web-vitals').then(({ onLCP }) => {
+      onLCP((metric) => {
+        if (performance) {
+          const t = trace(performance, 'web_vitals_lcp');
+          t.putMetric('lcp', metric.value);
+          t.start();
+          t.stop();
+        }
+      });
+    });
+  } catch (error) {
+    console.error('[Performance] Failed to measure LCP:', error);
+  }
+
+  // FCP (First Contentful Paint)
+  try {
+    import('web-vitals').then(({ onFCP }) => {
+      onFCP((metric) => {
+        if (performance) {
+          const t = trace(performance, 'web_vitals_fcp');
+          t.putMetric('fcp', metric.value);
+          t.start();
+          t.stop();
+        }
+      });
+    });
+  } catch (error) {
+    console.error('[Performance] Failed to measure FCP:', error);
+  }
+
+  // TTFB (Time to First Byte)
+  try {
+    import('web-vitals').then(({ onTTFB }) => {
+      onTTFB((metric) => {
+        if (performance) {
+          const t = trace(performance, 'web_vitals_ttfb');
+          t.putMetric('ttfb', metric.value);
+          t.start();
+          t.stop();
+        }
+      });
+    });
+  } catch (error) {
+    console.error('[Performance] Failed to measure TTFB:', error);
+  }
+}

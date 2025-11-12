@@ -1,0 +1,90 @@
+'use client';
+
+import { createContext, useContext, useEffect, ReactNode } from 'react';
+import { initAnalytics } from './analytics';
+import { initPerformance, measureWebVitals } from './performance';
+import { errorTracker } from './error-tracking';
+
+interface MonitoringContextValue {
+  initialized: boolean;
+}
+
+const MonitoringContext = createContext<MonitoringContextValue>({
+  initialized: false,
+});
+
+/**
+ * Monitoring Provider
+ *
+ * Initializes Firebase Analytics and Performance Monitoring.
+ * Place this at the root of your application.
+ *
+ * @example
+ * ```tsx
+ * // app/layout.tsx
+ * export default function RootLayout({ children }) {
+ *   return (
+ *     <html>
+ *       <body>
+ *         <MonitoringProvider>
+ *           {children}
+ *         </MonitoringProvider>
+ *       </body>
+ *     </html>
+ *   );
+ * }
+ * ```
+ */
+export function MonitoringProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    // Only initialize in browser
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    // Initialize Analytics
+    const analytics = initAnalytics();
+    if (analytics) {
+      console.log('[Monitoring] Analytics initialized');
+    }
+
+    // Initialize Performance
+    const performance = initPerformance();
+    if (performance) {
+      console.log('[Monitoring] Performance initialized');
+    }
+
+    // Measure Web Vitals
+    measureWebVitals();
+
+    // Initialize error tracker (already done in constructor, but ensure it's ready)
+    errorTracker;
+
+    // Log app start
+    if (analytics) {
+      import('./analytics').then(({ logAnalyticsEvent }) => {
+        logAnalyticsEvent('app_start', {
+          app_version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+          environment: process.env.NODE_ENV,
+        });
+      });
+    }
+  }, []);
+
+  return (
+    <MonitoringContext.Provider value={{ initialized: true }}>
+      {children}
+    </MonitoringContext.Provider>
+  );
+}
+
+/**
+ * Hook to access monitoring context
+ */
+export function useMonitoring() {
+  const context = useContext(MonitoringContext);
+  if (!context) {
+    throw new Error('useMonitoring must be used within MonitoringProvider');
+  }
+  return context;
+}

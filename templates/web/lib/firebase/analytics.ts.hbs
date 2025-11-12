@@ -1,0 +1,276 @@
+/**
+ * Firebase Analytics Setup
+ *
+ * Provides analytics tracking using Firebase Analytics (Google Analytics for Firebase).
+ * Free, unlimited, and integrated with Firebase services.
+ */
+
+import { getAnalytics, logEvent, setUserId, setUserProperties } from 'firebase/analytics';
+import type { Analytics } from 'firebase/analytics';
+import { app } from './config';
+
+let analytics: Analytics | null = null;
+
+/**
+ * Initialize Firebase Analytics
+ * Only runs in browser environment
+ */
+export function initAnalytics(): Analytics | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  if (!analytics) {
+    try {
+      analytics = getAnalytics(app);
+      console.log('[Analytics] Firebase Analytics initialized');
+    } catch (error) {
+      console.error('[Analytics] Failed to initialize:', error);
+    }
+  }
+
+  return analytics;
+}
+
+/**
+ * Get Analytics instance
+ */
+export function getAnalyticsInstance(): Analytics | null {
+  return analytics;
+}
+
+/**
+ * Log a custom event
+ *
+ * @example
+ * ```ts
+ * logAnalyticsEvent('button_click', {
+ *   button_name: 'sign_up',
+ *   location: 'header'
+ * });
+ * ```
+ */
+export function logAnalyticsEvent(
+  eventName: string,
+  eventParams?: Record<string, unknown>
+): void {
+  if (!analytics) {
+    console.warn('[Analytics] Not initialized, skipping event:', eventName);
+    return;
+  }
+
+  try {
+    logEvent(analytics, eventName, eventParams);
+  } catch (error) {
+    console.error('[Analytics] Failed to log event:', eventName, error);
+  }
+}
+
+/**
+ * Log an error event
+ *
+ * @example
+ * ```ts
+ * logError(error, {
+ *   component: 'UserProfile',
+ *   action: 'fetch_data'
+ * });
+ * ```
+ */
+export function logError(error: Error, context?: Record<string, unknown>): void {
+  if (!analytics) return;
+
+  try {
+    logEvent(analytics, 'error', {
+      error_message: error.message,
+      error_stack: error.stack?.substring(0, 500), // Limit stack trace length
+      error_name: error.name,
+      ...context,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[Analytics] Failed to log error:', err);
+  }
+}
+
+/**
+ * Log a warning event
+ */
+export function logWarning(message: string, context?: Record<string, unknown>): void {
+  if (!analytics) return;
+
+  try {
+    logEvent(analytics, 'warning', {
+      warning_message: message,
+      ...context,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[Analytics] Failed to log warning:', error);
+  }
+}
+
+/**
+ * Set user ID for analytics
+ *
+ * @example
+ * ```ts
+ * setAnalyticsUserId(user.uid);
+ * ```
+ */
+export function setAnalyticsUserId(userId: string | null): void {
+  if (!analytics) return;
+
+  try {
+    setUserId(analytics, userId);
+  } catch (error) {
+    console.error('[Analytics] Failed to set user ID:', error);
+  }
+}
+
+/**
+ * Set user properties
+ *
+ * @example
+ * ```ts
+ * setAnalyticsUserProperties({
+ *   subscription: 'premium',
+ *   account_type: 'business'
+ * });
+ * ```
+ */
+export function setAnalyticsUserProperties(
+  properties: Record<string, string>
+): void {
+  if (!analytics) return;
+
+  try {
+    setUserProperties(analytics, properties);
+  } catch (error) {
+    console.error('[Analytics] Failed to set user properties:', error);
+  }
+}
+
+/**
+ * Common analytics events
+ */
+export const AnalyticsEvents = {
+  // Page views
+  pageView: (pagePath: string, pageTitle?: string) => {
+    logAnalyticsEvent('page_view', {
+      page_path: pagePath,
+      page_title: pageTitle,
+    });
+  },
+
+  // User actions
+  signUp: (method: string) => {
+    logAnalyticsEvent('sign_up', { method });
+  },
+
+  login: (method: string) => {
+    logAnalyticsEvent('login', { method });
+  },
+
+  logout: () => {
+    logAnalyticsEvent('logout');
+  },
+
+  // Content interactions
+  search: (searchTerm: string) => {
+    logAnalyticsEvent('search', { search_term: searchTerm });
+  },
+
+  share: (contentType: string, contentId: string, method: string) => {
+    logAnalyticsEvent('share', {
+      content_type: contentType,
+      item_id: contentId,
+      method,
+    });
+  },
+
+  // E-commerce (if applicable)
+  viewItem: (itemId: string, itemName: string, price: number) => {
+    logAnalyticsEvent('view_item', {
+      items: [{
+        item_id: itemId,
+        item_name: itemName,
+        price,
+      }],
+    });
+  },
+
+  addToCart: (itemId: string, itemName: string, price: number) => {
+    logAnalyticsEvent('add_to_cart', {
+      items: [{
+        item_id: itemId,
+        item_name: itemName,
+        price,
+      }],
+    });
+  },
+
+  purchase: (transactionId: string, value: number, currency: string = 'USD') => {
+    logAnalyticsEvent('purchase', {
+      transaction_id: transactionId,
+      value,
+      currency,
+    });
+  },
+
+  // Custom events
+  buttonClick: (buttonName: string, location: string) => {
+    logAnalyticsEvent('button_click', {
+      button_name: buttonName,
+      location,
+    });
+  },
+
+  formSubmit: (formName: string, success: boolean) => {
+    logAnalyticsEvent('form_submit', {
+      form_name: formName,
+      success,
+    });
+  },
+
+  fileDownload: (fileName: string, fileType: string) => {
+    logAnalyticsEvent('file_download', {
+      file_name: fileName,
+      file_type: fileType,
+    });
+  },
+
+  externalLink: (url: string, linkText: string) => {
+    logAnalyticsEvent('external_link', {
+      link_url: url,
+      link_text: linkText,
+    });
+  },
+};
+
+/**
+ * React hook for analytics
+ *
+ * @example
+ * ```tsx
+ * function MyComponent() {
+ *   const analytics = useAnalytics();
+ *
+ *   const handleClick = () => {
+ *     analytics.buttonClick('submit', 'form');
+ *   };
+ *
+ *   return <button onClick={handleClick}>Submit</button>;
+ * }
+ * ```
+ */
+export function useAnalytics() {
+  return {
+    logEvent: logAnalyticsEvent,
+    logError,
+    logWarning,
+    setUserId: setAnalyticsUserId,
+    setUserProperties: setAnalyticsUserProperties,
+    events: AnalyticsEvents,
+  };
+}
