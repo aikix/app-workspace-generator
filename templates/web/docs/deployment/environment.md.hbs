@@ -1,0 +1,500 @@
+# Environment Variables
+
+Guide for managing environment variables in Firebase App Hosting.
+
+## Overview
+
+{{#if (eq backend "firebase")}}
+Firebase App Hosting uses **Google Cloud Secret Manager** for secure environment variable management. This provides:
+
+- ✅ **Secure storage** - Encrypted secrets
+- ✅ **Version control** - Track secret changes
+- ✅ **Access control** - Fine-grained permissions
+- ✅ **Audit logging** - Know who accessed what
+- ✅ **Easy rotation** - Update secrets without redeployment
+
+{{else}}
+Environment variables store configuration separately from code.
+{{/if}}
+
+{{#if (eq backend "firebase")}}
+## Firebase App Hosting Secrets
+
+### Client-Side Variables
+
+Variables accessible in the browser (public):
+
+```yaml
+# apphosting.yaml
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: FIREBASE_API_KEY
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    secret: FIREBASE_AUTH_DOMAIN
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    secret: FIREBASE_PROJECT_ID
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    secret: FIREBASE_STORAGE_BUCKET
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    secret: FIREBASE_MESSAGING_SENDER_ID
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    secret: FIREBASE_APP_ID
+```
+
+**Important**: Client-side variables:
+- Must start with `NEXT_PUBLIC_`
+- Are publicly accessible
+- Are safe to expose (Firebase validates via security rules)
+
+{{#if (eq firebasePattern "server-first")}}
+### Server-Side Variables
+
+Variables only accessible on the server (private):
+
+```yaml
+# apphosting.yaml
+env:
+  # Firebase Admin SDK (Server-Only)
+  - variable: FIREBASE_PROJECT_ID
+    secret: FIREBASE_ADMIN_PROJECT_ID
+  - variable: FIREBASE_CLIENT_EMAIL
+    secret: FIREBASE_ADMIN_CLIENT_EMAIL
+  - variable: FIREBASE_PRIVATE_KEY
+    secret: FIREBASE_ADMIN_PRIVATE_KEY
+```
+
+**Critical**: Server-side variables:
+- No `NEXT_PUBLIC_` prefix
+- Never exposed to client
+- Used for Firebase Admin SDK
+{{/if}}
+
+## Setting Secrets
+
+### Using Firebase CLI
+
+#### Set a Secret
+
+```bash
+firebase apphosting:secrets:set SECRET_NAME
+```
+
+Enter value when prompted, or pipe from file:
+
+```bash
+echo "secret-value" | firebase apphosting:secrets:set SECRET_NAME
+```
+
+#### Set Firebase Configuration
+
+```bash
+# Get values from Firebase Console > Project Settings
+firebase apphosting:secrets:set FIREBASE_API_KEY
+# Paste: AIza...
+
+firebase apphosting:secrets:set FIREBASE_AUTH_DOMAIN
+# Paste: your-project.firebaseapp.com
+
+firebase apphosting:secrets:set FIREBASE_PROJECT_ID
+# Paste: your-project-id
+
+firebase apphosting:secrets:set FIREBASE_STORAGE_BUCKET
+# Paste: your-project.appspot.com
+
+firebase apphosting:secrets:set FIREBASE_MESSAGING_SENDER_ID
+# Paste: 123456789
+
+firebase apphosting:secrets:set FIREBASE_APP_ID
+# Paste: 1:123456789:web:abc123
+```
+
+{{#if (eq firebasePattern "server-first")}}
+#### Set Firebase Admin Credentials
+
+```bash
+# From service account JSON
+firebase apphosting:secrets:set FIREBASE_ADMIN_PROJECT_ID
+# Paste: your-project-id
+
+firebase apphosting:secrets:set FIREBASE_ADMIN_CLIENT_EMAIL
+# Paste: firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+
+firebase apphosting:secrets:set FIREBASE_ADMIN_PRIVATE_KEY
+# Paste: -----BEGIN PRIVATE KEY-----\nYour_Key...\n-----END PRIVATE KEY-----\n
+```
+
+**Get service account credentials**:
+1. Firebase Console > Project Settings > Service Accounts
+2. Click "Generate new private key"
+3. Extract values from downloaded JSON
+{{/if}}
+
+### List Secrets
+
+```bash
+firebase apphosting:secrets:list
+```
+
+### Update a Secret
+
+```bash
+firebase apphosting:secrets:set SECRET_NAME
+# Enter new value
+```
+
+**Note**: New deployments will use the updated secret.
+
+### Delete a Secret
+
+```bash
+firebase apphosting:secrets:delete SECRET_NAME
+```
+
+## Environment Tiers
+
+Different secrets for different environments:
+
+```yaml
+# apphosting.yaml
+env:
+  # Production
+  - variable: API_URL
+    secret: API_URL_PROD
+
+  # Preview/Staging only
+  - variable: API_URL
+    secret: API_URL_STAGING
+    availability: PREVIEW_ONLY
+```
+
+**Use cases**:
+- Test APIs for preview deployments
+- Separate Firebase projects for dev/prod
+- Different feature flags
+
+## Getting Firebase Configuration
+
+### 1. Firebase Console
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project
+3. Click ⚙️ (Settings) > Project settings
+4. Scroll to "Your apps"
+5. Select your web app (or add one)
+6. Copy configuration values
+
+### 2. Firebase CLI
+
+```bash
+firebase apps:sdkconfig web
+```
+
+Outputs Firebase config JSON.
+
+## Accessing Environment Variables
+
+### In Next.js Code
+
+```typescript
+// Client-side (browser)
+const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+{{#if (eq firebasePattern "server-first")}}// Server-side only (API routes, Server Components, Server Actions)
+const adminProjectId = process.env.FIREBASE_PROJECT_ID;
+const adminEmail = process.env.FIREBASE_CLIENT_EMAIL;
+const adminKey = process.env.FIREBASE_PRIVATE_KEY;
+{{/if}}
+```
+
+### In Firebase Config
+
+```typescript
+// src/lib/firebase/config.ts
+import { initializeApp } from 'firebase/app';
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+export const app = initializeApp(firebaseConfig);
+```
+
+{{#if (eq firebasePattern "server-first")}}
+### In Firebase Admin SDK
+
+```typescript
+// src/lib/firebase-admin/config.ts
+import { initializeApp, cert } from 'firebase-admin/app';
+
+if (!admin.apps.length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+```
+{{/if}}
+
+## Local Development
+
+### Create .env.local
+
+For local development, create `.env.local` (not committed):
+
+```env
+{{#if (eq backend "firebase")}}# Firebase Client Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=AIza...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123
+
+{{#if (eq firebasePattern "server-first")}}# Firebase Admin SDK (Server-Side)
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour_Private_Key\n-----END PRIVATE KEY-----\n"
+{{/if}}{{/if}}
+```
+
+### .env.example Template
+
+Commit `.env.example` as a template:
+
+```env
+{{#if (eq backend "firebase")}}# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+
+{{#if (eq firebasePattern "server-first")}}# Firebase Admin (Server-Side)
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_CLIENT_EMAIL=your_client_email
+FIREBASE_PRIVATE_KEY=your_private_key
+{{/if}}{{/if}}
+```
+
+Team members copy to `.env.local` and fill in real values.
+
+## Security Best Practices
+
+### 1. Never Commit Secrets
+
+```gitignore
+# .gitignore
+.env.local
+.env.*.local
+service-account*.json
+firebase-service-account.json
+```
+
+### 2. Firebase API Key Security
+
+Firebase API keys are safe to include in client code because:
+
+1. **Not truly secret** - Identifies your Firebase project
+2. **Security is in rules** - Firestore/Storage security rules protect data
+3. **Additional protection**:
+   - Configure authorized domains
+   - Use Firebase App Check
+   - Write proper security rules
+
+### 3. Configure Authorized Domains
+
+Restrict where Firebase can be used:
+
+1. Firebase Console > Authentication > Settings
+2. Authorized domains section
+3. Add production domain
+4. Add App Hosting domain (`.web.app`)
+
+### 4. Enable Firebase App Check
+
+Extra security layer:
+
+```typescript
+// src/lib/firebase/app-check.ts
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+import { app } from './config';
+
+if (typeof window !== 'undefined') {
+  const appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider('your-recaptcha-site-key'),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+```
+
+Enable in Firebase Console > App Check.
+
+### 5. Rotate Secrets Regularly
+
+{{#if (eq firebasePattern "server-first")}}
+**Service Account Keys**:
+1. Generate new key in Firebase Console
+2. Update secret: `firebase apphosting:secrets:set FIREBASE_ADMIN_PRIVATE_KEY`
+3. Verify deployment works
+4. Delete old service account key
+{{/if}}
+
+**Firebase API Keys**:
+- Regenerate in Firebase Console > Project Settings
+- Update secrets
+- Redeploy
+
+## Validation
+
+### Type-Safe Environment Variables
+
+```typescript
+// src/lib/env.ts
+function validateEnv() {
+  const required = [
+    'NEXT_PUBLIC_FIREBASE_API_KEY',
+    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+    'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+    'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+    'NEXT_PUBLIC_FIREBASE_APP_ID',
+  ];
+
+  for (const key of required) {
+    if (!process.env[key]) {
+      throw new Error(`Missing required environment variable: ${key}`);
+    }
+  }
+}
+
+// Call during initialization
+if (typeof window !== 'undefined') {
+  validateEnv();
+}
+```
+
+### TypeScript Types
+
+```typescript
+// src/types/env.d.ts
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      NEXT_PUBLIC_FIREBASE_API_KEY: string;
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: string;
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: string;
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: string;
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: string;
+      NEXT_PUBLIC_FIREBASE_APP_ID: string;
+{{#if (eq firebasePattern "server-first")}}      FIREBASE_PROJECT_ID: string;
+      FIREBASE_CLIENT_EMAIL: string;
+      FIREBASE_PRIVATE_KEY: string;
+{{/if}}    }
+  }
+}
+
+export {};
+```
+
+## Troubleshooting
+
+### Secrets Not Loading
+
+**Issue**: Environment variables undefined
+
+**Solutions**:
+1. Verify secrets are set:
+   ```bash
+   firebase apphosting:secrets:list
+   ```
+
+2. Check `apphosting.yaml` configuration
+
+3. Ensure variable names match exactly
+
+4. Redeploy after setting secrets
+
+### Firebase Not Connecting
+
+**Issue**: Firebase initialization fails
+
+**Check**:
+1. All required secrets are set
+2. Values are correct (no extra spaces)
+3. Firebase services are enabled
+4. Authorized domains configured
+
+### Private Key Format
+
+**Issue**: Firebase Admin private key not working
+
+**Solution**:
+```bash
+# Ensure newlines are preserved
+firebase apphosting:secrets:set FIREBASE_ADMIN_PRIVATE_KEY
+
+# Paste exactly as shown in service account JSON:
+# "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"
+```
+
+In code, replace `\n` with actual newlines:
+```typescript
+privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+```
+
+## Using Secret Manager Directly
+
+Advanced: Access secrets via Cloud Console:
+
+1. Go to [Cloud Console](https://console.cloud.google.com/)
+2. Select your Firebase project
+3. Navigate to Security > Secret Manager
+4. View/manage all secrets
+
+**Benefits**:
+- Version history
+- Access audit logs
+- Fine-grained IAM permissions
+- Programmatic access
+
+{{else}}
+## Environment Variables Setup
+
+### Development
+
+Create `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+```
+
+### Production
+
+Set via your hosting platform's dashboard.
+{{/if}}
+
+## Resources
+
+{{#if (eq backend "firebase")}}- [Firebase App Hosting Environment Variables](https://firebase.google.com/docs/app-hosting/environment-variables)
+- [Google Cloud Secret Manager](https://cloud.google.com/secret-manager/docs)
+- [Firebase Security Best Practices](https://firebase.google.com/docs/rules/manage-deploy)
+{{/if}}- [Next.js Environment Variables](https://nextjs.org/docs/basic-features/environment-variables)
+
+## Next Steps
+
+{{#if (eq backend "firebase")}}- Set all required Firebase secrets
+- Configure authorized domains
+- Enable Firebase App Check
+- Test environment variables locally
+- Deploy to production
+{{/if}}

@@ -1,0 +1,699 @@
+# Deploying to Firebase App Hosting
+
+Complete guide for deploying {{projectName}} to Firebase App Hosting with full Next.js support.
+
+## Overview
+
+**Firebase App Hosting** is Firebase's managed hosting service specifically designed for Next.js applications. Unlike traditional Firebase Hosting, App Hosting provides:
+
+- ✅ **Full Next.js support** - SSR, ISR, API Routes, Server Actions
+- ✅ **Automatic scaling** - Handles traffic spikes automatically
+- ✅ **Global CDN** - Fast content delivery worldwide
+- ✅ **Seamless Firebase integration** - Auth, Firestore, Storage, etc.
+- ✅ **GitHub integration** - Automatic deployments on push
+- ✅ **Preview deployments** - Test PRs before merging
+- ✅ **Zero configuration** - Works out of the box with Next.js
+
+## Prerequisites
+
+### 1. Firebase Project
+
+1. **Create Firebase project** (if not already done):
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Click "Add project"
+   - Follow setup wizard
+
+2. **Upgrade to Blaze plan**:
+   - Firebase App Hosting requires Blaze (pay-as-you-go) plan
+   - Go to Firebase Console > Upgrade
+   - Add billing information
+
+3. **Enable required services**:
+   - Firebase Authentication
+   - Cloud Firestore
+   - Cloud Storage
+
+### 2. Firebase CLI
+
+```bash
+npm install -g firebase-tools@latest
+```
+
+Verify installation:
+```bash
+firebase --version  # Should be 13.0.0 or higher
+```
+
+### 3. GitHub Repository
+
+Firebase App Hosting deploys from GitHub:
+
+1. **Push code to GitHub**:
+   ```bash
+   git remote add origin https://github.com/username/repo.git
+   git push -u origin main
+   ```
+
+2. **Ensure repository is accessible** to Firebase
+
+## Setup Firebase App Hosting
+
+### 1. Login to Firebase
+
+```bash
+firebase login
+```
+
+### 2. Initialize Firebase App Hosting
+
+In your project directory:
+
+```bash
+firebase init apphosting
+```
+
+**Follow the prompts**:
+
+```
+? Please select an option: Create a new project
+? Please select a project: <your-project-id>
+? What would you like to call your backend? <your-app-name>
+? Choose your repository: <select your GitHub repo>
+? Choose your branch: main
+? Set up a build command? Yes
+? What is your build command? npm run build
+? Deploy with live channel? Yes
+```
+
+This creates:
+- `apphosting.yaml` - App Hosting configuration
+- `.firebaserc` - Firebase project configuration
+
+### 3. Configure apphosting.yaml
+
+The generated `apphosting.yaml`:
+
+```yaml
+# Firebase App Hosting configuration
+runConfig:
+  # Cloud Run CPU and memory configuration
+  cpu: 1
+  memoryMiB: 512
+
+  # Maximum number of instances
+  maxInstances: 10
+  minInstances: 0
+
+  # Concurrency - requests per instance
+  concurrency: 80
+
+env:
+{{#if (eq backend "firebase")}}  # Firebase configuration (from secrets)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: FIREBASE_API_KEY
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    secret: FIREBASE_AUTH_DOMAIN
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    secret: FIREBASE_PROJECT_ID
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    secret: FIREBASE_STORAGE_BUCKET
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    secret: FIREBASE_MESSAGING_SENDER_ID
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    secret: FIREBASE_APP_ID
+{{#if (eq firebasePattern "server-first")}}
+  # Firebase Admin SDK (server-side)
+  - variable: FIREBASE_PROJECT_ID
+    secret: FIREBASE_ADMIN_PROJECT_ID
+  - variable: FIREBASE_CLIENT_EMAIL
+    secret: FIREBASE_ADMIN_CLIENT_EMAIL
+  - variable: FIREBASE_PRIVATE_KEY
+    secret: FIREBASE_ADMIN_PRIVATE_KEY
+{{/if}}{{/if}}
+```
+
+### 4. Set Environment Variables (Secrets)
+
+Firebase App Hosting uses Secret Manager for environment variables:
+
+```bash
+{{#if (eq backend "firebase")}}# Firebase client configuration
+firebase apphosting:secrets:set FIREBASE_API_KEY
+firebase apphosting:secrets:set FIREBASE_AUTH_DOMAIN
+firebase apphosting:secrets:set FIREBASE_PROJECT_ID
+firebase apphosting:secrets:set FIREBASE_STORAGE_BUCKET
+firebase apphosting:secrets:set FIREBASE_MESSAGING_SENDER_ID
+firebase apphosting:secrets:set FIREBASE_APP_ID
+
+{{#if (eq firebasePattern "server-first")}}# Firebase Admin SDK (for server-side operations)
+firebase apphosting:secrets:set FIREBASE_ADMIN_PROJECT_ID
+firebase apphosting:secrets:set FIREBASE_ADMIN_CLIENT_EMAIL
+firebase apphosting:secrets:set FIREBASE_ADMIN_PRIVATE_KEY
+{{/if}}{{/if}}
+```
+
+Enter the value when prompted, or:
+
+```bash
+# Set from file
+echo "your-api-key" | firebase apphosting:secrets:set FIREBASE_API_KEY
+```
+
+See [environment.md](./environment.md) for detailed secret management.
+
+### 5. Update next.config.js
+
+Ensure your `next.config.js` is compatible:
+
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // App Hosting supports all Next.js features
+  // No need for output: 'export'
+
+  images: {
+    // Image optimization works on App Hosting
+    remotePatterns: [
+{{#if (eq backend "firebase")}}      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
+{{/if}}    ],
+  },
+};
+
+module.exports = nextConfig;
+```
+
+## Deployment
+
+### Automatic Deployment (Recommended)
+
+Firebase App Hosting automatically deploys when you push to GitHub:
+
+```bash
+# Make changes
+git add .
+git commit -m "feat: add new feature"
+git push origin main
+```
+
+**What happens**:
+1. Push triggers Firebase App Hosting build
+2. Build runs on Google Cloud Build
+3. Automatic deployment to production
+4. New version goes live
+
+View deployment status:
+```bash
+firebase apphosting:backends:list
+```
+
+Or check Firebase Console > App Hosting.
+
+### Manual Deployment
+
+Deploy directly via CLI:
+
+```bash
+firebase deploy --only apphosting
+```
+
+**Build process**:
+1. Installs dependencies: `{{#if (eq packageManager "npm")}}npm ci{{else if (eq packageManager "yarn")}}yarn install --frozen-lockfile{{else if (eq packageManager "pnpm")}}pnpm install --frozen-lockfile{{else}}bun install{{/if}}`
+2. Builds app: `{{#if (eq packageManager "npm")}}npm run build{{else}}{{packageManager}} build{{/if}}`
+3. Deploys to Cloud Run
+4. Routes traffic to new version
+
+### First Deployment
+
+After initial setup:
+
+```bash
+firebase deploy --only apphosting
+```
+
+**Output**:
+```
+=== Deploying to 'your-project-id'...
+
+i  apphosting: deploying backend
+✔  apphosting: build completed
+✔  apphosting: deployment completed
+
+✔  Deploy complete!
+
+App Hosting URL: https://your-backend--your-project.web.app
+```
+
+## GitHub Integration
+
+### Automatic Deployments
+
+Firebase App Hosting integrates with GitHub for CI/CD:
+
+1. **Production deployments**: Pushes to `main` branch
+2. **Preview deployments**: Pull requests to `main`
+
+### Configure Branch Protection
+
+In GitHub:
+
+1. Go to Settings > Branches
+2. Add rule for `main` branch:
+   - ☑ Require pull request reviews
+   - ☑ Require status checks (Firebase App Hosting)
+   - ☑ Require branches to be up to date
+
+### Preview Deployments
+
+Every pull request gets a preview URL:
+
+1. Create feature branch:
+   ```bash
+   git checkout -b feat/new-feature
+   ```
+
+2. Push and create PR:
+   ```bash
+   git push origin feat/new-feature
+   ```
+
+3. Firebase automatically:
+   - Builds the PR
+   - Creates preview deployment
+   - Posts URL as PR comment
+
+4. Test at preview URL before merging
+
+## Environment Variables
+
+### Managing Secrets
+
+Firebase App Hosting uses Secret Manager:
+
+```bash
+# List secrets
+firebase apphosting:secrets:list
+
+# Update secret
+firebase apphosting:secrets:set SECRET_NAME
+
+# Delete secret
+firebase apphosting:secrets:delete SECRET_NAME
+
+# Grant access to secret
+firebase apphosting:secrets:access SECRET_NAME
+```
+
+### Environment Tiers
+
+Different secrets for different environments:
+
+```yaml
+# apphosting.yaml
+env:
+  - variable: API_URL
+    secret: API_URL_PROD  # Production
+
+  # For preview deployments, use different secrets
+  - variable: API_URL
+    secret: API_URL_STAGING
+    availability: PREVIEW_ONLY
+```
+
+See [environment.md](./environment.md) for complete guide.
+
+## Custom Domain
+
+### Add Custom Domain
+
+1. **Firebase Console**:
+   - Go to App Hosting
+   - Select your backend
+   - Click "Add custom domain"
+   - Enter your domain: `example.com`
+
+2. **Verify domain ownership**:
+   - Add TXT record to DNS
+   - Wait for verification (can take up to 24 hours)
+
+3. **Update DNS**:
+   - Add A records provided by Firebase
+   - Or add CNAME record for subdomain
+
+4. **SSL certificate**:
+   - Automatically provisioned
+   - Takes 24-48 hours
+
+See [domain.md](./domain.md) for detailed guide.
+
+## Monitoring & Logs
+
+### View Logs
+
+```bash
+# Stream logs
+firebase apphosting:backends:logs --backend=your-backend
+
+# View in Console
+# Firebase Console > App Hosting > Backend > Logs
+```
+
+### Cloud Logging
+
+Logs are stored in Google Cloud Logging:
+
+1. Go to [Cloud Console](https://console.cloud.google.com/)
+2. Select your project
+3. Navigate to Logging > Logs Explorer
+4. Filter by resource type: Cloud Run
+
+### Metrics
+
+View metrics in Firebase Console:
+
+- **Request count**
+- **Latency**
+- **Error rate**
+- **Instance count**
+- **CPU/Memory usage**
+
+### Firebase Performance Monitoring
+
+Track real-world performance:
+
+```typescript
+// Already configured in generated project
+import { getPerformance } from 'firebase/performance';
+const perf = getPerformance(app);
+```
+
+View metrics in Firebase Console > Performance.
+
+### Firebase Analytics
+
+Track user behavior:
+
+```typescript
+import { getAnalytics, logEvent } from 'firebase/analytics';
+const analytics = getAnalytics(app);
+
+logEvent(analytics, 'page_view', {
+  page_title: document.title,
+  page_path: window.location.pathname,
+});
+```
+
+## Scaling & Performance
+
+### Auto-Scaling Configuration
+
+Configure in `apphosting.yaml`:
+
+```yaml
+runConfig:
+  # Minimum instances (0 for scale-to-zero)
+  minInstances: 0
+
+  # Maximum instances
+  maxInstances: 10
+
+  # CPU per instance
+  cpu: 1
+
+  # Memory per instance
+  memoryMiB: 512
+
+  # Concurrent requests per instance
+  concurrency: 80
+```
+
+### Scale-to-Zero
+
+- `minInstances: 0` - Scales down to 0 when no traffic
+- Saves costs during low usage
+- Cold start: ~1-2 seconds
+
+### Production Settings
+
+For production apps:
+
+```yaml
+runConfig:
+  minInstances: 1      # Always warm instance
+  maxInstances: 100    # Handle traffic spikes
+  cpu: 2               # More CPU
+  memoryMiB: 1024      # More memory
+  concurrency: 80      # Optimal for Next.js
+```
+
+## Rollback
+
+### Rollback to Previous Version
+
+If issues occur:
+
+```bash
+firebase apphosting:rollbacks:create --backend=your-backend
+```
+
+Or in Firebase Console:
+1. Go to App Hosting > Backend
+2. Select "Rollbacks" tab
+3. Choose previous version
+4. Click "Rollback"
+
+### Version History
+
+View all versions:
+
+```bash
+firebase apphosting:backends:describe your-backend
+```
+
+## Troubleshooting
+
+### Build Failures
+
+**Issue**: Build fails during deployment
+
+**Check**:
+```bash
+# View build logs
+firebase apphosting:backends:logs --backend=your-backend
+
+# Common issues:
+# - Missing dependencies
+# - TypeScript errors
+# - Environment variables not set
+```
+
+**Solutions**:
+1. Test build locally:
+   ```bash
+   {{#if (eq packageManager "npm")}}npm run build{{else}}{{packageManager}} build{{/if}}
+   ```
+
+2. Check all secrets are set:
+   ```bash
+   firebase apphosting:secrets:list
+   ```
+
+3. Verify `apphosting.yaml` configuration
+
+### Cold Start Latency
+
+**Issue**: First request is slow
+
+**Solution**:
+```yaml
+# apphosting.yaml
+runConfig:
+  minInstances: 1  # Keep 1 instance warm
+```
+
+### Memory Errors
+
+**Issue**: Out of memory errors
+
+**Solution**:
+```yaml
+# apphosting.yaml
+runConfig:
+  memoryMiB: 1024  # Increase memory
+```
+
+{{#if (eq backend "firebase")}}
+### Firebase Connection Issues
+
+**Issue**: Firebase services not working
+
+**Check**:
+1. All Firebase secrets are set correctly
+2. Firebase services are enabled in Console
+3. Security rules are configured
+4. Authorized domains include App Hosting URL
+
+**Solution**:
+```bash
+# Verify secrets
+firebase apphosting:secrets:list
+
+# Check Firebase config
+firebase projects:list
+```
+{{/if}}
+
+## Cost Optimization
+
+### Understanding Costs
+
+Firebase App Hosting pricing:
+
+1. **Cloud Run**: Based on:
+   - Request count
+   - CPU time
+   - Memory usage
+   - Instance time
+
+2. **Cloud Build**: Build minutes
+
+3. **Secret Manager**: Secret access
+
+### Cost-Saving Tips
+
+1. **Scale to zero** when possible:
+   ```yaml
+   runConfig:
+     minInstances: 0
+   ```
+
+2. **Right-size instances**:
+   ```yaml
+   runConfig:
+     cpu: 1          # Start small
+     memoryMiB: 512  # Increase if needed
+   ```
+
+3. **Optimize build**:
+   - Use caching
+   - Minimize dependencies
+   - Optimize bundle size
+
+4. **Monitor usage**:
+   - Check Cloud Console > Billing
+   - Set up budget alerts
+
+### Estimate Costs
+
+Use [Google Cloud Pricing Calculator](https://cloud.google.com/products/calculator):
+
+- Cloud Run pricing
+- Cloud Build pricing
+- Network egress
+
+## Best Practices
+
+### 1. Use Preview Deployments
+
+Test all changes in preview before production:
+
+```bash
+# Always work in feature branches
+git checkout -b feat/new-feature
+
+# Push and create PR
+git push origin feat/new-feature
+
+# Test preview URL before merging
+```
+
+### 2. Set Up Monitoring
+
+Configure alerts:
+
+1. Firebase Console > App Hosting > Alerts
+2. Set up for:
+   - Error rate
+   - Latency
+   - Instance count
+
+### 3. Optimize Performance
+
+```typescript
+// Use Next.js Image optimization
+import Image from 'next/image';
+
+<Image
+  src="/image.jpg"
+  width={500}
+  height={300}
+  alt="Description"
+/>
+
+// Implement caching
+export const revalidate = 3600; // ISR every hour
+
+// Use React Server Components (default)
+```
+
+### 4. Secure Your App
+
+{{#if (eq backend "firebase")}}
+- Review Firebase security rules
+- Configure authorized domains
+- Enable Firebase App Check
+- Use HTTPS only
+{{/if}}
+
+### 5. Version Control
+
+- Use semantic versioning
+- Tag releases: `git tag v1.0.0`
+- Keep changelog updated
+
+## Migration from Firebase Hosting
+
+If migrating from static Firebase Hosting:
+
+1. **Remove static export**:
+   ```javascript
+   // next.config.js - Remove this
+   // output: 'export',
+   ```
+
+2. **Update API routes** - They now work!
+
+3. **Enable image optimization**:
+   ```javascript
+   // next.config.js - Remove this
+   // images: { unoptimized: true },
+   ```
+
+4. **Initialize App Hosting**:
+   ```bash
+   firebase init apphosting
+   ```
+
+5. **Deploy**:
+   ```bash
+   firebase deploy --only apphosting
+   ```
+
+## Resources
+
+- [Firebase App Hosting Documentation](https://firebase.google.com/docs/app-hosting)
+- [Next.js on Firebase](https://firebase.google.com/docs/app-hosting/nextjs)
+- [Cloud Run Documentation](https://cloud.google.com/run/docs)
+- [Firebase Console](https://console.firebase.google.com/)
+- [Google Cloud Console](https://console.cloud.google.com/)
+
+## Next Steps
+
+1. Set up custom domain - see [domain.md](./domain.md)
+2. Configure environment variables - see [environment.md](./environment.md)
+3. Review deployment checklist - see [README.md](./README.md#pre-deployment-checklist)
+4. Set up monitoring and alerts
+5. Configure Firebase Performance Monitoring
+6. Enable Firebase Analytics

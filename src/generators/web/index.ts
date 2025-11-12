@@ -903,6 +903,34 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     }
   );
 
+  // Add deployment documentation
+  operations.push(
+    {
+      type: 'template',
+      source: 'web/docs/deployment/README.md.hbs',
+      destination: 'docs/deployment/README.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/deployment/firebase.md.hbs',
+      destination: 'docs/deployment/firebase.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/deployment/environment.md.hbs',
+      destination: 'docs/deployment/environment.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/deployment/domain.md.hbs',
+      destination: 'docs/deployment/domain.md',
+      context,
+    }
+  );
+
   // Add PWA files
   if (context.pwa) {
     operations.push(

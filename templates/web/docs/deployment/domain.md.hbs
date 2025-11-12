@@ -1,0 +1,419 @@
+# Custom Domain Setup
+
+Guide for configuring custom domains with Firebase App Hosting.
+
+## Overview
+
+Firebase App Hosting provides:
+- ✅ **Free SSL certificates** - Automatic HTTPS
+- ✅ **Global CDN** - Fast content delivery
+- ✅ **Multiple domains** - Apex and subdomains
+- ✅ **Automatic renewal** - SSL certificates auto-renew
+- ✅ **Easy setup** - Configure via Console or CLI
+
+## Default URLs
+
+Your app is automatically available at:
+
+- **App Hosting URL**: `https://your-backend--your-project.web.app`
+- **Firebaseapp URL**: `https://your-backend--your-project.firebaseapp.com`
+
+## Adding Custom Domain
+
+### Prerequisites
+
+1. **Own a domain** - Purchase from domain registrar (Google Domains, Namecheap, GoDaddy, etc.)
+2. **Access to DNS settings** - Ability to add DNS records
+3. **Firebase App deployed** - App must be live on App Hosting
+
+### Step 1: Add Domain in Firebase Console
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project
+3. Navigate to **App Hosting**
+4. Select your backend
+5. Click **Custom domains** tab
+6. Click **Add custom domain**
+7. Enter your domain:
+   - **Apex domain**: `example.com`
+   - **Subdomain**: `www.example.com` or `app.example.com`
+
+### Step 2: Verify Domain Ownership
+
+Firebase will ask you to verify domain ownership:
+
+1. **Add TXT record** to your DNS:
+   ```
+   Name/Host: @
+   Type: TXT
+   Value: firebase=<verification-code>
+   TTL: 3600
+   ```
+
+2. **Wait for DNS propagation** (can take up to 24 hours, usually faster)
+
+3. **Click "Verify"** in Firebase Console
+
+### Step 3: Configure DNS
+
+After verification, configure DNS records:
+
+#### For Apex Domain (example.com)
+
+Add A records:
+
+```
+Name/Host: @
+Type: A
+Value: 151.101.1.195
+TTL: 3600
+
+Name/Host: @
+Type: A
+Value: 151.101.65.195
+TTL: 3600
+```
+
+#### For Subdomain (www.example.com)
+
+Add CNAME record:
+
+```
+Name/Host: www
+Type: CNAME
+Value: your-backend--your-project.web.app
+TTL: 3600
+```
+
+### Step 4: SSL Certificate Provisioning
+
+1. Firebase automatically provisions SSL certificate
+2. Takes **24-48 hours** for initial certificate
+3. **Automatically renews** before expiration
+4. No action required from you
+
+### Step 5: Wait for Propagation
+
+- DNS changes take time to propagate globally
+- Usually: 15 minutes to 1 hour
+- Can take up to 24-48 hours
+- Check status in Firebase Console
+
+## Using Firebase CLI
+
+### Add Custom Domain
+
+```bash
+firebase apphosting:domains:create example.com --backend=your-backend
+```
+
+### List Custom Domains
+
+```bash
+firebase apphosting:domains:list --backend=your-backend
+```
+
+### Delete Custom Domain
+
+```bash
+firebase apphosting:domains:delete example.com --backend=your-backend
+```
+
+## Multiple Domains
+
+You can add multiple domains to one backend:
+
+1. Primary domain: `example.com`
+2. WWW domain: `www.example.com`
+3. Alternative domain: `app.example.com`
+
+All will point to the same app with automatic HTTPS.
+
+## Domain Best Practices
+
+### 1. Use Both Apex and WWW
+
+Configure both `example.com` and `www.example.com`:
+
+- Add both as custom domains
+- Choose one as primary
+- Redirect other to primary (automatic)
+
+### 2. Redirect HTTP to HTTPS
+
+Firebase automatically redirects:
+- `http://example.com` → `https://example.com`
+- No configuration needed
+
+### 3. Use Subdomain for Staging
+
+Separate production and staging:
+
+- Production: `example.com`
+- Staging: `staging.example.com`
+
+Deploy to different backends.
+
+## DNS Configuration by Provider
+
+### Google Domains
+
+1. Go to https://domains.google.com
+2. Select your domain
+3. Click **DNS** in sidebar
+4. Scroll to **Custom resource records**
+5. Add records:
+
+```
+@ A 151.101.1.195
+@ A 151.101.65.195
+www CNAME your-backend--your-project.web.app
+```
+
+### Cloudflare
+
+1. Log in to Cloudflare dashboard
+2. Select your domain
+3. Go to **DNS** tab
+4. Add records:
+   - Turn off proxy (⚠️ orange cloud) for CNAME
+   - Use DNS only (gray cloud)
+
+```
+@ A 151.101.1.195 (DNS only)
+@ A 151.101.65.195 (DNS only)
+www CNAME your-backend--your-project.web.app (DNS only)
+```
+
+**Important**: Disable Cloudflare proxy initially to allow Firebase SSL provisioning.
+
+### Namecheap
+
+1. Log in to Namecheap
+2. Manage domain
+3. Go to **Advanced DNS** tab
+4. Add records:
+
+```
+@ A Record 151.101.1.195
+@ A Record 151.101.65.195
+www CNAME Record your-backend--your-project.web.app
+```
+
+### GoDaddy
+
+1. Log in to GoDaddy
+2. Manage DNS
+3. Add records:
+
+```
+@ A 151.101.1.195
+@ A 151.101.65.195
+www CNAME your-backend--your-project.web.app
+```
+
+TTL: 1 Hour or custom
+
+## Verification
+
+### Check DNS Propagation
+
+Use online tools:
+- https://dnschecker.org
+- https://www.whatsmydns.net
+
+Enter your domain and check:
+- A records pointing to Firebase IPs
+- CNAME pointing to Firebase domain
+
+### Test Your Domain
+
+```bash
+# Check A records
+dig example.com
+
+# Check CNAME
+dig www.example.com
+
+# Test HTTPS
+curl -I https://example.com
+```
+
+### Verify SSL Certificate
+
+1. Visit your domain: `https://example.com`
+2. Click padlock icon in browser
+3. View certificate details
+4. Should show:
+   - Issued to: your domain
+   - Issued by: Google Trust Services
+
+## Troubleshooting
+
+### Domain Not Connecting
+
+**Issue**: Domain shows error or doesn't load
+
+**Check**:
+1. DNS records configured correctly
+2. Wait for DNS propagation (up to 48 hours)
+3. Check DNS with: `dig example.com`
+4. Verify in Firebase Console domain status
+
+**Solutions**:
+```bash
+# Check DNS
+dig example.com
+dig www.example.com
+
+# Should show Firebase IPs:
+# 151.101.1.195
+# 151.101.65.195
+```
+
+### SSL Certificate Pending
+
+**Issue**: SSL certificate not provisioning
+
+**Reasons**:
+- DNS not propagated yet
+- DNS records incorrect
+- Cloudflare proxy enabled
+- CAA records blocking Google
+
+**Solutions**:
+1. **Wait** - Can take 24-48 hours
+2. **Check DNS** - Ensure records are correct
+3. **Disable proxies** - Turn off Cloudflare proxy temporarily
+4. **Check CAA records**:
+   ```bash
+   dig example.com CAA
+   ```
+   If CAA records exist, add:
+   ```
+   example.com. CAA 0 issue "pki.goog"
+   ```
+
+### DNS Changes Not Taking Effect
+
+**Issue**: DNS changes not visible
+
+**Solutions**:
+1. **Wait longer** - DNS propagation takes time
+2. **Clear DNS cache** locally:
+   ```bash
+   # macOS
+   sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+
+   # Windows
+   ipconfig /flushdns
+
+   # Linux
+   sudo systemd-resolve --flush-caches
+   ```
+
+3. **Check TTL** - Low TTL (300-3600) propagates faster
+
+### Cloudflare Proxy Issues
+
+**Issue**: Domain not working with Cloudflare
+
+**Solution**:
+1. **Disable Cloudflare proxy** (orange cloud)
+2. Use **DNS only** mode (gray cloud)
+3. Wait for SSL certificate provisioning
+4. **After SSL is active**, you can re-enable proxy
+
+## Updating Domain
+
+### Change Primary Domain
+
+1. Firebase Console > App Hosting > Custom domains
+2. Click **...** next to domain
+3. Select **Set as primary**
+
+### Remove Domain
+
+1. Firebase Console > App Hosting > Custom domains
+2. Click **...** next to domain
+3. Select **Remove**
+
+Or via CLI:
+```bash
+firebase apphosting:domains:delete example.com --backend=your-backend
+```
+
+## Advanced Configuration
+
+### Email with Custom Domain
+
+Firebase App Hosting doesn't handle email. Use:
+
+- **Google Workspace** - Professional email
+- **Mailgun** - Developer-friendly email API
+- **SendGrid** - Email delivery service
+
+Configure MX records separately from web hosting.
+
+### Subdomain for API
+
+Use subdomain for API:
+
+- App: `example.com` (Firebase App Hosting)
+- API: `api.example.com` (Firebase Functions or Cloud Run)
+
+Add CNAME for API subdomain pointing to your API service.
+
+### Multiple Firebase Projects
+
+Different environments with different domains:
+
+```
+Production: example.com
+Staging: staging.example.com
+Development: dev.example.com
+```
+
+Each points to a different Firebase project/backend.
+
+## Security
+
+### Force HTTPS
+
+Firebase automatically redirects HTTP to HTTPS - no configuration needed.
+
+### HSTS (HTTP Strict Transport Security)
+
+Firebase App Hosting automatically includes HSTS header:
+```
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+```
+
+### CAA Records (Optional)
+
+Add CAA records to restrict certificate issuance:
+
+```
+example.com. CAA 0 issue "pki.goog"
+example.com. CAA 0 issuewild "pki.goog"
+```
+
+Only allows Google to issue certificates for your domain.
+
+## Resources
+
+- [Firebase Custom Domains](https://firebase.google.com/docs/hosting/custom-domain)
+- [Google Cloud Load Balancing](https://cloud.google.com/load-balancing/docs/https)
+- [DNS Checker](https://dnschecker.org)
+- [SSL Labs](https://www.ssllabs.com/ssltest/) - Test SSL configuration
+
+## Next Steps
+
+1. Purchase domain from registrar
+2. Add domain in Firebase Console
+3. Verify domain ownership
+4. Configure DNS records
+5. Wait for SSL certificate provisioning (24-48 hours)
+6. Test your custom domain
+7. Set up redirects if needed
+8. Monitor domain in Firebase Console

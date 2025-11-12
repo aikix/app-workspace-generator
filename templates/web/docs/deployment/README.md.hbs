@@ -1,0 +1,403 @@
+# Deployment Guide
+
+This guide covers deploying {{projectName}}{{#if (eq backend "firebase")}} to Firebase Hosting{{/if}}.
+
+{{#if (eq backend "firebase")}}
+## Firebase Hosting Deployment
+
+Firebase Hosting provides fast and secure hosting for your Next.js application with seamless integration with other Firebase services.
+
+### Quick Links
+
+- **[Firebase Hosting Guide](./firebase.md)** 🔥 - Complete Firebase Hosting deployment
+- **[Environment Variables](./environment.md)** 🔐 - Managing secrets and configuration
+- **[Custom Domain](./domain.md)** 🌐 - Setting up your custom domain
+
+## Why Firebase Hosting?
+
+- ✅ **Integrated with Firebase**: Seamless connection to Authentication, Firestore, Storage
+- ✅ **Global CDN**: Fast content delivery worldwide
+- ✅ **SSL Certificates**: Automatic HTTPS
+- ✅ **Preview Channels**: Test deployments before going live
+- ✅ **Rollback Support**: Easy version management
+- ✅ **CI/CD Ready**: GitHub Actions integration{{#if gitHooks}} (already configured){{/if}}
+
+{{else}}
+## Deployment Options
+
+For Next.js applications, we recommend:
+
+- **Vercel** - Zero-config Next.js deployment
+- **Netlify** - JAMstack hosting platform
+- **Docker** - Self-hosted deployment
+
+See [Next.js Deployment Documentation](https://nextjs.org/docs/deployment) for detailed guides.
+{{/if}}
+
+## Prerequisites
+
+Before deploying, ensure you have:
+
+- [x] Completed development and testing
+- [x] Built successfully: `{{#if (eq packageManager "npm")}}npm run build{{else if (eq packageManager "yarn")}}yarn build{{else if (eq packageManager "pnpm")}}pnpm build{{else}}bun run build{{/if}}`
+- [x] All tests passing{{#if (eq testing "playwright")}}: `{{#if (eq packageManager "npm")}}npm run e2e{{else}}{{packageManager}} e2e{{/if}}`{{/if}}
+{{#if (eq backend "firebase")}}- [x] Firebase project created and configured
+- [x] Firebase CLI installed
+{{/if}}- [x] Environment variables documented
+- [x] Git repository set up
+- [x] Production-ready error handling
+- [x] Performance optimization completed
+
+## Pre-Deployment Checklist
+
+### Code Quality
+- [ ] No console.log statements in production code
+- [ ] Error boundaries implemented
+- [ ] Loading states for async operations
+- [ ] SEO meta tags configured
+- [ ] Sitemap generated (if needed)
+
+{{#if typescript}}
+### TypeScript
+- [ ] No type errors: `{{#if (eq packageManager "npm")}}npm run type-check{{else}}{{packageManager}} type-check{{/if}}`
+- [ ] Strict mode enabled
+{{/if}}
+
+{{#if linting}}
+### Code Linting
+- [ ] No linting errors: `{{#if (eq packageManager "npm")}}npm run lint{{else}}{{packageManager}} lint{{/if}}`
+{{/if}}
+
+### Security
+- [ ] Environment variables not committed
+- [ ] API keys secured
+{{#if (eq backend "firebase")}}- [ ] Firebase security rules reviewed
+- [ ] Firebase Admin credentials secured
+- [ ] Authorized domains configured
+{{/if}}- [ ] CORS configured correctly
+- [ ] Authentication tested
+- [ ] Input validation in place
+
+### Performance
+- [ ] Images optimized (using next/image)
+- [ ] Bundle size checked
+- [ ] Lighthouse score > 90
+- [ ] Loading time < 3 seconds
+{{#if (eq styling "tailwind")}}- [ ] Unused CSS purged (automatic with Tailwind)
+{{/if}}
+
+### Monitoring
+- [ ] Error tracking set up
+{{#if (eq backend "firebase")}}- [ ] Firebase Analytics configured
+- [ ] Firebase Performance Monitoring enabled
+{{/if}}- [ ] Uptime monitoring planned
+- [ ] Backup strategy in place
+
+{{#if (eq backend "firebase")}}
+## Firebase Configuration
+
+See [environment.md](./environment.md) for detailed setup of:
+
+- Production environment variables
+- Firebase credentials management
+- Service account setup
+- Security best practices
+
+## Custom Domain Setup
+
+See [domain.md](./domain.md) for:
+
+- Custom domain configuration
+- DNS setup for Firebase Hosting
+- SSL certificate management
+- Multiple site setup
+
+## Deployment Workflows
+
+### Manual Deployment
+
+1. **Install Firebase CLI** (if not already installed):
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. **Login to Firebase**:
+   ```bash
+   firebase login
+   ```
+
+3. **Initialize Firebase Hosting** (first time only):
+   ```bash
+   firebase init hosting
+   ```
+
+4. **Build your application**:
+   ```bash
+   {{#if (eq packageManager "npm")}}npm run build{{else if (eq packageManager "yarn")}}yarn build{{else if (eq packageManager "pnpm")}}pnpm build{{else}}bun run build{{/if}}
+   ```
+
+5. **Deploy to Firebase**:
+   ```bash
+   firebase deploy --only hosting
+   ```
+
+See [firebase.md](./firebase.md) for detailed instructions.
+
+### Continuous Deployment
+
+{{#if gitHooks}}
+This project includes GitHub Actions workflows for automated Firebase deployment:
+
+- **Develop branch** → Firebase preview channel
+- **Main branch** → Production hosting
+
+See `.github/workflows/` for configuration.
+{{else}}
+Set up CI/CD with Firebase and GitHub Actions:
+
+```yaml
+name: Deploy to Firebase
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npm ci
+      - run: npm run build
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: your-project-id
+```
+{{/if}}
+
+## Post-Deployment
+
+After deploying:
+
+1. **Verify deployment**:
+   - [ ] Site loads correctly at your Firebase URL
+   - [ ] All pages accessible
+   - [ ] Forms working
+   - [ ] Firebase services connected (Auth, Firestore, Storage)
+   - [ ] API routes responding
+   - [ ] Authentication working
+
+2. **Test critical paths**:
+   {{#if (eq testing "playwright")}}- [ ] Run smoke tests
+   {{/if}}- [ ] Test user registration/login
+   - [ ] Test Firestore read/write
+   - [ ] Test Storage upload/download
+   - [ ] Check mobile responsiveness
+   - [ ] Verify Firebase Analytics tracking
+
+3. **Monitor**:
+   - [ ] Check Firebase Console for errors
+   - [ ] Monitor Firebase Performance
+   - [ ] Watch Firebase Analytics
+   - [ ] Review Firebase Usage & Billing
+   - [ ] Set up Firebase Alerts
+
+## Rollback Plan
+
+If issues occur:
+
+1. **Immediate rollback**:
+   ```bash
+   firebase hosting:rollback
+   ```
+
+2. **Debug**:
+   - Check Firebase Console deployment logs
+   - Review Firebase Functions logs (if using)
+   - Check Firestore/Storage operations
+   - Test locally with production data
+
+3. **Fix and redeploy**:
+   - Fix issues in development
+   - Test thoroughly
+   - Deploy to preview channel first
+   - Deploy to production
+
+## Common Issues
+
+### Build Failures
+
+**Issue**: Build fails during deployment
+
+**Solutions**:
+- Check Node.js version matches Firebase requirements
+- Verify all dependencies in package.json
+- Check Firebase configuration files
+- Review build logs for specific errors
+
+### Environment Variables Not Loading
+
+**Issue**: App can't access Firebase credentials
+
+**Solutions**:
+- Verify Firebase config in `.env.local`
+- Check variable naming (must start with `NEXT_PUBLIC_` for client-side)
+- Ensure all required Firebase env vars are set
+- Redeploy after updating environment
+
+### Firebase Connection Issues
+
+**Issue**: Firebase services not working in production
+
+**Solutions**:
+- Verify Firebase credentials are set correctly
+- Check authorized domains in Firebase Console
+- Verify Firebase services are enabled
+- Review Firebase security rules
+- Check Firebase quota/limits
+
+### 404 Errors
+
+**Issue**: Pages return 404 in production
+
+**Solutions**:
+- Check `firebase.json` rewrite rules
+- Verify build output includes all pages
+- Review Next.js output mode
+- Check for case-sensitivity issues
+
+## Performance Optimization
+
+Before going to production:
+
+1. **Enable Firebase Hosting features**:
+   - Configure cache headers in `firebase.json`
+   - Enable Firebase CDN (automatic)
+   - Use Firebase Performance Monitoring
+
+2. **Optimize assets**:
+   - Compress images
+   - Minify CSS/JS (automatic in Next.js)
+   - Enable Gzip compression in `firebase.json`
+
+3. **Monitor performance**:
+   - Use Firebase Performance Monitoring
+   - Track Core Web Vitals in Firebase
+   - Set up Firebase Performance alerts
+
+## Security Best Practices
+
+1. **Firebase Security Rules**:
+   ```javascript
+   // firestore.rules - Review before production
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       // Add proper authentication checks
+       match /users/{userId} {
+         allow read, write: if request.auth != null
+           && request.auth.uid == userId;
+       }
+     }
+   }
+   ```
+
+2. **Secrets Management**:
+   - Never commit Firebase service account keys
+   - Use Firebase Functions config for server secrets
+   - Rotate Firebase API keys regularly
+   - Use Firebase App Check for API protection
+
+3. **Headers in firebase.json**:
+   ```json
+   {
+     "hosting": {
+       "headers": [
+         {
+           "source": "**",
+           "headers": [
+             {
+               "key": "X-Content-Type-Options",
+               "value": "nosniff"
+             },
+             {
+               "key": "X-Frame-Options",
+               "value": "DENY"
+             }
+           ]
+         }
+       ]
+     }
+   }
+   ```
+
+## Firebase Hosting Features
+
+### Preview Channels
+
+Test deployments before production:
+
+```bash
+# Create preview channel
+firebase hosting:channel:deploy preview-feature-x
+
+# View preview URL
+# https://project-id--preview-feature-x.web.app
+```
+
+### Multiple Sites
+
+Host multiple sites in one project:
+
+```bash
+# List sites
+firebase hosting:sites:list
+
+# Deploy to specific site
+firebase deploy --only hosting:site-name
+```
+
+### Version Management
+
+```bash
+# List versions
+firebase hosting:releases:list
+
+# Rollback to previous version
+firebase hosting:rollback
+```
+
+## Resources
+
+- [Firebase Hosting Documentation](https://firebase.google.com/docs/hosting)
+- [Next.js on Firebase Hosting](https://firebase.google.com/docs/hosting/nextjs)
+- [Firebase CLI Reference](https://firebase.google.com/docs/cli)
+- [Firebase Console](https://console.firebase.google.com/)
+
+{{else}}
+## Environment Variables
+
+See [environment.md](./environment.md) for environment variable setup.
+
+## Custom Domain
+
+See [domain.md](./domain.md) for custom domain configuration.
+
+## Resources
+
+- [Next.js Deployment](https://nextjs.org/docs/deployment)
+- [Vercel Documentation](https://vercel.com/docs)
+- [Netlify Documentation](https://docs.netlify.com)
+{{/if}}
+
+## Need Help?
+
+{{#if (eq backend "firebase")}}- Check [firebase.md](./firebase.md) for detailed Firebase Hosting guide
+{{/if}}- Review [troubleshooting.md](../getting-started/troubleshooting.md)
+{{#if (eq backend "firebase")}}- Consult Firebase documentation
+- Visit Firebase Support
+{{else}}- Consult platform documentation
+{{/if}}- Reach out for support
