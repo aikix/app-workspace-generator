@@ -1,0 +1,627 @@
+# Debugging Guide
+
+This guide covers debugging techniques and tools for {{projectName}}.
+
+## Browser DevTools
+
+### Opening DevTools
+
+- **Chrome/Edge**: `F12` or `Cmd+Option+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
+- **Firefox**: `F12` or `Cmd+Option+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
+- **Safari**: `Cmd+Option+I` (enable Develop menu first in Preferences)
+
+### Console Debugging
+
+#### Basic Logging
+
+```typescript
+// Simple logging
+console.log('Debug message', variable);
+
+// Grouped logging
+console.group('User Data');
+console.log('Name:', user.name);
+console.log('Email:', user.email);
+console.groupEnd();
+
+// Table format (for arrays/objects)
+console.table(users);
+
+// Timing
+console.time('API Call');
+await fetchData();
+console.timeEnd('API Call');
+
+// Styled logging
+console.log('%c Success!', 'color: green; font-weight: bold');
+```
+
+#### Advanced Logging
+
+```typescript
+// Conditional logging
+console.assert(user !== null, 'User should not be null');
+
+// Stack trace
+console.trace('Function call trace');
+
+// Count occurrences
+console.count('Button clicked');
+
+// Clear console
+console.clear();
+```
+
+### Network Tab
+
+Monitor API calls and network requests:
+
+1. Open DevTools > Network tab
+2. Filter by type: XHR, Fetch, JS, CSS, Img
+3. Click on a request to see:
+   - Headers
+   - Response
+   - Timing
+   - Cookies
+
+**Common issues:**
+- **Failed requests**: Check status code and response
+- **Slow requests**: Check timing waterfall
+- **CORS errors**: Check headers and server configuration
+
+{{#if (eq backend "firebase")}}
+### Firebase Debugging
+
+Monitor Firebase operations:
+
+1. Open DevTools > Network tab
+2. Filter for `firestore` or `firebase` requests
+3. Check Authentication state:
+   ```typescript
+   import { auth } from '@/lib/firebase/config';
+
+   // Log current user
+   console.log('Current user:', auth.currentUser);
+
+   // Monitor auth state changes
+   auth.onAuthStateChanged(user => {
+     console.log('Auth state changed:', user);
+   });
+   ```
+
+4. Debug Firestore queries:
+   ```typescript
+   import { query, collection, getDocs } from 'firebase/firestore';
+   import { db } from '@/lib/firebase/config';
+
+   const q = query(collection(db, 'users'));
+   const snapshot = await getDocs(q);
+   console.log(`Found ${snapshot.size} users`);
+   snapshot.forEach(doc => {
+     console.log(doc.id, doc.data());
+   });
+   ```
+{{/if}}
+
+### React DevTools
+
+Install React Developer Tools extension:
+- Chrome: https://chrome.google.com/webstore → Search "React Developer Tools"
+- Firefox: https://addons.mozilla.org → Search "React Developer Tools"
+
+**Features:**
+- Component tree inspection
+- Props and state viewing
+- Component highlighting
+- Performance profiling
+
+**Usage:**
+1. Open DevTools > React Components tab
+2. Click on a component to inspect
+3. View props, state, hooks
+4. Edit values in real-time
+
+### Performance Profiling
+
+#### React Profiler
+
+```typescript
+import { Profiler } from 'react';
+
+function onRenderCallback(
+  id: string,
+  phase: 'mount' | 'update',
+  actualDuration: number,
+) {
+  console.log(`${id} (${phase}) took ${actualDuration}ms`);
+}
+
+export function App() {
+  return (
+    <Profiler id="App" onRender={onRenderCallback}>
+      <YourComponent />
+    </Profiler>
+  );
+}
+```
+
+#### Browser Performance Tab
+
+1. Open DevTools > Performance tab
+2. Click Record
+3. Perform actions
+4. Stop recording
+5. Analyze flame graph for bottlenecks
+
+## VS Code Debugging
+
+### Setup
+
+Create `.vscode/launch.json`:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Next.js: debug server-side",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "{{packageManager}}",
+      "runtimeArgs": ["run", "dev"],
+      "port": 9229,
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Next.js: debug client-side",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
+      "name": "Next.js: debug full stack",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "{{packageManager}}",
+      "runtimeArgs": ["run", "dev"],
+      "port": 9229,
+      "serverReadyAction": {
+        "action": "debugWithChrome",
+        "pattern": "started server on .+, url: (https?://.+)",
+        "uriFormat": "%s",
+        "webRoot": "${workspaceFolder}"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
+```
+
+### Using Breakpoints
+
+1. Click in the gutter next to line numbers to set breakpoints
+2. Press `F5` to start debugging
+3. Use controls:
+   - Continue: `F5`
+   - Step Over: `F10`
+   - Step Into: `F11`
+   - Step Out: `Shift+F11`
+
+### Debug Console
+
+Evaluate expressions while paused:
+```javascript
+// In Debug Console
+> user.name
+> user.email
+> Object.keys(user)
+```
+
+## Server-Side Debugging
+
+### API Routes
+
+```typescript
+// src/app/api/users/route.ts
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  console.log('API route called'); // Server console
+
+  try {
+    const users = await fetchUsers();
+    console.log('Fetched users:', users);
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch users' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Check server logs** in your terminal where `{{packageManager}} run dev` is running.
+
+### Server Components
+
+```typescript
+// Server Component debugging
+export default async function Page() {
+  console.log('This logs in the SERVER terminal');
+
+  const data = await fetchData();
+  console.log('Server data:', data);
+
+  return <div>{/* ... */}</div>;
+}
+```
+
+### Server Actions
+
+```typescript
+'use server';
+
+export async function createUser(formData: FormData) {
+  console.log('Server action called'); // Server console
+
+  const name = formData.get('name');
+  console.log('Creating user:', name);
+
+  // Add debugging
+  try {
+    const result = await saveUser(name);
+    console.log('User created:', result);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to create user:', error);
+    return { success: false, error: error.message };
+  }
+}
+```
+
+{{#if typescript}}
+## TypeScript Debugging
+
+### Type Checking
+
+```bash
+# Check types without building
+{{#if (eq packageManager "npm")}}npm run type-check{{else if (eq packageManager "yarn")}}yarn type-check{{else if (eq packageManager "pnpm")}}pnpm type-check{{else}}bun type-check{{/if}}
+```
+
+### Inspecting Types
+
+```typescript
+// Hover over variables in VS Code to see types
+
+// Use type assertions for debugging
+const user = data as User;
+
+// Check inferred types
+type UserType = typeof user;
+
+// Use satisfies for type checking
+const config = {
+  apiUrl: 'https://api.example.com',
+  timeout: 5000,
+} satisfies Config;
+```
+
+### Common Type Errors
+
+**Error**: "Type 'X' is not assignable to type 'Y'"
+- Check type definitions
+- Verify data structure matches interface
+
+**Error**: "Object is possibly 'null' or 'undefined'"
+```typescript
+// Use optional chaining
+user?.name
+
+// Use nullish coalescing
+user?.name ?? 'Unknown'
+
+// Type guard
+if (user !== null) {
+  console.log(user.name);
+}
+```
+{{/if}}
+
+{{#if (eq testing "playwright")}}
+## E2E Test Debugging
+
+### Running Tests in Debug Mode
+
+```bash
+# Debug mode (opens Playwright Inspector)
+{{#if (eq packageManager "npm")}}npm run e2e:debug{{else if (eq packageManager "yarn")}}yarn e2e:debug{{else if (eq packageManager "pnpm")}}pnpm e2e:debug{{else}}bun e2e:debug{{/if}}
+
+# UI mode (interactive testing)
+{{#if (eq packageManager "npm")}}npm run e2e:ui{{else if (eq packageManager "yarn")}}yarn e2e:ui{{else if (eq packageManager "pnpm")}}pnpm e2e:ui{{else}}bun e2e:ui{{/if}}
+
+# Headed mode (see browser)
+npx playwright test --headed
+
+# Debug specific test
+npx playwright test --debug tests/e2e/home.spec.ts
+```
+
+### Playwright Inspector
+
+Features:
+- Step through tests
+- View locators
+- Inspect elements
+- Record new tests
+- Time travel debugging
+
+### Adding Debug Points
+
+```typescript
+// tests/e2e/example.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('example test', async ({ page }) => {
+  await page.goto('/');
+
+  // Pause execution
+  await page.pause();
+
+  // Take screenshot
+  await page.screenshot({ path: 'debug.png' });
+
+  // Log page content
+  console.log(await page.content());
+
+  // Wait for element (useful for debugging timing)
+  await page.waitForSelector('[data-testid="user-name"]');
+});
+```
+
+### Test Traces
+
+Generate trace files for debugging:
+
+```bash
+# Run with trace
+npx playwright test --trace on
+
+# View trace
+npx playwright show-trace trace.zip
+```
+{{/if}}
+
+## Common Debugging Scenarios
+
+### Issue: Component Not Rendering
+
+**Check:**
+1. Component imported correctly
+2. Props passed correctly
+3. Console for errors
+4. React DevTools for component tree
+
+```typescript
+// Debug props
+export function MyComponent(props: Props) {
+  console.log('Props:', props);
+  console.log('Component rendering');
+
+  return <div>{/* ... */}</div>;
+}
+```
+
+### Issue: State Not Updating
+
+**Check:**
+1. State mutation (must create new object/array)
+2. setState called correctly
+3. Dependencies in useEffect
+
+```typescript
+// Wrong: Mutating state
+const handleClick = () => {
+  state.value = 'new value'; // ❌
+  setState(state); // Won't trigger re-render
+};
+
+// Correct: Creating new state
+const handleClick = () => {
+  setState({ ...state, value: 'new value' }); // ✅
+};
+
+// Debug state updates
+useEffect(() => {
+  console.log('State updated:', state);
+}, [state]);
+```
+
+### Issue: API Call Failing
+
+**Check:**
+1. Network tab for request/response
+2. Server logs for errors
+3. CORS configuration
+4. Authentication headers
+
+```typescript
+// Debug API calls
+async function fetchData() {
+  try {
+    console.log('Fetching data...');
+
+    const response = await fetch('/api/users');
+    console.log('Response status:', response.status);
+
+    const data = await response.json();
+    console.log('Response data:', data);
+
+    return data;
+  } catch (error) {
+    console.error('Fetch error:', error);
+    throw error;
+  }
+}
+```
+
+{{#if (eq backend "firebase")}}
+### Issue: Firebase Not Working
+
+**Check:**
+1. Firebase config in `.env.local`
+2. Firebase services enabled
+3. Security rules
+4. Network requests in DevTools
+
+```typescript
+// Debug Firebase connection
+import { auth, db } from '@/lib/firebase/config';
+
+console.log('Firebase Auth:', auth);
+console.log('Firebase DB:', db);
+console.log('Firebase App:', auth.app);
+
+// Test authentication
+auth.onAuthStateChanged(user => {
+  console.log('Auth state:', user ? 'Logged in' : 'Logged out');
+  if (user) {
+    console.log('User ID:', user.uid);
+    console.log('User email:', user.email);
+  }
+});
+
+// Test Firestore connection
+import { collection, getDocs } from 'firebase/firestore';
+
+const testConnection = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, 'test'));
+    console.log('Firestore connected, docs:', snapshot.size);
+  } catch (error) {
+    console.error('Firestore error:', error);
+  }
+};
+```
+{{/if}}
+
+### Issue: Build Failing
+
+**Check:**
+1. TypeScript errors: `{{#if (eq packageManager "npm")}}npm run type-check{{else}}{{packageManager}} type-check{{/if}}`
+2. Linting errors: `{{#if (eq packageManager "npm")}}npm run lint{{else}}{{packageManager}} lint{{/if}}`
+3. Missing dependencies: `{{#if (eq packageManager "npm")}}npm install{{else}}{{packageManager}} install{{/if}}`
+4. Clear `.next` cache: `rm -rf .next`
+
+```bash
+# Full rebuild
+rm -rf .next node_modules
+{{#if (eq packageManager "npm")}}npm install
+npm run build{{else if (eq packageManager "yarn")}}yarn install
+yarn build{{else if (eq packageManager "pnpm")}}pnpm install
+pnpm build{{else}}bun install
+bun run build{{/if}}
+```
+
+## Debugging Tools
+
+### React Error Boundary
+
+```typescript
+// src/components/ErrorBoundary.tsx
+'use client';
+
+import { Component, type ReactNode } from 'react';
+
+interface Props {
+  children: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  error?: Error;
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Error caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h2>Something went wrong</h2>
+          <pre>{this.state.error?.message}</pre>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+```
+
+### Custom Debug Hook
+
+```typescript
+// src/hooks/useDebug.ts
+import { useEffect, useRef } from 'react';
+
+export function useDebug(componentName: string, props: any) {
+  const previousProps = useRef(props);
+
+  useEffect(() => {
+    console.log(`[${componentName}] Mounted`);
+    return () => console.log(`[${componentName}] Unmounted`);
+  }, [componentName]);
+
+  useEffect(() => {
+    console.log(`[${componentName}] Props:`, props);
+    console.log(`[${componentName}] Previous:`, previousProps.current);
+    previousProps.current = props;
+  }, [componentName, props]);
+}
+
+// Usage
+function MyComponent(props: Props) {
+  useDebug('MyComponent', props);
+  // ...
+}
+```
+
+## Best Practices
+
+1. **Use descriptive logs**: Include context and variable names
+2. **Remove console.logs**: Before committing (or use a logger library)
+3. **Use debugger statements**: For complex debugging
+4. **Check error messages**: Read the full error carefully
+5. **Reproduce consistently**: Find steps to reproduce the issue
+6. **Isolate the problem**: Test components/functions in isolation
+7. **Use source maps**: Enabled by default in development
+
+## Resources
+
+- [Chrome DevTools Documentation](https://developer.chrome.com/docs/devtools/)
+- [React DevTools](https://react.dev/learn/react-developer-tools)
+- [Next.js Debugging](https://nextjs.org/docs/advanced-features/debugging)
+{{#if (eq testing "playwright")}}- [Playwright Debugging](https://playwright.dev/docs/debug)
+{{/if}}{{#if (eq backend "firebase")}}- [Firebase Debugging](https://firebase.google.com/docs/web/troubleshooting)
+{{/if}}
+## Next Steps
+
+For common issues and solutions, see [troubleshooting.md](./troubleshooting.md).

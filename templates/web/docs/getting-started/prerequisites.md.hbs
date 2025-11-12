@@ -1,0 +1,164 @@
+# Prerequisites
+
+Before you begin, ensure you have the following tools and accounts set up.
+
+## Required Software
+
+### Node.js
+- **Version**: 18.x or higher (20.x recommended)
+- **Download**: https://nodejs.org/
+- **Verify installation**:
+  ```bash
+  node --version  # Should show v18.x.x or higher
+  ```
+
+### Package Manager
+This project uses **{{packageManager}}** for dependency management.
+
+{{#if (eq packageManager "npm")}}
+- **npm** comes bundled with Node.js
+- **Verify installation**:
+  ```bash
+  npm --version  # Should show 9.x.x or higher
+  ```
+{{else if (eq packageManager "yarn")}}
+- **Installation**:
+  ```bash
+  npm install -g yarn
+  ```
+- **Verify installation**:
+  ```bash
+  yarn --version  # Should show 1.22.x or higher
+  ```
+{{else if (eq packageManager "pnpm")}}
+- **Installation**:
+  ```bash
+  npm install -g pnpm
+  ```
+- **Verify installation**:
+  ```bash
+  pnpm --version  # Should show 8.x.x or higher
+  ```
+{{else if (eq packageManager "bun")}}
+- **Installation**: https://bun.sh/docs/installation
+- **Verify installation**:
+  ```bash
+  bun --version  # Should show 1.x.x or higher
+  ```
+{{/if}}
+
+### Git
+- **Version**: 2.x or higher
+- **Download**: https://git-scm.com/downloads
+- **Verify installation**:
+  ```bash
+  git --version  # Should show git version 2.x.x
+  ```
+
+### Code Editor
+We recommend **Visual Studio Code** with the following extensions:
+- ESLint
+{{#if typescript}}- TypeScript and JavaScript Language Features
+{{/if}}{{#if formatting}}- Prettier
+{{/if}}{{#if (eq styling "tailwind")}}- Tailwind CSS IntelliSense
+{{/if}}{{#if (eq backend "firebase")}}- Firebase
+{{/if}}
+**Alternative editors**: WebStorm, Sublime Text, or any editor with TypeScript support
+
+## Required Accounts
+
+{{#if (eq backend "firebase")}}
+### Firebase Account
+- **Sign up**: https://console.firebase.google.com/
+- **Requirements**:
+  - Google account
+  - Payment method (required for Blaze plan, optional for Spark plan)
+- **Setup**:
+  1. Create a new Firebase project
+  2. Enable required services (Authentication, Firestore, Storage)
+  3. Generate service account credentials (see [first-run.md](./first-run.md))
+
+{{/if}}
+## Optional Tools
+
+### Browser DevTools
+For debugging and development:
+- **Chrome DevTools**: Built into Chrome/Edge
+{{#if (eq backend "firebase")}}- **Firebase Emulator UI**: Local testing environment
+{{/if}}{{#if (eq testing "playwright")}}- **Playwright Inspector**: For E2E test debugging
+{{/if}}
+
+### Terminal
+- **macOS/Linux**: Built-in terminal
+- **Windows**:
+  - Windows Terminal (recommended)
+  - PowerShell
+  - Git Bash
+  - WSL2 (Windows Subsystem for Linux)
+
+{{#if (eq testing "playwright")}}
+### Playwright Browsers
+Playwright will install required browsers automatically during setup:
+```bash
+npx playwright install
+```
+
+Supported browsers:
+- Chromium
+- Firefox
+- WebKit (Safari)
+{{/if}}
+
+## System Requirements
+
+### Minimum
+- **CPU**: Dual-core processor
+- **RAM**: 4GB
+- **Disk**: 2GB free space
+- **OS**:
+  - macOS 10.15 or higher
+  - Windows 10 or higher
+  - Ubuntu 20.04 or higher
+
+### Recommended
+- **CPU**: Quad-core processor or better
+- **RAM**: 8GB or more
+- **Disk**: 5GB free space (for dependencies and build artifacts)
+- **Network**: Stable internet connection for package downloads
+
+## Verification Checklist
+
+Before proceeding to [installation.md](./installation.md), verify:
+
+- [ ] Node.js 18+ is installed
+- [ ] {{packageManager}} is installed and working
+- [ ] Git is installed and configured
+- [ ] Code editor is set up with recommended extensions
+{{#if (eq backend "firebase")}}- [ ] Firebase account is created
+- [ ] Firebase project is set up
+{{/if}}{{#if (eq testing "playwright")}}- [ ] Ready to install Playwright browsers
+{{/if}}
+
+## Troubleshooting
+
+### Node.js Version Issues
+If you have an older version of Node.js:
+- Use [nvm (Node Version Manager)](https://github.com/nvm-sh/nvm) to manage multiple versions
+- Install Node.js 20 LTS: `nvm install 20 && nvm use 20`
+
+### Permission Errors
+If you encounter permission errors when installing global packages:
+- **macOS/Linux**: Use `sudo` carefully or configure npm to use a different directory
+- **Windows**: Run terminal as Administrator
+
+{{#if (eq packageManager "pnpm")}}
+### pnpm Store Issues
+If pnpm store is corrupted:
+```bash
+pnpm store prune
+```
+{{/if}}
+
+## Next Steps
+
+Once all prerequisites are met, proceed to [installation.md](./installation.md) for setup instructions.

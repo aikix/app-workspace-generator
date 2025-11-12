@@ -1,0 +1,461 @@
+# Development Workflow
+
+This guide covers the day-to-day development workflow for {{projectName}}.
+
+## Development Server
+
+### Starting the Server
+
+```bash
+{{#if (eq packageManager "npm")}}npm run dev{{else if (eq packageManager "yarn")}}yarn dev{{else if (eq packageManager "pnpm")}}pnpm dev{{else}}bun dev{{/if}}
+```
+
+The development server will:
+- ✅ Start on http://localhost:3000
+- ✅ Enable Hot Module Replacement (HMR)
+- ✅ Show helpful error messages
+- ✅ Provide fast refresh for React components
+
+### Development Server Features
+
+- **Fast Refresh**: Instant updates without losing component state
+- **Error Overlay**: Helpful error messages in the browser
+- **TypeScript**: Real-time type checking{{#if linting}}
+- **ESLint**: Code quality feedback{{/if}}
+
+## Project Structure
+
+Understanding where to put your code:
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── layout.tsx          # Root layout
+│   ├── page.tsx            # Homepage
+│   ├── (routes)/           # Route groups
+│   ├── api/                # API routes
+│   └── actions/            # Server actions
+├── components/             # React components
+│   ├── layout/             # Layout components (Header, Footer)
+│   ├── ui/                 # Reusable UI components (Button, Card)
+│   ├── features/           # Feature-specific components
+{{#if pwa}}│   ├── pwa/                # PWA components
+{{/if}}{{#if (eq backend "firebase")}}│   └── storage/            # Firebase Storage components
+{{/if}}├── hooks/                  # Custom React hooks{{#if (eq backend "firebase")}}
+│   └── firebase/           # Firebase-specific hooks{{/if}}
+├── lib/                    # Utility functions{{#if (eq backend "firebase")}}
+│   ├── firebase/           # Firebase client SDK
+│   ├── firebase-admin/     # Firebase Admin SDK (server)
+│   ├── db/                 # Database models
+│   └── api/                # API utilities{{else}}
+│   └── api/                # API utilities{{/if}}
+{{#if (eq stateManagement "context")}}├── contexts/               # React Context providers
+{{else if (eq stateManagement "zustand")}}├── stores/                 # Zustand state stores
+{{/if}}└── types/                  # TypeScript types
+{{#if (eq testing "playwright")}}
+tests/                      # E2E tests
+├── e2e/                    # Test specs
+├── page-objects/           # Page Object Models
+├── helpers/                # Test utilities
+└── fixtures/               # Test data
+{{/if}}
+```
+
+## Coding Guidelines
+
+{{#if typescript}}
+### TypeScript
+
+- **Use strict types**: Avoid `any` when possible
+- **Define interfaces**: For props and data structures
+- **Type imports**: Use `import type` for type-only imports
+
+```typescript
+// Good
+import type { User } from '@/types';
+
+interface UserProps {
+  user: User;
+  onUpdate: (user: User) => void;
+}
+
+// Avoid
+const handleUser = (user: any) => { ... };
+```
+{{/if}}
+
+### Component Organization
+
+```typescript
+// 1. Imports
+import { useState } from 'react';
+import type { ComponentProps } from './types';
+
+// 2. Types/Interfaces
+interface Props {
+  title: string;
+}
+
+// 3. Component
+export function MyComponent({ title }: Props) {
+  // 3a. Hooks
+  const [state, setState] = useState();
+
+  // 3b. Event handlers
+  const handleClick = () => { ... };
+
+  // 3c. Render
+  return (
+    <div>...</div>
+  );
+}
+
+// 4. Exports
+export default MyComponent;
+```
+
+{{#if (eq styling "tailwind")}}
+### Tailwind CSS
+
+Use Tailwind v4 utility classes:
+
+```tsx
+// Good: Semantic component names with Tailwind
+function Button({ children }: { children: React.ReactNode }) {
+  return (
+    <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+      {children}
+    </button>
+  );
+}
+
+// Better: Extract to reusable component
+import { Button } from '@/components/ui/Button';
+```
+{{/if}}
+
+### File Naming
+
+- **Components**: PascalCase (`Button.tsx`, `UserProfile.tsx`)
+- **Utilities**: camelCase (`formatDate.ts`, `apiClient.ts`)
+- **Hooks**: camelCase with `use` prefix (`useAuth.tsx`, `useDebounce.ts`)
+- **Types**: PascalCase (`User.ts`, `ApiResponse.ts`)
+
+## Git Workflow
+
+### Branch Strategy
+
+{{#if gitHooks}}
+We use a feature branch workflow:
+
+```bash
+# Create a new feature branch
+git checkout -b feat/add-user-profile
+
+# Make your changes
+git add .
+git commit -m "feat: add user profile page"
+
+# Push to remote
+git push -u origin feat/add-user-profile
+
+# Create a pull request
+```
+
+### Commit Messages
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/):
+
+```bash
+# Format
+<type>(<scope>): <description>
+
+# Types
+feat:     New feature
+fix:      Bug fix
+docs:     Documentation changes
+style:    Code style changes (formatting)
+refactor: Code refactoring
+perf:     Performance improvements
+test:     Adding or updating tests
+chore:    Build process or tooling changes
+ci:       CI/CD changes
+
+# Examples
+git commit -m "feat: add user authentication"
+git commit -m "fix(api): resolve null pointer in user endpoint"
+git commit -m "docs: update installation guide"
+```
+
+**Pre-commit checks** will automatically run:
+- Linting
+- Formatting
+- Type checking
+- Commit message validation
+
+If checks fail, fix the issues and commit again.
+{{else}}
+```bash
+# Create a new feature branch
+git checkout -b feature/my-new-feature
+
+# Make your changes
+git add .
+git commit -m "Add my new feature"
+
+# Push to remote
+git push -u origin feature/my-new-feature
+```
+{{/if}}
+
+## Available Commands
+
+### Development
+```bash
+# Start development server
+{{#if (eq packageManager "npm")}}npm run dev{{else if (eq packageManager "yarn")}}yarn dev{{else if (eq packageManager "pnpm")}}pnpm dev{{else}}bun dev{{/if}}
+```
+
+### Build
+```bash
+# Build for production
+{{#if (eq packageManager "npm")}}npm run build{{else if (eq packageManager "yarn")}}yarn build{{else if (eq packageManager "pnpm")}}pnpm build{{else}}bun run build{{/if}}
+
+# Start production server
+{{#if (eq packageManager "npm")}}npm start{{else if (eq packageManager "yarn")}}yarn start{{else if (eq packageManager "pnpm")}}pnpm start{{else}}bun start{{/if}}
+```
+
+{{#if linting}}
+### Linting
+```bash
+# Run ESLint
+{{#if (eq packageManager "npm")}}npm run lint{{else if (eq packageManager "yarn")}}yarn lint{{else if (eq packageManager "pnpm")}}pnpm lint{{else}}bun lint{{/if}}
+
+# Fix auto-fixable issues
+{{#if (eq packageManager "npm")}}npm run lint:fix{{else if (eq packageManager "yarn")}}yarn lint:fix{{else if (eq packageManager "pnpm")}}pnpm lint:fix{{else}}bun lint:fix{{/if}}
+```
+{{/if}}
+
+{{#if formatting}}
+### Formatting
+```bash
+# Check formatting
+{{#if (eq packageManager "npm")}}npm run format:check{{else if (eq packageManager "yarn")}}yarn format:check{{else if (eq packageManager "pnpm")}}pnpm format:check{{else}}bun format:check{{/if}}
+
+# Fix formatting
+{{#if (eq packageManager "npm")}}npm run format{{else if (eq packageManager "yarn")}}yarn format{{else if (eq packageManager "pnpm")}}pnpm format{{else}}bun format{{/if}}
+```
+{{/if}}
+
+{{#if typescript}}
+### Type Checking
+```bash
+# Check TypeScript types
+{{#if (eq packageManager "npm")}}npm run type-check{{else if (eq packageManager "yarn")}}yarn type-check{{else if (eq packageManager "pnpm")}}pnpm type-check{{else}}bun type-check{{/if}}
+```
+{{/if}}
+
+{{#if (eq testing "playwright")}}
+### Testing
+```bash
+# Run E2E tests
+{{#if (eq packageManager "npm")}}npm run e2e{{else if (eq packageManager "yarn")}}yarn e2e{{else if (eq packageManager "pnpm")}}pnpm e2e{{else}}bun e2e{{/if}}
+
+# Run tests in UI mode
+{{#if (eq packageManager "npm")}}npm run e2e:ui{{else if (eq packageManager "yarn")}}yarn e2e:ui{{else if (eq packageManager "pnpm")}}pnpm e2e:ui{{else}}bun e2e:ui{{/if}}
+
+# Debug tests
+{{#if (eq packageManager "npm")}}npm run e2e:debug{{else if (eq packageManager "yarn")}}yarn e2e:debug{{else if (eq packageManager "pnpm")}}pnpm e2e:debug{{else}}bun e2e:debug{{/if}}
+
+# View test report
+npx playwright show-report
+```
+{{/if}}
+
+## Creating New Features
+
+### 1. Create a New Page
+
+```typescript
+// src/app/about/page.tsx
+export default function AboutPage() {
+  return (
+    <div>
+      <h1>About</h1>
+      <p>About our application</p>
+    </div>
+  );
+}
+```
+
+Access at: http://localhost:3000/about
+
+### 2. Create a New Component
+
+```typescript
+// src/components/features/UserCard.tsx
+interface UserCardProps {
+  name: string;
+  email: string;
+}
+
+export function UserCard({ name, email }: UserCardProps) {
+  return (
+    <div className="border p-4 rounded">
+      <h3>{name}</h3>
+      <p>{email}</p>
+    </div>
+  );
+}
+```
+
+### 3. Create an API Route
+
+```typescript
+// src/app/api/users/route.ts
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  const users = [
+    { id: 1, name: 'Alice' },
+    { id: 2, name: 'Bob' },
+  ];
+
+  return NextResponse.json(users);
+}
+```
+
+Access at: http://localhost:3000/api/users
+
+{{#if (eq backend "firebase")}}
+### 4. Add Firebase Integration
+
+```typescript
+// Example: Read from Firestore
+import { getUsers } from '@/lib/firebase/firestore';
+
+export async function UserList() {
+  const users = await getUsers();
+
+  return (
+    <ul>
+      {users.map(user => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+{{/if}}
+
+## Hot Reload and Fast Refresh
+
+Next.js provides automatic hot reloading:
+
+- **Component changes**: Instant reload while preserving state
+- **Page changes**: Full page reload
+- **CSS changes**: Instant style updates
+{{#if typescript}}- **Type errors**: Shown in browser overlay{{/if}}
+
+If hot reload isn't working:
+1. Check the terminal for errors
+2. Restart the development server
+3. Clear `.next` cache: `rm -rf .next`
+
+## Environment Variables
+
+### Adding New Variables
+
+1. Add to `.env.local`:
+   ```env
+   # Client-side (accessible in browser)
+   NEXT_PUBLIC_API_URL=https://api.example.com
+
+   # Server-side only
+   API_SECRET=your-secret-key
+   ```
+
+2. Add type definitions in `src/types/global.d.ts`:
+   ```typescript
+   namespace NodeJS {
+     interface ProcessEnv {
+       NEXT_PUBLIC_API_URL: string;
+       API_SECRET: string;
+     }
+   }
+   ```
+
+3. Access in code:
+   ```typescript
+   // Client-side
+   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+   // Server-side
+   const secret = process.env.API_SECRET;
+   ```
+
+**Important**: Client-side variables must be prefixed with `NEXT_PUBLIC_`
+
+## Performance Tips
+
+1. **Use Server Components**: Default in Next.js App Router - faster initial loads
+2. **Lazy Load Components**: Use `React.lazy()` for code splitting
+3. **Optimize Images**: Use `next/image` for automatic optimization{{#if (eq styling "tailwind")}}
+4. **Purge Unused CSS**: Tailwind automatically removes unused styles{{/if}}
+5. **Enable React Strict Mode**: Already enabled in `next.config.js`
+
+## Code Quality
+
+Before committing:
+
+```bash
+# Run all quality checks
+{{#if linting}}{{#if (eq packageManager "npm")}}npm run lint && \
+{{else if (eq packageManager "yarn")}}yarn lint && \
+{{else if (eq packageManager "pnpm")}}pnpm lint && \
+{{else}}bun lint && \
+{{/if}}{{/if}}{{#if typescript}}{{#if (eq packageManager "npm")}}npm run type-check && \
+{{else if (eq packageManager "yarn")}}yarn type-check && \
+{{else if (eq packageManager "pnpm")}}pnpm type-check && \
+{{else}}bun type-check && \
+{{/if}}{{/if}}{{#if (eq packageManager "npm")}}npm run build
+{{else if (eq packageManager "yarn")}}yarn build
+{{else if (eq packageManager "pnpm")}}pnpm build
+{{else}}bun run build
+{{/if}}
+```
+
+{{#if gitHooks}}
+**Note**: Pre-commit hooks will automatically run these checks.
+{{/if}}
+
+## Debugging
+
+For debugging tips, see [debugging.md](./debugging.md).
+
+## Common Issues
+
+For troubleshooting, see [troubleshooting.md](./troubleshooting.md).
+
+## Best Practices
+
+1. **Keep components small**: Single responsibility principle
+2. **Use TypeScript**: Catch errors at compile time
+3. **Write tests**: Ensure code quality and prevent regressions
+4. **Follow conventions**: Use established patterns and naming
+5. **Document complex logic**: Add comments for non-obvious code
+6. **Review before committing**: Check diffs and test changes
+
+## Resources
+
+- [Next.js Documentation](https://nextjs.org/docs)
+{{#if typescript}}- [TypeScript Documentation](https://www.typescriptlang.org/docs)
+{{/if}}{{#if (eq styling "tailwind")}}- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+{{/if}}{{#if (eq backend "firebase")}}- [Firebase Documentation](https://firebase.google.com/docs)
+{{/if}}{{#if (eq testing "playwright")}}- [Playwright Documentation](https://playwright.dev/docs/intro)
+{{/if}}
+- [CONTRIBUTING.md](../../CONTRIBUTING.md)
+
+## Next Steps
+
+Continue to [debugging.md](./debugging.md) to learn debugging techniques.

@@ -1,0 +1,61 @@
+# Getting Started with {{projectName}}
+
+Welcome to {{projectName}}! This guide will help you get up and running quickly.
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+{{#if (eq packageManager "npm")}}npm install{{else if (eq packageManager "yarn")}}yarn install{{else if (eq packageManager "pnpm")}}pnpm install{{else}}bun install{{/if}}
+
+# Copy environment variables
+cp .env.example .env.local
+
+{{#if (eq backend "firebase")}}# Configure Firebase (see first-run.md)
+{{/if}}# Start development server
+{{#if (eq packageManager "npm")}}npm run dev{{else if (eq packageManager "yarn")}}yarn dev{{else if (eq packageManager "pnpm")}}pnpm dev{{else}}bun dev{{/if}}
+
+# Open http://localhost:3000
+```
+
+## 📚 Documentation
+
+- **[Prerequisites](./prerequisites.md)** - Required tools and setup
+- **[Installation](./installation.md)** - Detailed setup instructions
+- **[First Run](./first-run.md)** - Initial configuration steps
+- **[Development Workflow](./development.md)** - Daily development guide
+- **[Debugging](./debugging.md)** - Debug tools and techniques
+- **[Troubleshooting](./troubleshooting.md)** - Common issues and solutions
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js {{#if typescript}}with TypeScript{{/if}}
+- **Styling**: {{#if (eq styling "tailwind")}}Tailwind CSS v4{{else}}CSS{{/if}}
+{{#if (eq backend "firebase")}}- **Backend**: Firebase ({{firebasePattern}} pattern)
+{{/if}}{{#if (eq stateManagement "zustand")}}- **State**: Zustand
+{{else if (eq stateManagement "context")}}- **State**: React Context
+{{/if}}{{#if animations}}- **Animations**: Framer Motion
+{{/if}}{{#if (eq testing "playwright")}}- **Testing**: Playwright
+{{/if}}{{#if pwa}}- **PWA**: Next-PWA
+{{/if}}
+## 📖 Additional Resources
+
+- [README.md](../../README.md) - Project overview
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) - Contribution guidelines
+{{#if (eq backend "firebase")}}- [Firebase Documentation](https://firebase.google.com/docs)
+{{/if}}- [Next.js Documentation](https://nextjs.org/docs)
+{{#if (eq styling "tailwind")}}- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+{{/if}}
+## 🆘 Need Help?
+
+- Check [troubleshooting.md](./troubleshooting.md) for common issues
+- Review existing [GitHub Issues](../../issues)
+- Create a new issue if your problem isn't covered
+
+## 🎯 Next Steps
+
+1. **Read** [prerequisites.md](./prerequisites.md) to ensure your environment is ready
+2. **Follow** [installation.md](./installation.md) for step-by-step setup
+3. **Configure** your project using [first-run.md](./first-run.md)
+4. **Learn** the development workflow in [development.md](./development.md)
+5. **Build** something amazing! 🚀

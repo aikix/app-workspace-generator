@@ -1,0 +1,776 @@
+# Troubleshooting Guide
+
+Common issues and their solutions for {{projectName}}.
+
+## Installation Issues
+
+### `EACCES` Permission Error
+
+**Symptoms**: Permission denied when installing packages
+
+```bash
+Error: EACCES: permission denied, access '/usr/local/lib/node_modules'
+```
+
+**Solutions**:
+
+1. **Fix npm permissions** (Recommended):
+   ```bash
+   # Create a directory for global packages
+   mkdir ~/.npm-global
+   npm config set prefix '~/.npm-global'
+
+   # Add to PATH in ~/.bashrc or ~/.zshrc
+   export PATH=~/.npm-global/bin:$PATH
+
+   # Reload shell config
+   source ~/.bashrc  # or source ~/.zshrc
+   ```
+
+2. **Use sudo** (Not recommended for security reasons):
+   ```bash
+   sudo npm install -g <package-name>
+   ```
+
+{{#if (eq packageManager "pnpm")}}
+### pnpm Installation Issues
+
+**Issue**: pnpm commands not found
+
+**Solution**:
+```bash
+# Install pnpm globally
+npm install -g pnpm
+
+# Verify installation
+pnpm --version
+
+# If still not found, add to PATH
+export PATH="$HOME/.local/share/pnpm:$PATH"
+```
+
+**Issue**: pnpm store corruption
+
+**Solution**:
+```bash
+# Prune store
+pnpm store prune
+
+# Rebuild node_modules
+rm -rf node_modules
+pnpm install
+```
+{{/if}}
+
+{{#if (eq packageManager "yarn")}}
+### Yarn Installation Issues
+
+**Issue**: Yarn commands not working
+
+**Solution**:
+```bash
+# Reinstall Yarn
+npm install -g yarn
+
+# Verify
+yarn --version
+
+# If using Yarn 2+, enable corepack
+corepack enable
+```
+{{/if}}
+
+{{#if (eq packageManager "bun")}}
+### Bun Installation Issues
+
+**Issue**: Bun not found
+
+**Solution**:
+```bash
+# Install/Reinstall Bun
+curl -fsSL https://bun.sh/install | bash
+
+# Verify
+bun --version
+
+# Add to PATH if needed
+export PATH="$HOME/.bun/bin:$PATH"
+```
+{{/if}}
+
+### Module Not Found Errors
+
+**Symptoms**: Cannot find module 'X'
+
+```bash
+Error: Cannot find module 'next'
+```
+
+**Solutions**:
+
+1. **Reinstall dependencies**:
+   ```bash
+   rm -rf node_modules {{#if (eq packageManager "npm")}}package-lock.json{{else if (eq packageManager "yarn")}}yarn.lock{{else if (eq packageManager "pnpm")}}pnpm-lock.yaml{{else}}bun.lockb{{/if}}
+   {{#if (eq packageManager "npm")}}npm install{{else if (eq packageManager "yarn")}}yarn install{{else if (eq packageManager "pnpm")}}pnpm install{{else}}bun install{{/if}}
+   ```
+
+2. **Clear cache**:
+   ```bash
+   {{#if (eq packageManager "npm")}}npm cache clean --force
+   npm install{{else if (eq packageManager "yarn")}}yarn cache clean
+   yarn install{{else if (eq packageManager "pnpm")}}pnpm store prune
+   pnpm install{{else}}bun pm cache rm
+   bun install{{/if}}
+   ```
+
+3. **Check Node version**:
+   ```bash
+   node --version  # Should be 18.x or higher
+   ```
+
+## Development Server Issues
+
+### Port 3000 Already in Use
+
+**Symptoms**:
+```bash
+Error: Port 3000 is already in use
+```
+
+**Solutions**:
+
+1. **Kill process on port 3000**:
+   ```bash
+   # macOS/Linux
+   lsof -ti:3000 | xargs kill -9
+
+   # Windows
+   netstat -ano | findstr :3000
+   taskkill /PID <PID> /F
+   ```
+
+2. **Use a different port**:
+   ```bash
+   {{#if (eq packageManager "npm")}}npm run dev -- -p 3001{{else if (eq packageManager "yarn")}}yarn dev -p 3001{{else if (eq packageManager "pnpm")}}pnpm dev -p 3001{{else}}bun dev -p 3001{{/if}}
+   ```
+
+### Hot Reload Not Working
+
+**Symptoms**: Changes not reflected in browser
+
+**Solutions**:
+
+1. **Restart development server**:
+   ```bash
+   # Stop with Ctrl+C, then restart
+   {{#if (eq packageManager "npm")}}npm run dev{{else if (eq packageManager "yarn")}}yarn dev{{else if (eq packageManager "pnpm")}}pnpm dev{{else}}bun dev{{/if}}
+   ```
+
+2. **Clear Next.js cache**:
+   ```bash
+   rm -rf .next
+   {{#if (eq packageManager "npm")}}npm run dev{{else if (eq packageManager "yarn")}}yarn dev{{else if (eq packageManager "pnpm")}}pnpm dev{{else}}bun dev{{/if}}
+   ```
+
+3. **Check file watcher limits** (Linux):
+   ```bash
+   # Increase watchers
+   echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+   sudo sysctl -p
+   ```
+
+### Blank Page / White Screen
+
+**Symptoms**: Browser shows blank page
+
+**Solutions**:
+
+1. **Check browser console** (F12) for errors
+2. **Check terminal** for build errors
+3. **Verify root layout** exists:
+   ```typescript
+   // src/app/layout.tsx must exist and export default
+   export default function RootLayout({
+     children,
+   }: {
+     children: React.ReactNode;
+   }) {
+     return (
+       <html>
+         <body>{children}</body>
+       </html>
+     );
+   }
+   ```
+
+4. **Hard refresh**: `Cmd+Shift+R` (Mac) or `Ctrl+Shift+R` (Windows/Linux)
+
+{{#if typescript}}
+## TypeScript Issues
+
+### Type Errors Not Showing
+
+**Solution**:
+```bash
+# Run type checker explicitly
+{{#if (eq packageManager "npm")}}npm run type-check{{else if (eq packageManager "yarn")}}yarn type-check{{else if (eq packageManager "pnpm")}}pnpm type-check{{else}}bun type-check{{/if}}
+```
+
+### `Cannot find module` Type Errors
+
+**Symptoms**:
+```typescript
+Cannot find module '@/components/Button'
+```
+
+**Solutions**:
+
+1. **Check tsconfig.json paths**:
+   ```json
+   {
+     "compilerOptions": {
+       "paths": {
+         "@/*": ["./src/*"]
+       }
+     }
+   }
+   ```
+
+2. **Restart TypeScript server** in VS Code:
+   - `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+   - Type "TypeScript: Restart TS Server"
+
+3. **Check file extension**:
+   ```typescript
+   // Wrong
+   import Button from '@/components/Button';
+
+   // Correct
+   import Button from '@/components/Button.tsx';
+   // Or rely on automatic resolution
+   import Button from '@/components/Button';
+   ```
+
+### `Type 'X' is not assignable to type 'Y'`
+
+**Solution**: Check type definitions and data structures
+
+```typescript
+// Example fix
+interface User {
+  name: string;
+  email: string;
+}
+
+// Wrong
+const user: User = {
+  name: 'John',
+  // Missing email
+};
+
+// Correct
+const user: User = {
+  name: 'John',
+  email: 'john@example.com',
+};
+```
+{{/if}}
+
+## Build Issues
+
+### Out of Memory Error
+
+**Symptoms**:
+```bash
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+```
+
+**Solutions**:
+
+1. **Increase Node memory**:
+   ```bash
+   # In package.json, modify build script
+   "build": "NODE_OPTIONS='--max-old-space-size=4096' next build"
+   ```
+
+2. **Close other applications** to free up RAM
+
+3. **Check for memory leaks** in your code
+
+### Build Hangs / Takes Forever
+
+**Solutions**:
+
+1. **Clear cache**:
+   ```bash
+   rm -rf .next node_modules
+   {{#if (eq packageManager "npm")}}npm install
+   npm run build{{else if (eq packageManager "yarn")}}yarn install
+   yarn build{{else if (eq packageManager "pnpm")}}pnpm install
+   pnpm build{{else}}bun install
+   bun run build{{/if}}
+   ```
+
+2. **Disable parallel builds** temporarily:
+   ```bash
+   # In next.config.js
+   module.exports = {
+     experimental: {
+       workerThreads: false,
+       cpus: 1
+     }
+   };
+   ```
+
+3. **Check for circular dependencies**
+
+{{#if linting}}
+### ESLint Errors
+
+**Symptoms**: Build fails due to linting errors
+
+**Solutions**:
+
+1. **Fix linting errors**:
+   ```bash
+   {{#if (eq packageManager "npm")}}npm run lint:fix{{else if (eq packageManager "yarn")}}yarn lint:fix{{else if (eq packageManager "pnpm")}}pnpm lint:fix{{else}}bun lint:fix{{/if}}
+   ```
+
+2. **Temporarily disable** (not recommended):
+   ```bash
+   # In next.config.js
+   module.exports = {
+     eslint: {
+       ignoreDuringBuilds: true
+     }
+   };
+   ```
+
+3. **Check specific rules**:
+   ```bash
+   {{#if (eq packageManager "npm")}}npm run lint -- --debug{{else}}{{packageManager}} lint --debug{{/if}}
+   ```
+{{/if}}
+
+{{#if (eq backend "firebase")}}
+## Firebase Issues
+
+### Firebase Not Initialized
+
+**Symptoms**:
+```
+Firebase: No Firebase App '[DEFAULT]' has been created
+```
+
+**Solutions**:
+
+1. **Check environment variables** in `.env.local`:
+   ```env
+   NEXT_PUBLIC_FIREBASE_API_KEY=...
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+   NEXT_PUBLIC_FIREBASE_APP_ID=...
+   ```
+
+2. **Restart development server** after adding env variables
+
+3. **Verify Firebase config**:
+   ```typescript
+   // src/lib/firebase/config.ts
+   console.log('Firebase Config:', {
+     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+     // Don't log sensitive data in production!
+   });
+   ```
+
+### Authentication Errors
+
+**Error**: `auth/invalid-api-key`
+- **Solution**: Check `NEXT_PUBLIC_FIREBASE_API_KEY` in `.env.local`
+
+**Error**: `auth/network-request-failed`
+- **Solution**: Check internet connection and Firebase status
+
+**Error**: `auth/unauthorized-domain`
+- **Solution**: Add domain to Firebase Console > Authentication > Settings > Authorized domains
+  - Add `localhost` for development
+  - Add your production domain before deploying
+
+### Firestore Permission Denied
+
+**Symptoms**:
+```
+Missing or insufficient permissions
+```
+
+**Solutions**:
+
+1. **Check Firestore rules** in Firebase Console
+2. **Verify user is authenticated**:
+   ```typescript
+   import { auth } from '@/lib/firebase/config';
+
+   const user = auth.currentUser;
+   if (!user) {
+     console.error('User not authenticated');
+   }
+   ```
+
+3. **Update security rules** for development (use cautiously):
+   ```
+   // firestore.rules
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       // Allow all reads/writes (DEV ONLY!)
+       match /{document=**} {
+         allow read, write: if true;
+       }
+     }
+   }
+   ```
+   **⚠️ Never use this in production!**
+
+{{#if (eq firebasePattern "server-first")}}
+### Firebase Admin SDK Issues
+
+**Error**: `credential-internal-error`
+- **Solution**: Check service account credentials in `.env.local`
+
+**Error**: `invalid-credential`
+- **Solution**: Regenerate service account key from Firebase Console
+
+**Issue**: Private key not loading
+- **Solution**: Ensure private key is properly formatted with `\n` for newlines:
+  ```env
+  FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour_Key_Here\n-----END PRIVATE KEY-----\n"
+  ```
+{{/if}}
+{{/if}}
+
+{{#if (eq testing "playwright")}}
+## E2E Test Issues
+
+### Playwright Browsers Not Installed
+
+**Symptoms**:
+```
+Error: Executable doesn't exist at /path/to/browser
+```
+
+**Solution**:
+```bash
+npx playwright install
+# Or install with dependencies
+npx playwright install --with-deps
+```
+
+### Tests Timeout
+
+**Symptoms**: Tests hang and timeout
+
+**Solutions**:
+
+1. **Increase timeout**:
+   ```typescript
+   // playwright.config.ts
+   export default defineConfig({
+     timeout: 60000, // 60 seconds
+   });
+   ```
+
+2. **Check selectors**:
+   ```typescript
+   // Instead of
+   await page.click('button');
+
+   // Use specific selector
+   await page.click('[data-testid="submit-button"]');
+   ```
+
+3. **Wait for element**:
+   ```typescript
+   await page.waitForSelector('[data-testid="user-name"]');
+   await page.click('[data-testid="user-name"]');
+   ```
+
+### Test Flakiness
+
+**Solutions**:
+
+1. **Use auto-waiting**:
+   ```typescript
+   // Playwright automatically waits for elements
+   await page.click('button'); // Waits for button to be actionable
+   ```
+
+2. **Avoid hard waits**:
+   ```typescript
+   // Bad
+   await page.waitForTimeout(5000);
+
+   // Good
+   await page.waitForSelector('[data-testid="loaded"]');
+   ```
+
+3. **Use page.waitForLoadState()**:
+   ```typescript
+   await page.goto('/');
+   await page.waitForLoadState('networkidle');
+   ```
+{{/if}}
+
+{{#if (eq styling "tailwind")}}
+## Tailwind CSS Issues
+
+### Styles Not Applied
+
+**Solutions**:
+
+1. **Check Tailwind is imported**:
+   ```typescript
+   // src/app/globals.css
+   @import "tailwindcss";
+   ```
+
+2. **Verify import in layout**:
+   ```typescript
+   // src/app/layout.tsx
+   import './globals.css';
+   ```
+
+3. **Clear cache and rebuild**:
+   ```bash
+   rm -rf .next
+   {{#if (eq packageManager "npm")}}npm run dev{{else}}{{packageManager}} dev{{/if}}
+   ```
+
+### Custom Classes Not Working
+
+**Solution**: Check `tailwind.config.js`:
+
+```javascript
+module.exports = {
+  content: [
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      // Your custom classes
+    },
+  },
+};
+```
+{{/if}}
+
+## Environment Variable Issues
+
+### Variables Not Loading
+
+**Symptoms**: `process.env.VARIABLE` is `undefined`
+
+**Solutions**:
+
+1. **Check `.env.local` exists** in project root
+
+2. **Verify variable naming**:
+   - Client-side variables **must** start with `NEXT_PUBLIC_`
+   - Server-side variables can have any name
+
+3. **Restart development server** after changing env vars
+
+4. **Check for typos** in variable names
+
+5. **Verify file is not `.env.example`** (should be `.env.local`)
+
+### Client-Side Variables Not Working
+
+**Solution**: Prefix with `NEXT_PUBLIC_`:
+
+```env
+# Wrong (for client-side)
+API_URL=https://api.example.com
+
+# Correct
+NEXT_PUBLIC_API_URL=https://api.example.com
+```
+
+## Network / CORS Issues
+
+### CORS Errors
+
+**Symptoms**:
+```
+Access to fetch at 'X' from origin 'Y' has been blocked by CORS policy
+```
+
+**Solutions**:
+
+1. **For external APIs**: Use Next.js API routes as proxy:
+   ```typescript
+   // src/app/api/proxy/route.ts
+   export async function GET() {
+     const response = await fetch('https://external-api.com/data');
+     const data = await response.json();
+     return Response.json(data);
+   }
+   ```
+
+2. **For same domain**: Ensure API route is set up correctly
+
+3. **Add CORS headers** (if you control the API):
+   ```typescript
+   export async function GET() {
+     return new Response(JSON.stringify(data), {
+       headers: {
+         'Access-Control-Allow-Origin': '*',
+         'Content-Type': 'application/json',
+       },
+     });
+   }
+   ```
+
+### Slow Network Requests
+
+**Solutions**:
+
+1. **Enable caching**:
+   ```typescript
+   fetch('/api/data', {
+     next: { revalidate: 3600 } // Cache for 1 hour
+   });
+   ```
+
+2. **Use parallel requests**:
+   ```typescript
+   const [users, posts] = await Promise.all([
+     fetch('/api/users'),
+     fetch('/api/posts'),
+   ]);
+   ```
+
+3. **Implement pagination**
+
+## Performance Issues
+
+### Slow Page Load
+
+**Solutions**:
+
+1. **Optimize images**:
+   ```typescript
+   import Image from 'next/image';
+
+   <Image
+     src="/image.png"
+     width={500}
+     height={300}
+     alt="Description"
+   />
+   ```
+
+2. **Use dynamic imports**:
+   ```typescript
+   import dynamic from 'next/dynamic';
+
+   const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
+     loading: () => <p>Loading...</p>,
+   });
+   ```
+
+3. **Enable experimental features**:
+   ```javascript
+   // next.config.js
+   module.exports = {
+     experimental: {
+       optimizeCss: true,
+       optimizePackageImports: ['package-name'],
+     },
+   };
+   ```
+
+### High Memory Usage
+
+**Solutions**:
+
+1. **Check for memory leaks**:
+   - Unsubscribe from event listeners
+   - Clean up intervals/timeouts
+   - Use useEffect cleanup functions
+
+2. **Limit data fetching**:
+   - Implement pagination
+   - Use virtual scrolling for long lists
+
+3. **Monitor performance**:
+   ```bash
+   {{#if (eq packageManager "npm")}}npm run build
+   npm start{{else if (eq packageManager "yarn")}}yarn build
+   yarn start{{else if (eq packageManager "pnpm")}}pnpm build
+   pnpm start{{else}}bun run build
+   bun start{{/if}}
+   ```
+   Check bundle size in build output
+
+## Still Having Issues?
+
+### General Troubleshooting Steps
+
+1. **Check the error message** carefully
+2. **Search error message** on Google/Stack Overflow
+3. **Check GitHub issues** for this project
+4. **Review documentation** in [debugging.md](./debugging.md)
+5. **Try reproducing** in a minimal example
+6. **Ask for help**:
+   - Create a GitHub issue
+   - Include error messages
+   - Provide reproduction steps
+   - Share relevant code
+
+### Getting Help
+
+When creating an issue, include:
+
+- **Environment**:
+  - OS: macOS/Windows/Linux
+  - Node version: `node --version`
+  - Package manager: {{packageManager}}
+  - Browser (if relevant)
+
+- **Steps to reproduce**
+- **Expected behavior**
+- **Actual behavior**
+- **Error messages** (full stack trace)
+- **Code snippets** (if applicable)
+- **Screenshots** (if helpful)
+
+### Clean Slate
+
+If all else fails, try starting fresh:
+
+```bash
+# Backup your src/ directory
+cp -r src src.backup
+
+# Remove everything
+rm -rf node_modules .next {{#if (eq packageManager "npm")}}package-lock.json{{else if (eq packageManager "yarn")}}yarn.lock{{else if (eq packageManager "pnpm")}}pnpm-lock.yaml{{else}}bun.lockb{{/if}}
+
+# Reinstall
+{{#if (eq packageManager "npm")}}npm install{{else if (eq packageManager "yarn")}}yarn install{{else if (eq packageManager "pnpm")}}pnpm install{{else}}bun install{{/if}}
+
+# Rebuild
+{{#if (eq packageManager "npm")}}npm run build{{else if (eq packageManager "yarn")}}yarn build{{else if (eq packageManager "pnpm")}}pnpm build{{else}}bun run build{{/if}}
+```
+
+## Resources
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Next.js Troubleshooting](https://nextjs.org/docs/messages)
+{{#if typescript}}- [TypeScript Troubleshooting](https://www.typescriptlang.org/docs/handbook/troubleshooting.html)
+{{/if}}{{#if (eq backend "firebase")}}- [Firebase Troubleshooting](https://firebase.google.com/support/troubleshooter)
+{{/if}}{{#if (eq testing "playwright")}}- [Playwright Troubleshooting](https://playwright.dev/docs/troubleshooting)
+{{/if}}- [GitHub Issues](../../issues)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/next.js)

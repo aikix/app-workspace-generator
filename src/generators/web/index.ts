@@ -857,6 +857,52 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     destination: 'public',
   });
 
+  // Add getting started documentation
+  operations.push(
+    {
+      type: 'template',
+      source: 'web/docs/getting-started/README.md.hbs',
+      destination: 'docs/getting-started/README.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/getting-started/prerequisites.md.hbs',
+      destination: 'docs/getting-started/prerequisites.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/getting-started/installation.md.hbs',
+      destination: 'docs/getting-started/installation.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/getting-started/first-run.md.hbs',
+      destination: 'docs/getting-started/first-run.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/getting-started/development.md.hbs',
+      destination: 'docs/getting-started/development.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/getting-started/debugging.md.hbs',
+      destination: 'docs/getting-started/debugging.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/getting-started/troubleshooting.md.hbs',
+      destination: 'docs/getting-started/troubleshooting.md',
+      context,
+    }
+  );
+
   // Add PWA files
   if (context.pwa) {
     operations.push(

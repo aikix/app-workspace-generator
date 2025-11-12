@@ -1,0 +1,264 @@
+# Installation Guide
+
+This guide provides step-by-step instructions to install and set up {{projectName}}.
+
+## Prerequisites
+
+Before starting, ensure you have completed all items in [prerequisites.md](./prerequisites.md).
+
+## Step 1: Clone the Repository
+
+```bash
+# Clone via HTTPS
+git clone <repository-url>
+
+# Or via SSH (if configured)
+git clone git@github.com:<username>/{{projectName}}.git
+
+# Navigate to project directory
+cd {{projectName}}
+```
+
+## Step 2: Install Dependencies
+
+{{#if (eq packageManager "npm")}}
+```bash
+npm install
+```
+
+This will install all production and development dependencies listed in `package.json`.
+
+**Expected output**: You should see a progress bar and a summary of installed packages.
+
+{{else if (eq packageManager "yarn")}}
+```bash
+yarn install
+```
+
+This will install all production and development dependencies listed in `package.json`.
+
+**Expected output**: You should see a progress bar and a summary of installed packages.
+
+{{else if (eq packageManager "pnpm")}}
+```bash
+pnpm install
+```
+
+This will install all production and development dependencies listed in `package.json`.
+
+**Expected output**: You should see a progress bar and a summary of installed packages.
+
+**Note**: pnpm uses a content-addressable store for better disk space efficiency.
+
+{{else if (eq packageManager "bun")}}
+```bash
+bun install
+```
+
+This will install all production and development dependencies listed in `package.json`.
+
+**Expected output**: You should see significantly faster installation compared to other package managers.
+
+**Note**: Bun's install is typically 10-20x faster than npm.
+{{/if}}
+
+### Installation Time
+
+Typical installation times (depending on your network speed):
+- First install: 2-5 minutes
+- Subsequent installs (with cache): 30 seconds - 2 minutes
+
+{{#if (eq testing "playwright")}}
+## Step 3: Install Playwright Browsers
+
+Playwright requires browser binaries for testing:
+
+```bash
+npx playwright install
+```
+
+This will download:
+- Chromium
+- Firefox
+- WebKit (Safari engine)
+
+**Storage required**: ~500MB for all three browsers
+
+**Optional**: Install only specific browsers:
+```bash
+npx playwright install chromium  # Chrome/Edge only
+npx playwright install firefox   # Firefox only
+npx playwright install webkit    # Safari only
+```
+{{/if}}
+
+## Step {{#if (eq testing "playwright")}}4{{else}}3{{/if}}: Environment Configuration
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+{{#if (eq backend "firebase")}}
+### Firebase Configuration
+
+You'll need to configure Firebase credentials in `.env.local`:
+
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+
+{{#if (eq firebasePattern "server-first")}}
+# Firebase Admin SDK (Server-side)
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_CLIENT_EMAIL=your_client_email
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+{{/if}}
+```
+
+**See [first-run.md](./first-run.md) for detailed Firebase setup instructions.**
+{{else}}
+Edit `.env.local` and configure any required environment variables for your project.
+{{/if}}
+
+## Step {{#if (eq testing "playwright")}}5{{else}}4{{/if}}: Verify Installation
+
+Run the following command to verify everything is working:
+
+```bash
+{{#if (eq packageManager "npm")}}npm run dev{{else if (eq packageManager "yarn")}}yarn dev{{else if (eq packageManager "pnpm")}}pnpm dev{{else}}bun dev{{/if}}
+```
+
+You should see output similar to:
+
+```
+▲ Next.js 16.x.x
+- Local:        http://localhost:3000
+{{#if typescript}}- Network:      http://192.168.x.x:3000
+{{/if}}
+✓ Ready in Xs
+```
+
+Open your browser and navigate to http://localhost:3000
+
+**Expected result**: You should see the {{projectName}} homepage.
+
+## Common Installation Issues
+
+### Issue: `EACCES` Permission Error
+
+**Solution**:
+{{#if (eq packageManager "npm")}}
+```bash
+# Fix npm permissions (macOS/Linux)
+sudo chown -R $(whoami) ~/.npm
+```
+{{else if (eq packageManager "yarn")}}
+```bash
+# Fix Yarn permissions (macOS/Linux)
+sudo chown -R $(whoami) ~/.yarn
+```
+{{else if (eq packageManager "pnpm")}}
+```bash
+# Fix pnpm permissions (macOS/Linux)
+sudo chown -R $(whoami) ~/.pnpm-store
+```
+{{else if (eq packageManager "bun")}}
+```bash
+# Fix Bun permissions (macOS/Linux)
+sudo chown -R $(whoami) ~/.bun
+```
+{{/if}}
+
+### Issue: Module Not Found Errors
+
+**Solution**:
+```bash
+# Clear cache and reinstall
+{{#if (eq packageManager "npm")}}rm -rf node_modules package-lock.json
+npm install{{else if (eq packageManager "yarn")}}rm -rf node_modules yarn.lock
+yarn install{{else if (eq packageManager "pnpm")}}rm -rf node_modules pnpm-lock.yaml
+pnpm install{{else}}rm -rf node_modules bun.lockb
+bun install{{/if}}
+```
+
+### Issue: Port 3000 Already in Use
+
+**Solution**:
+```bash
+# Kill process on port 3000 (macOS/Linux)
+lsof -ti:3000 | xargs kill -9
+
+# Or use a different port
+{{#if (eq packageManager "npm")}}npm run dev -- -p 3001{{else if (eq packageManager "yarn")}}yarn dev -p 3001{{else if (eq packageManager "pnpm")}}pnpm dev -p 3001{{else}}bun dev -p 3001{{/if}}
+```
+
+{{#if (eq testing "playwright")}}
+### Issue: Playwright Installation Fails
+
+**Solution**:
+```bash
+# Install system dependencies (Ubuntu/Debian)
+npx playwright install-deps
+
+# Or manually install required libraries
+sudo apt-get install libnss3 libatk-bridge2.0-0 libdrm2 libgbm1
+```
+{{/if}}
+
+{{#if (eq backend "firebase")}}
+### Issue: Firebase Configuration Not Found
+
+**Solution**:
+1. Verify `.env.local` exists and contains Firebase credentials
+2. Restart the development server
+3. Check that all required Firebase services are enabled in your Firebase console
+
+See [troubleshooting.md](./troubleshooting.md) for more Firebase-specific issues.
+{{/if}}
+
+## Directory Structure
+
+After installation, your project should look like this:
+
+```
+{{projectName}}/
+├── .github/          # GitHub Actions workflows{{#if gitHooks}}
+├── .husky/           # Git hooks{{/if}}
+├── docs/             # Documentation
+├── public/           # Static assets
+├── src/
+│   ├── app/          # Next.js App Router pages
+│   ├── components/   # React components
+│   ├── hooks/        # Custom React hooks{{#if (eq backend "firebase")}}
+│   ├── lib/          # Firebase & utility functions{{else}}
+│   ├── lib/          # Utility functions{{/if}}{{#if (eq stateManagement "context")}}
+│   ├── contexts/     # React Context providers{{else if (eq stateManagement "zustand")}}
+│   ├── stores/       # Zustand stores{{/if}}
+│   └── types/        # TypeScript type definitions{{#if (eq testing "playwright")}}
+├── tests/            # E2E tests{{/if}}
+├── .env.example      # Environment variables template
+├── .env.local        # Your local environment (not committed)
+├── package.json      # Project dependencies
+└── README.md         # Project overview
+```
+
+## Next Steps
+
+Now that installation is complete:
+
+1. **First-time setup**: Follow [first-run.md](./first-run.md) to configure your project
+2. **Development workflow**: Learn the development process in [development.md](./development.md)
+3. **Start building**: Begin developing your features!
+
+## Need Help?
+
+- **Common issues**: See [troubleshooting.md](./troubleshooting.md)
+- **Questions**: Check existing GitHub Issues or create a new one
+- **Debugging**: Read [debugging.md](./debugging.md)
