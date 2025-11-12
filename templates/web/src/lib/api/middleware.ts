@@ -71,7 +71,7 @@ export function createRateLimiter(options: {
       );
 
       if (validTimestamps.length >= options.maxRequests) {
-        const oldestTimestamp = validTimestamps[0];
+        const oldestTimestamp = validTimestamps[0]!;
         const retryAfter = Math.ceil((oldestTimestamp + options.windowMs - now) / 1000);
 
         throw new RateLimitError('Rate limit exceeded', retryAfter);
@@ -182,7 +182,7 @@ export function createCookie(
  */
 export function getClientIp(request: Request): string {
   return (
-    request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ||
+    request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
     request.headers.get('X-Real-IP') ||
     'unknown'
   );

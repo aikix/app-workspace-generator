@@ -41,7 +41,7 @@ export async function takeScreenshot(page: Page, name: string) {
  */
 export async function isInViewport(page: Page, selector: string): Promise<boolean> {
   return await page.locator(selector).evaluate((element) => {
-    const rect = element.getBoundingBox();
+    const rect = element.getBoundingClientRect();
     if (!rect) return false;
 
     return (

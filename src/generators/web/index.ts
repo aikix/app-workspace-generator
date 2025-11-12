@@ -560,18 +560,21 @@ async function generateSourceStructure(
 
   // Add state management files
   if (context.stateManagement === 'context') {
-    operations.push(
-      {
+    // Only add AuthContext for Firebase projects (it has Firebase imports)
+    if (context.backend === 'firebase') {
+      operations.push({
         type: 'copy',
         source: 'web/src/contexts/AuthContext.tsx',
         destination: 'src/contexts/AuthContext.tsx',
-      },
-      {
-        type: 'copy',
-        source: 'web/src/contexts/ThemeContext.tsx',
-        destination: 'src/contexts/ThemeContext.tsx',
-      }
-    );
+      });
+    }
+
+    // Always add ThemeContext
+    operations.push({
+      type: 'copy',
+      source: 'web/src/contexts/ThemeContext.tsx',
+      destination: 'src/contexts/ThemeContext.tsx',
+    });
   }
 
   if (context.stateManagement === 'zustand') {

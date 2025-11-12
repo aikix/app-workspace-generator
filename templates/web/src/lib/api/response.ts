@@ -60,8 +60,8 @@ export function apiError(
     success: false,
     error: {
       message,
-      ...(options?.code && { code: options.code }),
-      ...(options?.details && { details: options.details }),
+      ...(options?.code ? { code: options.code } : {}),
+      ...(options?.details ? { details: options.details } : {}),
     },
   };
 
