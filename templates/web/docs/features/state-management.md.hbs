@@ -1,0 +1,884 @@
+# State Management
+
+{{#if stateManagement}}
+Complete guide to state management in {{projectName}} using {{#if (eq stateManagement "context")}}React Context{{else if (eq stateManagement "zustand")}}Zustand{{/if}}.
+
+## Overview
+
+This project uses **{{#if (eq stateManagement "context")}}React Context API{{else if (eq stateManagement "zustand")}}Zustand{{/if}}** for state management.
+
+{{#if (eq stateManagement "context")}}
+### Why React Context?
+
+- ✅ **Built into React** - No extra dependencies
+- ✅ **Simple API** - Easy to learn and use
+- ✅ **TypeScript support** - Fully type-safe
+- ✅ **Server Components** - Works with Next.js App Router
+- ✅ **Fine-grained updates** - Prevent unnecessary re-renders
+
+### Pre-Built Contexts
+
+This project includes ready-to-use contexts:
+
+{{#if (eq backend "firebase")}}- **AuthContext** - Firebase authentication state
+{{/if}}- **ThemeContext** - Dark/light theme management
+
+## Using AuthContext
+
+{{#if (eq backend "firebase")}}
+### Setup
+
+The AuthContext is already configured in your project:
+
+```typescript
+// src/contexts/AuthContext.tsx
+import { AuthProvider } from '@/contexts/AuthContext';
+
+// Already wrapped in src/app/layout.tsx
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Using in Components
+
+```typescript
+// src/components/Profile.tsx
+'use client';
+
+import { useAuth } from '@/contexts/AuthContext';
+
+export function Profile() {
+  const { user, loading, signOut } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <div>Please sign in</div>;
+  }
+
+  return (
+    <div>
+      <h1>Welcome, {user.displayName || user.email}</h1>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  );
+}
+```
+
+### Available Methods
+
+```typescript
+const {
+  user,           // Current user or null
+  loading,        // Loading state
+  signIn,         // Sign in with email/password
+  signUp,         // Sign up with email/password
+  signInWithGoogle, // Sign in with Google
+  signOut,        // Sign out
+} = useAuth();
+```
+{{/if}}
+
+## Using ThemeContext
+
+### Setup
+
+```typescript
+// Already configured in src/app/layout.tsx
+import { ThemeProvider } from '@/contexts/ThemeContext';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Using in Components
+
+```typescript
+// src/components/ThemeToggle.tsx
+'use client';
+
+import { useTheme } from '@/contexts/ThemeContext';
+
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <button onClick={toggleTheme}>
+      Current theme: {theme}
+      Switch to {theme === 'light' ? 'dark' : 'light'} mode
+    </button>
+  );
+}
+```
+
+## Creating Custom Context
+
+### Basic Context
+
+```typescript
+// src/contexts/CartContext.tsx
+'use client';
+
+import { createContext, useContext, useState, ReactNode } from 'react';
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface CartContextType {
+  items: CartItem[];
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void;
+  clearCart: () => void;
+  total: number;
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>([]);
+
+  const addItem = (item: CartItem) => {
+    setItems(prev => {
+      const existing = prev.find(i => i.id === item.id);
+      if (existing) {
+        return prev.map(i =>
+          i.id === item.id
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i
+        );
+      }
+      return [...prev, item];
+    });
+  };
+
+  const removeItem = (id: string) => {
+    setItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const clearCart = () => {
+    setItems([]);
+  };
+
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  return (
+    <CartContext.Provider value=\{{ items, addItem, removeItem, clearCart, total }}>
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export function useCart() {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCart must be used within CartProvider');
+  }
+  return context;
+}
+```
+
+### Context with Persistence
+
+```typescript
+// src/contexts/SettingsContext.tsx
+'use client';
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+interface Settings {
+  language: string;
+  notifications: boolean;
+  emailUpdates: boolean;
+}
+
+interface SettingsContextType {
+  settings: Settings;
+  updateSettings: (settings: Partial<Settings>) => void;
+}
+
+const defaultSettings: Settings = {
+  language: 'en',
+  notifications: true,
+  emailUpdates: false,
+};
+
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+
+export function SettingsProvider({ children }: { children: ReactNode }) {
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('settings');
+    if (saved) {
+      setSettings(JSON.parse(saved));
+    }
+  }, []);
+
+  // Save to localStorage when settings change
+  useEffect(() => {
+    localStorage.setItem('settings', JSON.stringify(settings));
+  }, [settings]);
+
+  const updateSettings = (newSettings: Partial<Settings>) => {
+    setSettings(prev => (\{ ...prev, ...newSettings }));
+  };
+
+  return (
+    <SettingsContext.Provider value=\{{ settings, updateSettings }}>
+      {children}
+    </SettingsContext.Provider>
+  );
+}
+
+export function useSettings() {
+  const context = useContext(SettingsContext);
+  if (context === undefined) {
+    throw new Error('useSettings must be used within SettingsProvider');
+  }
+  return context;
+}
+```
+
+{{else if (eq stateManagement "zustand")}}
+### Why Zustand?
+
+- ✅ **Minimal boilerplate** - Less code than Context
+- ✅ **No providers needed** - Cleaner component tree
+- ✅ **DevTools integration** - Debug state easily
+- ✅ **TypeScript support** - Fully type-safe
+- ✅ **Performance** - Prevents unnecessary re-renders
+- ✅ **Persistence** - Easy localStorage integration
+
+### Pre-Built Stores
+
+This project includes ready-to-use stores:
+
+{{#if (eq backend "firebase")}}- **useAuthStore** - Firebase authentication state
+{{/if}}- **useThemeStore** - Dark/light theme management
+
+## Using Auth Store
+
+{{#if (eq backend "firebase")}}
+### Basic Usage
+
+```typescript
+// src/components/Profile.tsx
+'use client';
+
+import { useAuthStore } from '@/stores/useAuthStore';
+
+export function Profile() {
+  const { user, loading, signOut } = useAuthStore();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <div>Please sign in</div>;
+  }
+
+  return (
+    <div>
+      <h1>Welcome, {user.displayName || user.email}</h1>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  );
+}
+```
+
+### Available Methods
+
+```typescript
+const {
+  user,           // Current user or null
+  loading,        // Loading state
+  signIn,         // Sign in with email/password
+  signUp,         // Sign up with email/password
+  signInWithGoogle, // Sign in with Google
+  signOut,        // Sign out
+} = useAuthStore();
+```
+
+### Selective Subscription
+
+Only re-render when specific values change:
+
+```typescript
+// Only re-render when user changes
+const user = useAuthStore(state => state.user);
+
+// Only re-render when loading changes
+const loading = useAuthStore(state => state.loading);
+```
+{{/if}}
+
+## Using Theme Store
+
+### Basic Usage
+
+```typescript
+// src/components/ThemeToggle.tsx
+'use client';
+
+import { useThemeStore } from '@/stores/useThemeStore';
+
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useThemeStore();
+
+  return (
+    <button onClick={toggleTheme}>
+      Current theme: {theme}
+      Switch to {theme === 'light' ? 'dark' : 'light'} mode
+    </button>
+  );
+}
+```
+
+## Creating Custom Store
+
+### Basic Store
+
+```typescript
+// src/stores/useCartStore.ts
+import { create } from 'zustand';
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface CartStore {
+  items: CartItem[];
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void;
+  clearCart: () => void;
+  total: () => number;
+}
+
+export const useCartStore = create<CartStore>((set, get) => ({
+  items: [],
+
+  addItem: (item) => set((state) => {
+    const existing = state.items.find(i => i.id === item.id);
+    if (existing) {
+      return {
+        items: state.items.map(i =>
+          i.id === item.id
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i
+        ),
+      };
+    }
+    return { items: [...state.items, item] };
+  }),
+
+  removeItem: (id) => set((state) => ({
+    items: state.items.filter(item => item.id !== id),
+  })),
+
+  clearCart: () => set({ items: [] }),
+
+  total: () => {
+    const { items } = get();
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  },
+}));
+```
+
+### Store with Persistence
+
+```typescript
+// src/stores/useSettingsStore.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface Settings {
+  language: string;
+  notifications: boolean;
+  emailUpdates: boolean;
+}
+
+interface SettingsStore {
+  settings: Settings;
+  updateSettings: (settings: Partial<Settings>) => void;
+  resetSettings: () => void;
+}
+
+const defaultSettings: Settings = {
+  language: 'en',
+  notifications: true,
+  emailUpdates: false,
+};
+
+export const useSettingsStore = create<SettingsStore>()(
+  persist(
+    (set) => ({
+      settings: defaultSettings,
+
+      updateSettings: (newSettings) => set((state) => ({
+        settings: { ...state.settings, ...newSettings },
+      })),
+
+      resetSettings: () => set({ settings: defaultSettings }),
+    }),
+    {
+      name: 'settings-storage', // localStorage key
+    }
+  )
+);
+```
+
+### Store with DevTools
+
+```typescript
+// src/stores/useCounterStore.ts
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+
+interface CounterStore {
+  count: number;
+  increment: () => void;
+  decrement: () => void;
+  reset: () => void;
+}
+
+export const useCounterStore = create<CounterStore>()(
+  devtools(
+    (set) => ({
+      count: 0,
+      increment: () => set((state) => ({ count: state.count + 1 })),
+      decrement: () => set((state) => ({ count: state.count - 1 })),
+      reset: () => set({ count: 0 }),
+    }),
+    {
+      name: 'Counter Store',
+    }
+  )
+);
+```
+
+### Async Actions in Store
+
+```typescript
+// src/stores/usePostsStore.ts
+import { create } from 'zustand';
+{{#if (eq backend "firebase")}}
+import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+{{/if}}
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+}
+
+interface PostsStore {
+  posts: Post[];
+  loading: boolean;
+  error: string | null;
+  fetchPosts: () => Promise<void>;
+  addPost: (title: string, content: string) => Promise<void>;
+}
+
+export const usePostsStore = create<PostsStore>((set) => ({
+  posts: [],
+  loading: false,
+  error: null,
+
+  fetchPosts: async () => {
+    set({ loading: true, error: null });
+    try {
+{{#if (eq backend "firebase")}}
+      const querySnapshot = await getDocs(collection(db, 'posts'));
+      const posts = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Post[];
+{{else}}
+      const response = await fetch('/api/posts');
+      const posts = await response.json();
+{{/if}}
+      set({ posts, loading: false });
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
+    }
+  },
+
+  addPost: async (title, content) => {
+    set({ loading: true, error: null });
+    try {
+{{#if (eq backend "firebase")}}
+      const docRef = await addDoc(collection(db, 'posts'), {
+        title,
+        content,
+        createdAt: new Date(),
+      });
+      const newPost: Post = { id: docRef.id, title, content };
+{{else}}
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content }),
+      });
+      const newPost = await response.json();
+{{/if}}
+      set((state) => ({
+        posts: [...state.posts, newPost],
+        loading: false,
+      }));
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
+    }
+  },
+}));
+```
+{{/if}}
+
+{{else}}
+## State Management
+
+This project uses component-level state (useState, useReducer) for state management.
+
+To add global state management:
+
+1. Choose a library:
+   - **React Context** - Built-in, simple
+   - **Zustand** - Minimal, performant
+   - **Redux Toolkit** - Enterprise-grade
+   - **Jotai** - Atomic state management
+
+2. Install dependencies
+3. Set up stores/contexts
+4. Integrate into components
+
+See [React documentation](https://react.dev/learn/managing-state) for more info.
+{{/if}}
+
+{{#if stateManagement}}
+## Best Practices
+
+### 1. Keep State Minimal
+
+Only store what you need:
+
+```typescript
+// Good
+interface UserStore {
+  user: User | null;
+  isAuthenticated: boolean;
+}
+
+// Bad - derived state
+interface UserStore {
+  user: User | null;
+  isAuthenticated: boolean;  // Can be derived from user
+  userName: string;          // Can be derived from user.name
+}
+```
+
+### 2. Collocate State
+
+Keep state close to where it's used:
+
+```typescript
+// If only used in one component - use useState
+function Counter() {
+  const [count, setCount] = useState(0);
+  // ...
+}
+
+{{#if (eq stateManagement "context")}}
+// If used across multiple components - use Context
+<CartProvider>
+  <ProductList />
+  <CartSummary />
+</CartProvider>
+{{else if (eq stateManagement "zustand")}}
+// If used across multiple components - use store
+const { items } = useCartStore();
+{{/if}}
+```
+
+### 3. Use Selectors for Performance
+
+{{#if (eq stateManagement "zustand")}}
+```typescript
+// Good - Only re-renders when user changes
+const user = useAuthStore(state => state.user);
+
+// Bad - Re-renders on any state change
+const { user } = useAuthStore();
+```
+{{else if (eq stateManagement "context")}}
+```typescript
+// Split contexts by update frequency
+<AuthProvider>      {/* Rarely changes */}
+  <ThemeProvider>   {/* Changes occasionally */}
+    <App />
+  </ThemeProvider>
+</AuthProvider>
+```
+{{/if}}
+
+### 4. Handle Loading and Error States
+
+```typescript
+{{#if (eq stateManagement "zustand")}}
+export const usePostsStore = create<PostsStore>((set) => ({
+  posts: [],
+  loading: false,
+  error: null,
+
+  fetchPosts: async () => {
+    set({ loading: true, error: null });
+    try {
+      const posts = await fetchPosts();
+      set({ posts, loading: false });
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
+    }
+  },
+}));
+{{else if (eq stateManagement "context")}}
+export function DataProvider({ children }: { children: ReactNode }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchData()
+      .then(setData)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <DataContext.Provider value=\{{ data, loading, error }}>
+      {children}
+    </DataContext.Provider>
+  );
+}
+{{/if}}
+```
+
+### 5. Type Safety
+
+Always use TypeScript for type-safe state:
+
+```typescript
+{{#if (eq stateManagement "zustand")}}
+interface Store {
+  user: User | null;
+  setUser: (user: User | null) => void;
+}
+
+export const useStore = create<Store>((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+}));
+{{else if (eq stateManagement "context")}}
+interface ContextType {
+  user: User | null;
+  setUser: (user: User | null) => void;
+}
+
+const Context = createContext<ContextType | undefined>(undefined);
+{{/if}}
+```
+
+## Common Patterns
+
+### Optimistic Updates
+
+```typescript
+{{#if (eq stateManagement "zustand")}}
+export const useTodosStore = create<TodosStore>((set, get) => ({
+  todos: [],
+
+  toggleTodo: async (id) => {
+    const { todos } = get();
+
+    // Optimistic update
+    set({
+      todos: todos.map(todo =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      ),
+    });
+
+    try {
+      await updateTodoAPI(id);
+    } catch (error) {
+      // Rollback on error
+      set({ todos });
+    }
+  },
+}));
+{{else if (eq stateManagement "context")}}
+const toggleTodo = async (id: string) => {
+  const oldTodos = todos;
+
+  // Optimistic update
+  setTodos(prev =>
+    prev.map(todo =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    )
+  );
+
+  try {
+    await updateTodoAPI(id);
+  } catch (error) {
+    // Rollback on error
+    setTodos(oldTodos);
+  }
+};
+{{/if}}
+```
+
+### Derived State
+
+```typescript
+{{#if (eq stateManagement "zustand")}}
+export const useCartStore = create<CartStore>((set, get) => ({
+  items: [],
+
+  // Derived state as a method
+  total: () => {
+    const { items } = get();
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  },
+
+  itemCount: () => {
+    const { items } = get();
+    return items.reduce((sum, item) => sum + item.quantity, 0);
+  },
+}));
+
+// Usage
+const total = useCartStore(state => state.total());
+const itemCount = useCartStore(state => state.itemCount());
+{{else if (eq stateManagement "context")}}
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>([]);
+
+  // Derived state with useMemo
+  const total = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items]
+  );
+
+  const itemCount = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items]
+  );
+
+  return (
+    <CartContext.Provider value=\{{ items, setItems, total, itemCount }}>
+      {children}
+    </CartContext.Provider>
+  );
+}
+{{/if}}
+```
+
+## Debugging
+
+{{#if (eq stateManagement "zustand")}}
+### Zustand DevTools
+
+Install Redux DevTools extension and use devtools middleware:
+
+```typescript
+import { devtools } from 'zustand/middleware';
+
+export const useStore = create<Store>()(
+  devtools(
+    (set) => ({
+      // Your store
+    }),
+    { name: 'My Store' }
+  )
+);
+```
+
+Open Redux DevTools to see state changes.
+{{else if (eq stateManagement "context")}}
+### React DevTools
+
+1. Install [React DevTools](https://react.dev/learn/react-developer-tools)
+2. Open DevTools
+3. Select "Components" tab
+4. Find your provider in the tree
+5. Inspect state and props
+{{/if}}
+
+## Testing
+
+{{#if (eq testing "playwright")}}
+### E2E Testing State Changes
+
+```typescript
+// tests/e2e/cart.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('cart updates when adding items', async ({ page }) => {
+  await page.goto('/products');
+
+  // Add item to cart
+  await page.click('[data-testid="add-to-cart"]');
+
+  // Check cart count updated
+  await expect(page.locator('[data-testid="cart-count"]')).toHaveText('1');
+
+  // Navigate to cart
+  await page.click('[data-testid="cart-link"]');
+
+  // Verify item in cart
+  await expect(page.locator('[data-testid="cart-item"]')).toBeVisible();
+});
+```
+{{/if}}
+
+## Resources
+
+{{#if (eq stateManagement "context")}}- [React Context Documentation](https://react.dev/reference/react/useContext)
+- [Context Best Practices](https://react.dev/learn/passing-data-deeply-with-context)
+{{else if (eq stateManagement "zustand")}}- [Zustand Documentation](https://github.com/pmndrs/zustand)
+- [Zustand Best Practices](https://docs.pmnd.rs/zustand/guides/best-practices)
+{{/if}}- [React State Management](https://react.dev/learn/managing-state)
+
+## Next Steps
+
+- Review [API Routes](./api.md) for data fetching
+{{#if (eq backend "firebase")}}- Check [Authentication](./authentication.md) for user state
+- See [Database](./database.md) for data persistence
+{{/if}}
+{{/if}}

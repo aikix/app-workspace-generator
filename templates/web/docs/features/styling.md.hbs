@@ -1,0 +1,637 @@
+# Styling with Tailwind CSS
+
+Complete guide to styling in {{projectName}} using Tailwind CSS v4.
+
+## Overview
+
+This project uses **Tailwind CSS v4** - a utility-first CSS framework.
+
+### Features
+
+- ✅ **Utility-first** - Build designs with utility classes
+- ✅ **Responsive** - Mobile-first responsive design
+- ✅ **Customizable** - Full theme customization
+- ✅ **Dark mode** - Built-in dark mode support
+- ✅ **Performance** - Automatic CSS purging
+- ✅ **IntelliSense** - VS Code autocomplete
+
+## Quick Start
+
+### Basic Styling
+
+```tsx
+// src/components/Button.tsx
+export function Button({ children }: { children: React.ReactNode }) {
+  return (
+    <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+      {children}
+    </button>
+  );
+}
+```
+
+### Responsive Design
+
+```tsx
+export function ResponsiveCard() {
+  return (
+    <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 p-4">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-bold mb-2">Card Title</h2>
+        <p className="text-gray-700">Card content</p>
+      </div>
+    </div>
+  );
+}
+```
+
+### Dark Mode
+
+```tsx
+export function ThemedComponent() {
+  return (
+    <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+      <h1 className="text-2xl font-bold">Supports Dark Mode</h1>
+      <p className="text-gray-600 dark:text-gray-400">
+        This text changes color in dark mode
+      </p>
+    </div>
+  );
+}
+```
+
+## Configuration
+
+### tailwind.config.js
+
+```javascript
+// tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
+        },
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'monospace'],
+      },
+    },
+  },
+  plugins: [],
+};
+```
+
+### Custom Colors
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          light: '#ff6b6b',
+          DEFAULT: '#ee5a52',
+          dark: '#c23838',
+        },
+      },
+    },
+  },
+};
+```
+
+Usage:
+```tsx
+<button className="bg-brand hover:bg-brand-dark text-white">
+  Custom Color Button
+</button>
+```
+
+## Layout
+
+### Flexbox
+
+```tsx
+// Horizontal layout
+<div className="flex items-center justify-between">
+  <div>Left</div>
+  <div>Right</div>
+</div>
+
+// Vertical layout
+<div className="flex flex-col space-y-4">
+  <div>Top</div>
+  <div>Middle</div>
+  <div>Bottom</div>
+</div>
+
+// Centered content
+<div className="flex items-center justify-center min-h-screen">
+  <div>Centered Content</div>
+</div>
+```
+
+### Grid
+
+```tsx
+// 3-column grid
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</div>
+
+// Auto-fit grid
+<div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+  <div>Auto Item 1</div>
+  <div>Auto Item 2</div>
+  <div>Auto Item 3</div>
+</div>
+```
+
+### Container
+
+```tsx
+<div className="container mx-auto px-4">
+  <div className="max-w-7xl mx-auto">
+    Centered content with max width
+  </div>
+</div>
+```
+
+## Typography
+
+### Headings
+
+```tsx
+<h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+  Heading 1
+</h1>
+<h2 className="text-3xl font-semibold text-gray-800 dark:text-gray-100">
+  Heading 2
+</h2>
+<h3 className="text-2xl font-medium text-gray-700 dark:text-gray-200">
+  Heading 3
+</h3>
+```
+
+### Body Text
+
+```tsx
+<p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+  Regular paragraph text with good readability.
+</p>
+
+<p className="text-sm text-gray-500 dark:text-gray-500">
+  Small text for captions and labels.
+</p>
+
+<p className="text-xs text-gray-400 dark:text-gray-600">
+  Extra small text for fine print.
+</p>
+```
+
+### Font Weights
+
+```tsx
+<p className="font-light">Light weight text</p>
+<p className="font-normal">Normal weight text</p>
+<p className="font-medium">Medium weight text</p>
+<p className="font-semibold">Semibold weight text</p>
+<p className="font-bold">Bold weight text</p>
+```
+
+## Components
+
+### Button
+
+```tsx
+// Primary button
+<button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors">
+  Primary Button
+</button>
+
+// Secondary button
+<button className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded">
+  Secondary Button
+</button>
+
+// Outline button
+<button className="border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white font-semibold py-2 px-4 rounded transition-all">
+  Outline Button
+</button>
+
+// Disabled button
+<button className="bg-gray-300 text-gray-500 cursor-not-allowed py-2 px-4 rounded" disabled>
+  Disabled Button
+</button>
+```
+
+### Card
+
+```tsx
+export function Card() {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+      <div className="p-6">
+        <h3 className="text-xl font-semibold mb-2">Card Title</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
+          Card description goes here.
+        </p>
+        <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Action
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Input
+
+```tsx
+// Text input
+<input
+  type="text"
+  className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  placeholder="Enter text"
+/>
+
+// With label
+<div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+    Email
+  </label>
+  <input
+    type="email"
+    className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="you@example.com"
+  />
+</div>
+
+// With error
+<div className="mb-4">
+  <input
+    type="text"
+    className="border border-red-500 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500"
+  />
+  <p className="text-red-500 text-sm mt-1">This field is required</p>
+</div>
+```
+
+### Modal
+
+```tsx
+export function Modal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <h2 className="text-2xl font-bold mb-4">Modal Title</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          Modal content goes here.
+        </p>
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800"
+          >
+            Cancel
+          </button>
+          <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## Responsive Design
+
+### Breakpoints
+
+```tsx
+// Mobile first approach
+<div className="
+  w-full           /* Mobile: full width */
+  sm:w-1/2         /* Small: 640px+ */
+  md:w-1/3         /* Medium: 768px+ */
+  lg:w-1/4         /* Large: 1024px+ */
+  xl:w-1/5         /* Extra large: 1280px+ */
+  2xl:w-1/6        /* 2X Extra large: 1536px+ */
+">
+  Responsive width
+</div>
+```
+
+### Hide/Show at Breakpoints
+
+```tsx
+// Hidden on mobile, visible on desktop
+<div className="hidden md:block">
+  Desktop only content
+</div>
+
+// Visible on mobile, hidden on desktop
+<div className="block md:hidden">
+  Mobile only content
+</div>
+```
+
+## Dark Mode
+
+### Enable Dark Mode
+
+```tsx
+// src/app/layout.tsx
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className="dark">  {/* Add 'dark' class */}
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+### Toggle Dark Mode
+
+```tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export function ThemeToggle() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    if (isDark) {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  return (
+    <button
+      onClick={() => setIsDark(!isDark)}
+      className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700"
+    >
+      {isDark ? '🌞 Light' : '🌙 Dark'}
+    </button>
+  );
+}
+```
+
+### Dark Mode Styles
+
+```tsx
+<div className="
+  bg-white dark:bg-gray-900
+  text-gray-900 dark:text-white
+  border border-gray-200 dark:border-gray-700
+">
+  Content adapts to theme
+</div>
+```
+
+## Animations
+
+### Transitions
+
+```tsx
+// Hover transitions
+<button className="bg-blue-500 hover:bg-blue-700 transition-colors duration-300">
+  Hover Me
+</button>
+
+// Multiple properties
+<div className="transform hover:scale-105 hover:shadow-lg transition-all duration-300">
+  Hover to scale
+</div>
+```
+
+{{#if animations}}
+### Using Framer Motion
+
+This project includes Framer Motion for advanced animations. See the pre-built animation components:
+
+```tsx
+import { FadeIn, SlideIn, ScaleIn } from '@/lib/animations/components';
+
+<FadeIn>
+  <div>Fades in on mount</div>
+</FadeIn>
+
+<SlideIn direction="left">
+  <div>Slides in from left</div>
+</SlideIn>
+
+<ScaleIn>
+  <div>Scales in on mount</div>
+</ScaleIn>
+```
+{{/if}}
+
+## Best Practices
+
+### 1. Use Utility Classes
+
+```tsx
+// Good
+<button className="bg-blue-500 text-white px-4 py-2 rounded">
+  Button
+</button>
+
+// Avoid
+<button style=\{{ backgroundColor: 'blue', color: 'white', padding: '8px 16px' }}>
+  Button
+</button>
+```
+
+### 2. Extract Reusable Components
+
+```tsx
+// Good - Reusable component
+export function Button({ children, variant = 'primary' }) {
+  const baseClasses = 'px-4 py-2 rounded font-semibold transition-colors';
+  const variantClasses = {
+    primary: 'bg-blue-500 hover:bg-blue-700 text-white',
+    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800',
+  };
+
+  return (
+    <button className={`${baseClasses} ${variantClasses[variant]}`}>
+      {children}
+    </button>
+  );
+}
+
+// Usage
+<Button variant="primary">Primary</Button>
+<Button variant="secondary">Secondary</Button>
+```
+
+### 3. Use Consistent Spacing
+
+```tsx
+// Good - Consistent spacing scale
+<div className="space-y-4">  {/* 1rem / 16px */}
+  <div className="p-4">Item 1</div>
+  <div className="p-4">Item 2</div>
+</div>
+
+// Avoid - Arbitrary values
+<div className="space-y-[13px]">
+  <div className="p-[15px]">Item 1</div>
+</div>
+```
+
+### 4. Mobile-First Design
+
+```tsx
+// Good - Mobile first
+<div className="w-full md:w-1/2 lg:w-1/3">
+  Content
+</div>
+
+// Avoid - Desktop first
+<div className="w-1/3 lg:w-1/2 md:w-full">
+  Content
+</div>
+```
+
+### 5. Use Semantic Colors
+
+```tsx
+// Good - Semantic naming
+<button className="bg-primary hover:bg-primary-dark">
+  Primary Action
+</button>
+
+// Avoid - Direct color references
+<button className="bg-blue-500 hover:bg-blue-700">
+  Primary Action
+</button>
+```
+
+## Custom Styles
+
+### When to Use Custom CSS
+
+Use custom CSS for:
+- Complex animations
+- Browser-specific hacks
+- Third-party integration
+- Truly unique designs
+
+### Adding Custom Styles
+
+```css
+/* src/app/globals.css */
+@layer components {
+  .btn-primary {
+    @apply bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors;
+  }
+
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent;
+  }
+}
+```
+
+Usage:
+```tsx
+<button className="btn-primary">Custom Button</button>
+<h1 className="text-gradient">Gradient Text</h1>
+```
+
+## Optimization
+
+### Production Build
+
+Tailwind automatically removes unused CSS in production:
+
+```bash
+{{#if (eq packageManager "npm")}}npm run build{{else}}{{packageManager}} build{{/if}}
+```
+
+### File Size
+
+Check CSS file size:
+```bash
+# After build
+ls -lh .next/static/css/*.css
+```
+
+## VS Code Integration
+
+### IntelliSense
+
+Install [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) extension for:
+
+- Autocomplete
+- Linting
+- Hover previews
+- Syntax highlighting
+
+### Settings
+
+```json
+// .vscode/settings.json
+{
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ]
+}
+```
+
+## Resources
+
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Tailwind CSS Cheat Sheet](https://nerdcave.com/tailwind-cheat-sheet)
+- [Tailwind UI Components](https://tailwindui.com/components)
+- [Headless UI](https://headlessui.com/) - Unstyled accessible components
+
+## Next Steps
+
+{{#if animations}}- Review [Animation Components](../../src/lib/animations/README.md) for pre-built animations
+{{/if}}- Check [Component Examples](../../src/components/README.md) for UI component patterns
+- See [Deployment Guide](../deployment/firebase.md) for production optimization

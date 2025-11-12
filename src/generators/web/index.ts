@@ -931,6 +931,46 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     }
   );
 
+  // Add feature documentation
+  operations.push(
+    {
+      type: 'template',
+      source: 'web/docs/features/authentication.md.hbs',
+      destination: 'docs/features/authentication.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/features/database.md.hbs',
+      destination: 'docs/features/database.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/features/storage.md.hbs',
+      destination: 'docs/features/storage.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/features/api.md.hbs',
+      destination: 'docs/features/api.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/features/state-management.md.hbs',
+      destination: 'docs/features/state-management.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/features/styling.md.hbs',
+      destination: 'docs/features/styling.md',
+      context,
+    }
+  );
+
   // Add PWA files
   if (context.pwa) {
     operations.push(

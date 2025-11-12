@@ -1,0 +1,989 @@
+# Storage (Firebase Storage)
+
+{{#if (eq backend "firebase")}}
+Complete guide to Firebase Storage for file uploads in {{projectName}}.
+
+## Overview
+
+This project uses **Firebase Storage** for cloud file storage with the **{{firebasePattern}}** pattern.
+
+### Features
+
+- ✅ **Secure file uploads** - Client and server-side
+- ✅ **Image optimization** - Automatic resizing and compression
+- ✅ **Access control** - Security rules integration
+- ✅ **CDN delivery** - Fast global file serving
+- ✅ **Large file support** - Up to 5TB per file
+- ✅ **Resumable uploads** - Handle interrupted uploads
+- ✅ **File metadata** - Custom metadata and content types
+
+## Storage Structure
+
+Firebase Storage organizes files in a hierarchical structure similar to a file system:
+
+```
+storage bucket/
+├── users/
+│   ├── user_123/
+│   │   ├── profile.jpg
+│   │   └── documents/
+│   │       └── resume.pdf
+│   └── user_456/
+│       └── avatar.png
+├── posts/
+│   ├── post_1/
+│   │   ├── cover.jpg
+│   │   └── images/
+│   │       ├── img1.jpg
+│   │       └── img2.jpg
+└── public/
+    └── logo.png
+```
+
+{{#if (eq firebasePattern "client-side")}}
+## Client-Side File Upload
+
+### Basic File Upload
+
+```typescript
+// src/components/storage/FileUpload.tsx
+'use client';
+
+import { useState } from 'react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+
+export function FileUpload() {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [downloadURL, setDownloadURL] = useState<string | null>(null);
+
+  const handleUpload = async () => {
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Create storage reference
+      const storageRef = ref(storage, `uploads/${file.name}`);
+
+      // Upload file
+      await uploadBytes(storageRef, file);
+
+      // Get download URL
+      const url = await getDownloadURL(storageRef);
+      setDownloadURL(url);
+
+      console.log('File uploaded:', url);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
+      />
+      <button onClick={handleUpload} disabled={!file || uploading}>
+        {uploading ? 'Uploading...' : 'Upload'}
+      </button>
+      {downloadURL && (
+        <div>
+          <p>File uploaded successfully!</p>
+          <a href={downloadURL} target="_blank" rel="noopener noreferrer">
+            View File
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Upload with Progress
+
+```typescript
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+
+function UploadWithProgress() {
+  const [progress, setProgress] = useState(0);
+
+  const handleUpload = async (file: File) => {
+    const storageRef = ref(storage, `uploads/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        // Progress updates
+        const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setProgress(percent);
+        console.log(`Upload is ${percent}% done`);
+      },
+      (error) => {
+        // Error handling
+        console.error('Upload failed:', error);
+      },
+      async () => {
+        // Upload complete
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        console.log('File available at:', downloadURL);
+      }
+    );
+  };
+
+  return (
+    <div>
+      {/* File input and UI */}
+      <div>Progress: {progress.toFixed(0)}%</div>
+      <progress value={progress} max="100" />
+    </div>
+  );
+}
+```
+
+### Image Upload with Preview
+
+```typescript
+// src/components/storage/ImageUpload.tsx
+'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+
+export function ImageUpload() {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [downloadURL, setDownloadURL] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    // Validate file type
+    if (!selectedFile.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setFile(selectedFile);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result as string);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
+
+      // Upload with metadata
+      await uploadBytes(storageRef, file, {
+        contentType: file.type,
+        customMetadata: {
+          uploadedBy: 'user-id',
+        },
+      });
+
+      const url = await getDownloadURL(storageRef);
+      setDownloadURL(url);
+
+      console.log('Image uploaded:', url);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <input type="file" accept="image/*" onChange={handleFileChange} />
+
+      {preview && (
+        <div>
+          <Image src={preview} alt="Preview" width={300} height={300} />
+        </div>
+      )}
+
+      <button onClick={handleUpload} disabled={!file || uploading}>
+        {uploading ? 'Uploading...' : 'Upload Image'}
+      </button>
+
+      {downloadURL && (
+        <div>
+          <p>Image uploaded successfully!</p>
+          <Image src={downloadURL} alt="Uploaded" width={300} height={300} />
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Using Storage Hook
+
+```typescript
+// src/hooks/firebase/useStorage.tsx
+import { useStorage } from '@/hooks/firebase/useStorage';
+
+function FileManager() {
+  const {
+    upload,
+    download,
+    deleteFile,
+    getMetadata,
+    uploading,
+    progress,
+    error,
+  } = useStorage();
+
+  const handleUpload = async (file: File) => {
+    const downloadURL = await upload(file, `uploads/${file.name}`);
+    console.log('File uploaded:', downloadURL);
+  };
+
+  const handleDelete = async (path: string) => {
+    await deleteFile(path);
+    console.log('File deleted');
+  };
+
+  return (
+    <div>
+      {/* UI implementation */}
+      {uploading && <div>Progress: {progress}%</div>}
+      {error && <div>Error: {error.message}</div>}
+    </div>
+  );
+}
+```
+
+### Download File
+
+```typescript
+import { ref, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+
+async function downloadFile(path: string) {
+  try {
+    const storageRef = ref(storage, path);
+    const url = await getDownloadURL(storageRef);
+
+    // Open in new tab
+    window.open(url, '_blank');
+
+    // Or download directly
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = path.split('/').pop() || 'download';
+    link.click();
+  } catch (error) {
+    console.error('Download failed:', error);
+  }
+}
+```
+
+### Delete File
+
+```typescript
+import { ref, deleteObject } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+
+async function deleteFile(path: string) {
+  try {
+    const storageRef = ref(storage, path);
+    await deleteObject(storageRef);
+
+    console.log('File deleted successfully');
+  } catch (error) {
+    console.error('Delete failed:', error);
+  }
+}
+```
+
+### List Files
+
+```typescript
+import { ref, listAll, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+
+async function listFiles(path: string) {
+  try {
+    const listRef = ref(storage, path);
+    const result = await listAll(listRef);
+
+    // Get download URLs for all files
+    const files = await Promise.all(
+      result.items.map(async (itemRef) => {
+        const url = await getDownloadURL(itemRef);
+        return {
+          name: itemRef.name,
+          path: itemRef.fullPath,
+          url,
+        };
+      })
+    );
+
+    return files;
+  } catch (error) {
+    console.error('List files failed:', error);
+    return [];
+  }
+}
+```
+
+### Get File Metadata
+
+```typescript
+import { ref, getMetadata } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+
+async function getFileMetadata(path: string) {
+  try {
+    const storageRef = ref(storage, path);
+    const metadata = await getMetadata(storageRef);
+
+    console.log('File metadata:', {
+      name: metadata.name,
+      size: metadata.size,
+      contentType: metadata.contentType,
+      timeCreated: metadata.timeCreated,
+      updated: metadata.updated,
+      customMetadata: metadata.customMetadata,
+    });
+
+    return metadata;
+  } catch (error) {
+    console.error('Get metadata failed:', error);
+  }
+}
+```
+{{/if}}
+
+{{#if (eq firebasePattern "server-first")}}
+## Server-Side File Upload
+
+### Upload via API Route
+
+```typescript
+// src/app/api/upload/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getStorage } from '@/lib/firebase-admin/storage';
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get file from form data
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Upload to Firebase Storage
+    const bucket = getStorage().bucket();
+    const filePath = `uploads/${Date.now()}_${file.name}`;
+    const fileRef = bucket.file(filePath);
+
+    await fileRef.save(buffer, {
+      contentType: file.type,
+      metadata: {
+        metadata: {
+          uploadedBy: 'user-id',
+        },
+      },
+    });
+
+    // Make file publicly accessible (optional)
+    await fileRef.makePublic();
+
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+    return NextResponse.json({
+      success: true,
+      url: publicUrl,
+      path: filePath,
+    });
+  } catch (error: any) {
+    console.error('Upload failed:', error);
+    return NextResponse.json(
+      { error: 'Upload failed', message: error.message },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Upload via Server Action
+
+```typescript
+// src/app/actions/upload.ts
+'use server';
+
+import { getStorage } from '@/lib/firebase-admin/storage';
+
+export async function uploadFile(formData: FormData) {
+  try {
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      return { success: false, error: 'No file provided' };
+    }
+
+    // Convert to buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Upload
+    const bucket = getStorage().bucket();
+    const filePath = `uploads/${Date.now()}_${file.name}`;
+    const fileRef = bucket.file(filePath);
+
+    await fileRef.save(buffer, {
+      contentType: file.type,
+    });
+
+    // Get signed URL (temporary access)
+    const [url] = await fileRef.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    return {
+      success: true,
+      url,
+      path: filePath,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+```
+
+### Delete File (Server Action)
+
+```typescript
+// src/app/actions/upload.ts
+'use server';
+
+import { getStorage } from '@/lib/firebase-admin/storage';
+
+export async function deleteFile(path: string) {
+  try {
+    const bucket = getStorage().bucket();
+    const fileRef = bucket.file(path);
+
+    await fileRef.delete();
+
+    return { success: true };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+```
+
+### Get Signed URL (Server Action)
+
+```typescript
+// src/app/actions/upload.ts
+'use server';
+
+import { getStorage } from '@/lib/firebase-admin/storage';
+
+export async function getSignedURL(path: string, expiresInDays: number = 7) {
+  try {
+    const bucket = getStorage().bucket();
+    const fileRef = bucket.file(path);
+
+    const [url] = await fileRef.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + expiresInDays * 24 * 60 * 60 * 1000,
+    });
+
+    return { success: true, url };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+```
+{{/if}}
+
+## File Validation
+
+### Client-Side Validation
+
+```typescript
+function validateFile(file: File): { valid: boolean; error?: string } {
+  // Check file size (5MB limit)
+  const MAX_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    return { valid: false, error: 'File size must be less than 5MB' };
+  }
+
+  // Check file type
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return { valid: false, error: 'Only JPEG, PNG, GIF, and WebP images are allowed' };
+  }
+
+  // Check dimensions (for images)
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_DIMENSION = 4096;
+      if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+        resolve({ valid: false, error: 'Image dimensions must be less than 4096x4096' });
+      } else {
+        resolve({ valid: true });
+      }
+    };
+    img.onerror = () => {
+      resolve({ valid: false, error: 'Invalid image file' });
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+```
+
+### Server-Side Validation
+
+```typescript
+{{#if (eq firebasePattern "server-first")}}
+// src/app/api/upload/route.ts
+function validateFile(file: File): { valid: boolean; error?: string } {
+  // Check file size (10MB limit on server)
+  const MAX_SIZE = 10 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    return { valid: false, error: 'File size must be less than 10MB' };
+  }
+
+  // Check file type
+  const ALLOWED_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'application/pdf',
+  ];
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return { valid: false, error: 'File type not allowed' };
+  }
+
+  return { valid: true };
+}
+
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  const file = formData.get('file') as File;
+
+  const validation = validateFile(file);
+  if (!validation.valid) {
+    return NextResponse.json(
+      { error: validation.error },
+      { status: 400 }
+    );
+  }
+
+  // Proceed with upload
+  // ...
+}
+{{/if}}
+```
+
+## Image Optimization
+
+### Resize on Upload
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+async function uploadOptimizedImage(file: File) {
+  // Resize image using canvas
+  const resized = await resizeImage(file, 1920, 1080);
+
+  // Upload resized image
+  const storageRef = ref(storage, `images/${file.name}`);
+  await uploadBytes(storageRef, resized);
+}
+
+function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+
+      // Calculate new dimensions
+      if (width > height) {
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to create blob'));
+        },
+        file.type,
+        0.9 // quality
+      );
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+{{/if}}
+```
+
+### Use Next.js Image Component
+
+```typescript
+import Image from 'next/image';
+
+function DisplayImage({ url }: { url: string }) {
+  return (
+    <Image
+      src={url}
+      alt="Image"
+      width={800}
+      height={600}
+      quality={90}
+      placeholder="blur"
+      blurDataURL="data:image/png;base64,..."
+    />
+  );
+}
+```
+
+## Security Rules
+
+Protect your storage with Security Rules:
+
+```javascript
+// storage.rules
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // User profile images
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024 // 5MB
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Post images
+    match /posts/{postId}/{allPaths=**} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.size < 10 * 1024 * 1024 // 10MB
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isSignedIn();
+        // Add check if user owns the post
+    }
+
+    // Public files
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // Only admins via server
+    }
+  }
+}
+```
+
+Deploy security rules:
+```bash
+firebase deploy --only storage
+```
+
+## Storage Best Practices
+
+### 1. Organize Files Hierarchically
+
+```
+Good:
+users/{userId}/profile/avatar.jpg
+users/{userId}/documents/resume.pdf
+
+Bad:
+user_123_avatar.jpg
+user_123_resume.pdf
+```
+
+### 2. Use Unique Filenames
+
+```typescript
+const uniqueFilename = `${Date.now()}_${crypto.randomUUID()}_${file.name}`;
+const storageRef = ref(storage, `uploads/${uniqueFilename}`);
+```
+
+### 3. Store References in Firestore
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+// After uploading file
+await setDoc(doc(db, 'posts', postId), {
+  title: 'My Post',
+  coverImage: {
+    url: downloadURL,
+    path: storagePath,
+    size: file.size,
+    type: file.type,
+  },
+});
+{{else}}
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+// After uploading file
+await getFirestore().collection('posts').doc(postId).set({
+  title: 'My Post',
+  coverImage: {
+    url: publicUrl,
+    path: filePath,
+    size: file.size,
+    type: file.type,
+  },
+});
+{{/if}}
+```
+
+### 4. Clean Up Orphaned Files
+
+```typescript
+{{#if (eq firebasePattern "server-first")}}
+// When deleting a post, delete associated files
+'use server';
+
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+import { getStorage } from '@/lib/firebase-admin/storage';
+
+export async function deletePost(postId: string) {
+  const db = getFirestore();
+  const bucket = getStorage().bucket();
+
+  // Get post data
+  const postDoc = await db.collection('posts').doc(postId).get();
+  const post = postDoc.data();
+
+  // Delete files from storage
+  if (post?.coverImage?.path) {
+    await bucket.file(post.coverImage.path).delete();
+  }
+
+  // Delete post from Firestore
+  await postDoc.ref.delete();
+
+  return { success: true };
+}
+{{/if}}
+```
+
+### 5. Use Content Delivery Network (CDN)
+
+Firebase Storage automatically serves files via Google's CDN for fast global delivery.
+
+## Troubleshooting
+
+### "storage/unauthorized"
+
+**Issue**: Storage security rules denying access
+
+**Solutions**:
+1. **Check storage.rules** - Verify permissions
+2. **Test rules** - Firebase Console > Storage > Rules
+3. **Ensure signed in** - Check authentication
+4. **Deploy rules**: `firebase deploy --only storage`
+
+### "storage/quota-exceeded"
+
+**Issue**: Storage quota exceeded
+
+**Solutions**:
+1. **Upgrade plan** - Blaze plan required for production
+2. **Check usage** - Firebase Console > Storage > Usage
+3. **Delete old files** - Clean up unused files
+
+### Upload Fails Silently
+
+**Issue**: Upload completes but file not accessible
+
+**Check**:
+1. **Security rules** - Allow read access
+2. **File path** - Verify correct path
+3. **CORS settings** - Configure if needed
+
+### CORS Errors
+
+**Issue**: "CORS policy: No 'Access-Control-Allow-Origin' header"
+
+**Solution**:
+```bash
+# Create cors.json
+cat > cors.json <<EOF
+[
+  {
+    "origin": ["*"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]
+EOF
+
+# Set CORS policy
+gsutil cors set cors.json gs://your-bucket-name.appspot.com
+```
+
+### Large File Upload Timeout
+
+**Issue**: Upload times out for large files
+
+**Solutions**:
+1. **Use resumable uploads** - `uploadBytesResumable()`
+2. **Increase timeout** - Configure Cloud Functions timeout
+3. **Split file** - Upload in chunks
+
+## Pre-Built Components
+
+This project includes ready-to-use storage components:
+
+### FileUpload Component
+
+```typescript
+// src/components/storage/FileUpload.tsx
+import { FileUpload } from '@/components/storage/FileUpload';
+
+<FileUpload
+  onUploadComplete={(url) => console.log('Uploaded:', url)}
+  accept="image/*"
+  maxSize={5 * 1024 * 1024}
+/>
+```
+
+### ImageUpload Component
+
+```typescript
+// src/components/storage/ImageUpload.tsx
+import { ImageUpload } from '@/components/storage/ImageUpload';
+
+<ImageUpload
+  onUploadComplete={(url) => setImageUrl(url)}
+  maxSize={10 * 1024 * 1024}
+/>
+```
+
+### FileManager Component
+
+```typescript
+// src/components/storage/FileManager.tsx
+import { FileManager } from '@/components/storage/FileManager';
+
+<FileManager
+  path="users/{userId}/documents"
+  allowedTypes={['application/pdf', 'image/*']}
+/>
+```
+
+## Monitoring
+
+### Storage Usage
+
+Monitor storage usage:
+1. Firebase Console > Storage > Usage
+2. Check:
+   - Total storage size
+   - Number of files
+   - Bandwidth used
+   - Operations count
+
+### Set Budget Alerts
+
+1. Google Cloud Console > Billing
+2. Set monthly budget
+3. Configure alerts at 50%, 90%, 100%
+
+## Resources
+
+- [Firebase Storage Documentation](https://firebase.google.com/docs/storage)
+- [Security Rules](https://firebase.google.com/docs/storage/security)
+- [Upload Files](https://firebase.google.com/docs/storage/web/upload-files)
+- [Download Files](https://firebase.google.com/docs/storage/web/download-files)
+
+## Next Steps
+
+- Review [Database Guide](./database.md) for Firestore integration
+- Check [API Routes](./api.md) for upload endpoints
+- See [Authentication](./authentication.md) for secure uploads
+
+{{else}}
+## File Storage Setup
+
+This project doesn't use Firebase Storage. To add file storage:
+
+1. Choose a service (AWS S3, Cloudinary, UploadThing, etc.)
+2. Install SDK/client library
+3. Configure API keys
+4. Implement upload logic
+
+See relevant documentation for your chosen service.
+{{/if}}

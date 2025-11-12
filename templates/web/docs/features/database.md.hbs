@@ -1,0 +1,1155 @@
+# Database (Firestore)
+
+{{#if (eq backend "firebase")}}
+Complete guide to Cloud Firestore in {{projectName}}.
+
+## Overview
+
+This project uses **Cloud Firestore** - Firebase's NoSQL cloud database with the **{{firebasePattern}}** pattern.
+
+### Features
+
+- ✅ **Real-time synchronization** - Live data updates
+- ✅ **Offline support** - Works without internet
+- ✅ **Scalable** - Handles millions of users
+- ✅ **Security rules** - Fine-grained access control
+{{#if (eq firebasePattern "server-first")}}- ✅ **Server-side queries** - Firebase Admin SDK
+- ✅ **Server Actions** - Direct database operations{{/if}}
+- ✅ **Type-safe models** - TypeScript interfaces
+- ✅ **Atomic operations** - Transactions and batches
+
+## Data Structure
+
+Firestore is a NoSQL document database organized as:
+
+```
+Collection → Document → Subcollection → Document
+```
+
+### Example Structure
+
+```
+users/
+├── user_123/
+│   ├── name: "John Doe"
+│   ├── email: "john@example.com"
+│   └── posts/                    ← Subcollection
+│       ├── post_1/
+│       │   ├── title: "Hello"
+│       │   └── content: "..."
+│       └── post_2/
+└── user_456/
+```
+
+## Data Models
+
+This project includes pre-built models:
+
+### User Model
+
+```typescript
+// src/lib/db/models/user.ts
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export async function createUser(uid: string, data: Partial<User>) {
+  const userRef = doc(db, 'users', uid);
+  await setDoc(userRef, {
+    ...data,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
+
+export async function getUser(uid: string): Promise<User | null> {
+  const userRef = doc(db, 'users', uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) return null;
+
+  return {
+    id: userSnap.id,
+    ...userSnap.data(),
+  } as User;
+}
+```
+
+### Post Model
+
+```typescript
+// src/lib/db/models/post.ts
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  published: boolean;
+}
+
+export async function createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) {
+  const postsRef = collection(db, 'posts');
+  const postDoc = await addDoc(postsRef, {
+    ...data,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  return postDoc.id;
+}
+
+export async function getPost(postId: string): Promise<Post | null> {
+  const postRef = doc(db, 'posts', postId);
+  const postSnap = await getDoc(postRef);
+
+  if (!postSnap.exists()) return null;
+
+  return {
+    id: postSnap.id,
+    ...postSnap.data(),
+  } as Post;
+}
+```
+
+{{#if (eq firebasePattern "client-side")}}
+## Client-Side Operations
+
+### Create Document
+
+```typescript
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+async function createPost(title: string, content: string) {
+  try {
+    const docRef = await addDoc(collection(db, 'posts'), {
+      title,
+      content,
+      authorId: user.uid,
+      createdAt: new Date(),
+      published: false,
+    });
+
+    console.log('Document created:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating document:', error);
+    throw error;
+  }
+}
+```
+
+### Read Document
+
+```typescript
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+async function getPost(postId: string) {
+  try {
+    const docRef = doc(db, 'posts', postId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return {
+        id: docSnap.id,
+        ...docSnap.data(),
+      };
+    } else {
+      console.log('Document not found');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error reading document:', error);
+    throw error;
+  }
+}
+```
+
+### Update Document
+
+```typescript
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+async function updatePost(postId: string, data: Partial<Post>) {
+  try {
+    const docRef = doc(db, 'posts', postId);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: new Date(),
+    });
+
+    console.log('Document updated');
+  } catch (error) {
+    console.error('Error updating document:', error);
+    throw error;
+  }
+}
+```
+
+### Delete Document
+
+```typescript
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+async function deletePost(postId: string) {
+  try {
+    const docRef = doc(db, 'posts', postId);
+    await deleteDoc(docRef);
+
+    console.log('Document deleted');
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    throw error;
+  }
+}
+```
+
+### Query Documents
+
+```typescript
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+async function getPublishedPosts() {
+  try {
+    const q = query(
+      collection(db, 'posts'),
+      where('published', '==', true),
+      orderBy('createdAt', 'desc'),
+      limit(10)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const posts = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return posts;
+  } catch (error) {
+    console.error('Error querying documents:', error);
+    throw error;
+  }
+}
+```
+
+### Real-Time Updates
+
+```typescript
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+function subscribeToPost use(postId: string, callback: (post: Post) => void) {
+  const docRef = doc(db, 'posts', postId);
+
+  const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback({
+        id: docSnap.id,
+        ...docSnap.data(),
+      } as Post);
+    }
+  });
+
+  // Return unsubscribe function to stop listening
+  return unsubscribe;
+}
+
+// Usage in React component
+useEffect(() => {
+  const unsubscribe = subscribeToPost(postId, (post) => {
+    setPost(post);
+  });
+
+  return () => unsubscribe(); // Cleanup on unmount
+}, [postId]);
+```
+
+### Using Custom Hook
+
+```typescript
+// src/hooks/firebase/useFirestore.tsx
+import { useFirestoreDoc, useFirestoreCollection } from '@/hooks/firebase/useFirestore';
+
+// Get single document with real-time updates
+function PostDetail({ postId }: { postId: string }) {
+  const { data: post, loading, error } = useFirestoreDoc<Post>('posts', postId);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  if (!post) return <div>Post not found</div>;
+
+  return (
+    <div>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </div>
+  );
+}
+
+// Get collection with real-time updates
+function PostsList() {
+  const { data: posts, loading, error } = useFirestoreCollection<Post>('posts', {
+    where: [['published', '==', true]],
+    orderBy: [['createdAt', 'desc']],
+    limit: 10,
+  });
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <ul>
+      {posts.map(post => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+{{/if}}
+
+{{#if (eq firebasePattern "server-first")}}
+## Server-Side Operations
+
+### Create Document (Server Action)
+
+```typescript
+// src/app/actions/posts.ts
+'use server';
+
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+export async function createPost(title: string, content: string, authorId: string) {
+  const db = getFirestore();
+
+  try {
+    const docRef = await db.collection('posts').add({
+      title,
+      content,
+      authorId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      published: false,
+    });
+
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Error creating post:', error);
+    return { success: false, error: 'Failed to create post' };
+  }
+}
+```
+
+### Read Document (Server Action)
+
+```typescript
+// src/app/actions/posts.ts
+'use server';
+
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+export async function getPost(postId: string) {
+  const db = getFirestore();
+
+  try {
+    const docRef = db.collection('posts').doc(postId);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return { success: false, error: 'Post not found' };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: docSnap.id,
+        ...docSnap.data(),
+      },
+    };
+  } catch (error) {
+    console.error('Error reading post:', error);
+    return { success: false, error: 'Failed to read post' };
+  }
+}
+```
+
+### Update Document (Server Action)
+
+```typescript
+// src/app/actions/posts.ts
+'use server';
+
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+export async function updatePost(postId: string, data: Partial<Post>) {
+  const db = getFirestore();
+
+  try {
+    const docRef = db.collection('posts').doc(postId);
+    await docRef.update({
+      ...data,
+      updatedAt: new Date(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating post:', error);
+    return { success: false, error: 'Failed to update post' };
+  }
+}
+```
+
+### Delete Document (Server Action)
+
+```typescript
+// src/app/actions/posts.ts
+'use server';
+
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+export async function deletePost(postId: string) {
+  const db = getFirestore();
+
+  try {
+    await db.collection('posts').doc(postId).delete();
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    return { success: false, error: 'Failed to delete post' };
+  }
+}
+```
+
+### Query Documents (Server Component)
+
+```typescript
+// src/app/posts/page.tsx
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+export default async function PostsPage() {
+  const db = getFirestore();
+
+  const querySnapshot = await db
+    .collection('posts')
+    .where('published', '==', true)
+    .orderBy('createdAt', 'desc')
+    .limit(10)
+    .get();
+
+  const posts = querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
+  return (
+    <div>
+      <h1>Posts</h1>
+      <ul>
+        {posts.map(post => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### Protected Server Action with Auth
+
+```typescript
+// src/app/actions/posts.ts
+'use server';
+
+import { cookies } from 'next/headers';
+import { verifySessionCookie } from '@/lib/firebase-admin/session';
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+export async function createPost(title: string, content: string) {
+  // Verify authentication
+  const cookieStore = await cookies();
+  const session = cookieStore.get('session')?.value;
+
+  if (!session) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const decodedClaims = await verifySessionCookie(session);
+  const authorId = decodedClaims.uid;
+
+  // Create post
+  const db = getFirestore();
+  const docRef = await db.collection('posts').add({
+    title,
+    content,
+    authorId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    published: false,
+  });
+
+  return { success: true, id: docRef.id };
+}
+```
+{{/if}}
+
+## Advanced Queries
+
+### Multiple Conditions
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+import { collection, query, where, getDocs } from 'firebase/firestore';
+
+const q = query(
+  collection(db, 'posts'),
+  where('authorId', '==', userId),
+  where('published', '==', true)
+);
+
+const querySnapshot = await getDocs(q);
+{{else}}
+const querySnapshot = await db
+  .collection('posts')
+  .where('authorId', '==', userId)
+  .where('published', '==', true)
+  .get();
+{{/if}}
+```
+
+### Pagination
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+import { collection, query, orderBy, limit, startAfter, getDocs } from 'firebase/firestore';
+
+// First page
+const first = query(
+  collection(db, 'posts'),
+  orderBy('createdAt', 'desc'),
+  limit(10)
+);
+const firstSnapshot = await getDocs(first);
+const firstPosts = firstSnapshot.docs.map(doc => doc.data());
+
+// Next page
+const lastVisible = firstSnapshot.docs[firstSnapshot.docs.length - 1];
+const next = query(
+  collection(db, 'posts'),
+  orderBy('createdAt', 'desc'),
+  startAfter(lastVisible),
+  limit(10)
+);
+const nextSnapshot = await getDocs(next);
+{{else}}
+// First page
+const firstSnapshot = await db
+  .collection('posts')
+  .orderBy('createdAt', 'desc')
+  .limit(10)
+  .get();
+
+// Next page
+const lastVisible = firstSnapshot.docs[firstSnapshot.docs.length - 1];
+const nextSnapshot = await db
+  .collection('posts')
+  .orderBy('createdAt', 'desc')
+  .startAfter(lastVisible)
+  .limit(10)
+  .get();
+{{/if}}
+```
+
+### Array Queries
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+import { collection, query, where, arrayContains, getDocs } from 'firebase/firestore';
+
+// Array contains
+const q = query(
+  collection(db, 'posts'),
+  where('tags', 'array-contains', 'nextjs')
+);
+
+// Array contains any
+const q2 = query(
+  collection(db, 'posts'),
+  where('tags', 'array-contains-any', ['nextjs', 'react', 'firebase'])
+);
+
+const querySnapshot = await getDocs(q);
+{{else}}
+// Array contains
+const querySnapshot = await db
+  .collection('posts')
+  .where('tags', 'array-contains', 'nextjs')
+  .get();
+
+// Array contains any
+const querySnapshot2 = await db
+  .collection('posts')
+  .where('tags', 'array-contains-any', ['nextjs', 'react', 'firebase'])
+  .get();
+{{/if}}
+```
+
+### Range Queries
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+import { collection, query, where, getDocs } from 'firebase/firestore';
+
+const q = query(
+  collection(db, 'posts'),
+  where('createdAt', '>=', new Date('2024-01-01')),
+  where('createdAt', '<=', new Date('2024-12-31'))
+);
+
+const querySnapshot = await getDocs(q);
+{{else}}
+const querySnapshot = await db
+  .collection('posts')
+  .where('createdAt', '>=', new Date('2024-01-01'))
+  .where('createdAt', '<=', new Date('2024-12-31'))
+  .get();
+{{/if}}
+```
+
+## Transactions
+
+Use transactions for atomic operations:
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+import { runTransaction, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+async function transferPoints(fromUserId: string, toUserId: string, points: number) {
+  try {
+    await runTransaction(db, async (transaction) => {
+      const fromRef = doc(db, 'users', fromUserId);
+      const toRef = doc(db, 'users', toUserId);
+
+      const fromDoc = await transaction.get(fromRef);
+      const toDoc = await transaction.get(toRef);
+
+      if (!fromDoc.exists() || !toDoc.exists()) {
+        throw new Error('User not found');
+      }
+
+      const fromPoints = fromDoc.data().points || 0;
+      const toPoints = toDoc.data().points || 0;
+
+      if (fromPoints < points) {
+        throw new Error('Insufficient points');
+      }
+
+      transaction.update(fromRef, { points: fromPoints - points });
+      transaction.update(toRef, { points: toPoints + points });
+    });
+
+    console.log('Transaction successful');
+  } catch (error) {
+    console.error('Transaction failed:', error);
+    throw error;
+  }
+}
+{{else}}
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+async function transferPoints(fromUserId: string, toUserId: string, points: number) {
+  const db = getFirestore();
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const fromRef = db.collection('users').doc(fromUserId);
+      const toRef = db.collection('users').doc(toUserId);
+
+      const fromDoc = await transaction.get(fromRef);
+      const toDoc = await transaction.get(toRef);
+
+      if (!fromDoc.exists || !toDoc.exists) {
+        throw new Error('User not found');
+      }
+
+      const fromPoints = fromDoc.data()?.points || 0;
+      const toPoints = toDoc.data()?.points || 0;
+
+      if (fromPoints < points) {
+        throw new Error('Insufficient points');
+      }
+
+      transaction.update(fromRef, { points: fromPoints - points });
+      transaction.update(toRef, { points: toPoints + points });
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Transaction failed:', error);
+    return { success: false, error: error.message };
+  }
+}
+{{/if}}
+```
+
+## Batch Writes
+
+Perform multiple writes atomically:
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+import { writeBatch, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+async function batchUpdatePosts(postIds: string[], published: boolean) {
+  const batch = writeBatch(db);
+
+  postIds.forEach(postId => {
+    const postRef = doc(db, 'posts', postId);
+    batch.update(postRef, { published, updatedAt: new Date() });
+  });
+
+  try {
+    await batch.commit();
+    console.log('Batch write successful');
+  } catch (error) {
+    console.error('Batch write failed:', error);
+    throw error;
+  }
+}
+{{else}}
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+async function batchUpdatePosts(postIds: string[], published: boolean) {
+  const db = getFirestore();
+  const batch = db.batch();
+
+  postIds.forEach(postId => {
+    const postRef = db.collection('posts').doc(postId);
+    batch.update(postRef, { published, updatedAt: new Date() });
+  });
+
+  try {
+    await batch.commit();
+    return { success: true };
+  } catch (error) {
+    console.error('Batch write failed:', error);
+    return { success: false, error: error.message };
+  }
+}
+{{/if}}
+```
+
+## Subcollections
+
+Organize related data:
+
+```typescript
+{{#if (eq firebasePattern "client-side")}}
+import { collection, addDoc, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+// Add comment to post
+async function addComment(postId: string, content: string, authorId: string) {
+  const commentsRef = collection(db, 'posts', postId, 'comments');
+  const docRef = await addDoc(commentsRef, {
+    content,
+    authorId,
+    createdAt: new Date(),
+  });
+
+  return docRef.id;
+}
+
+// Get post comments
+async function getComments(postId: string) {
+  const commentsRef = collection(db, 'posts', postId, 'comments');
+  const querySnapshot = await getDocs(commentsRef);
+
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+}
+{{else}}
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+// Add comment to post
+async function addComment(postId: string, content: string, authorId: string) {
+  const db = getFirestore();
+  const commentsRef = db.collection('posts').doc(postId).collection('comments');
+
+  const docRef = await commentsRef.add({
+    content,
+    authorId,
+    createdAt: new Date(),
+  });
+
+  return { success: true, id: docRef.id };
+}
+
+// Get post comments
+async function getComments(postId: string) {
+  const db = getFirestore();
+  const querySnapshot = await db
+    .collection('posts')
+    .doc(postId)
+    .collection('comments')
+    .get();
+
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+}
+{{/if}}
+```
+
+## Security Rules
+
+Protect your data with Firestore Security Rules:
+
+```javascript
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isOwner(userId);
+
+      // Users can update their own data
+      allow update: if isOwner(userId)
+        && request.resource.data.email == resource.data.email; // Can't change email
+
+      // Only system can create users
+      allow create: if false;
+      allow delete: if false;
+    }
+
+    // Posts collection
+    match /posts/{postId} {
+      // Anyone can read published posts
+      allow read: if resource.data.published == true;
+
+      // Authenticated users can create posts
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.published == false;
+
+      // Authors can update their own posts
+      allow update: if isSignedIn()
+        && resource.data.authorId == request.auth.uid;
+
+      // Authors can delete their own posts
+      allow delete: if isSignedIn()
+        && resource.data.authorId == request.auth.uid;
+
+      // Comments subcollection
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isSignedIn()
+          && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isSignedIn()
+          && resource.data.authorId == request.auth.uid;
+      }
+    }
+  }
+}
+```
+
+Deploy security rules:
+```bash
+firebase deploy --only firestore:rules
+```
+
+Test security rules locally:
+```bash
+firebase emulators:start --only firestore
+```
+
+## Firestore Indexes
+
+Create indexes for complex queries:
+
+```json
+// firestore.indexes.json
+{
+  "indexes": [
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "authorId", "order": "ASCENDING" },
+        { "fieldPath": "published", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "published", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ]
+}
+```
+
+Deploy indexes:
+```bash
+firebase deploy --only firestore:indexes
+```
+
+## Best Practices
+
+### 1. Use Type-Safe Models
+
+```typescript
+// src/lib/db/models/post.ts
+import { z } from 'zod';
+
+export const PostSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1).max(200),
+  content: z.string(),
+  authorId: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  published: z.boolean(),
+  tags: z.array(z.string()).optional(),
+});
+
+export type Post = z.infer<typeof PostSchema>;
+
+// Validate before saving
+export function validatePost(data: unknown): Post {
+  return PostSchema.parse(data);
+}
+```
+
+### 2. Handle Timestamps Consistently
+
+```typescript
+// Always use Firestore server timestamp for consistency
+{{#if (eq firebasePattern "client-side")}}
+import { serverTimestamp } from 'firebase/firestore';
+
+await addDoc(collection(db, 'posts'), {
+  title,
+  content,
+  createdAt: serverTimestamp(),
+});
+{{else}}
+import { FieldValue } from 'firebase-admin/firestore';
+
+await db.collection('posts').add({
+  title,
+  content,
+  createdAt: FieldValue.serverTimestamp(),
+});
+{{/if}}
+```
+
+### 3. Denormalize When Needed
+
+```typescript
+// Instead of this (requires multiple reads):
+const postDoc = await getDoc(doc(db, 'posts', postId));
+const authorDoc = await getDoc(doc(db, 'users', postDoc.data().authorId));
+
+// Do this (single read):
+await addDoc(collection(db, 'posts'), {
+  title,
+  content,
+  authorId: user.uid,
+  authorName: user.displayName, // Denormalized
+  authorPhoto: user.photoURL,   // Denormalized
+});
+```
+
+### 4. Limit Query Results
+
+```typescript
+// Always limit queries to prevent huge reads
+{{#if (eq firebasePattern "client-side")}}
+const q = query(
+  collection(db, 'posts'),
+  where('published', '==', true),
+  orderBy('createdAt', 'desc'),
+  limit(20) // ← Always limit!
+);
+{{else}}
+const querySnapshot = await db
+  .collection('posts')
+  .where('published', '==', true)
+  .orderBy('createdAt', 'desc')
+  .limit(20) // ← Always limit!
+  .get();
+{{/if}}
+```
+
+### 5. Use Batches for Multiple Writes
+
+```typescript
+// Instead of multiple individual writes:
+await updateDoc(doc1, data1);
+await updateDoc(doc2, data2);
+await updateDoc(doc3, data3);
+
+// Use batch:
+{{#if (eq firebasePattern "client-side")}}
+const batch = writeBatch(db);
+batch.update(doc1, data1);
+batch.update(doc2, data2);
+batch.update(doc3, data3);
+await batch.commit();
+{{else}}
+const batch = db.batch();
+batch.update(doc1, data1);
+batch.update(doc2, data2);
+batch.update(doc3, data3);
+await batch.commit();
+{{/if}}
+```
+
+## Troubleshooting
+
+### "Missing or insufficient permissions"
+
+**Issue**: Security rules denying access
+
+**Solutions**:
+1. **Check security rules** in `firestore.rules`
+2. **Test rules** with Firebase Console > Firestore > Rules > Rules Playground
+3. **Verify authentication** - Ensure user is signed in
+4. **Deploy rules**: `firebase deploy --only firestore:rules`
+
+### "The query requires an index"
+
+**Issue**: Complex query needs composite index
+
+**Solutions**:
+1. **Click the link** in error message - Takes you to console to create index
+2. **Add to firestore.indexes.json**:
+   ```json
+   {
+     "collectionGroup": "posts",
+     "fields": [
+       { "fieldPath": "authorId", "order": "ASCENDING" },
+       { "fieldPath": "createdAt", "order": "DESCENDING" }
+     ]
+   }
+   ```
+3. **Deploy**: `firebase deploy --only firestore:indexes`
+
+### Data Not Updating in Real-Time
+
+**Issue**: Real-time listener not triggering
+
+**Check**:
+1. **Unsubscribe cleanup** - Ensure unsubscribe is called
+2. **Component lifecycle** - Verify listener setup/teardown
+3. **Network connectivity** - Check internet connection
+4. **Firestore Rules** - Verify read permissions
+
+**Solution**:
+{{#if (eq firebasePattern "client-side")}}
+```typescript
+useEffect(() => {
+  const unsubscribe = onSnapshot(docRef, (doc) => {
+    setData(doc.data());
+  });
+
+  return () => unsubscribe(); // ← Don't forget cleanup!
+}, []);
+```
+{{/if}}
+
+### Large Document Sizes
+
+**Issue**: Document exceeds 1MB limit
+
+**Solutions**:
+1. **Split into multiple documents**
+2. **Use subcollections** for nested data
+3. **Store large content** in Firebase Storage
+4. **Reference by URL** instead of embedding
+
+### Too Many Reads
+
+**Issue**: High Firestore read costs
+
+**Solutions**:
+1. **Enable offline persistence** - Cache reads locally
+2. **Use limit()** in queries
+3. **Denormalize data** - Reduce join reads
+4. **Implement pagination** - Don't load everything
+5. **Use real-time listeners** - Single read, multiple updates
+
+## Monitoring
+
+### Firestore Usage
+
+Check usage in Firebase Console:
+1. Go to Firestore > Usage
+2. Monitor:
+   - Document reads
+   - Document writes
+   - Document deletes
+   - Storage size
+
+### Set Up Budget Alerts
+
+1. Go to Google Cloud Console
+2. Billing > Budgets & alerts
+3. Set monthly budget
+4. Configure alerts at 50%, 90%, 100%
+
+## Resources
+
+- [Firestore Documentation](https://firebase.google.com/docs/firestore)
+- [Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
+- [Data Modeling](https://firebase.google.com/docs/firestore/manage-data/structure-data)
+- [Best Practices](https://firebase.google.com/docs/firestore/best-practices)
+
+## Next Steps
+
+- Review [Storage Guide](./storage.md) for file uploads
+- Check [API Routes](./api.md) for backend endpoints
+- See [Authentication](./authentication.md) for user management
+
+{{else}}
+## Database Setup
+
+This project doesn't use Firestore. To add a database:
+
+1. Choose a database (PostgreSQL, MongoDB, MySQL, etc.)
+2. Install ORM/client (Prisma, TypeORM, Mongoose, etc.)
+3. Configure database connection
+4. Define data models
+
+See relevant database documentation for setup instructions.
+{{/if}}

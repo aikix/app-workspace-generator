@@ -1,0 +1,858 @@
+# Authentication
+
+{{#if (eq backend "firebase")}}
+Complete guide to Firebase Authentication in {{projectName}}.
+
+## Overview
+
+This project uses **Firebase Authentication** for user management with the **{{firebasePattern}}** pattern.
+
+### Features
+
+- ✅ **Email/Password authentication** - Traditional sign up/login
+- ✅ **Google Sign-In** - OAuth integration
+- ✅ **Protected routes** - Server-side authentication
+- ✅ **Session management** - Secure session handling
+{{#if (eq firebasePattern "server-first")}}- ✅ **Server-side verification** - Firebase Admin SDK
+- ✅ **HTTP-only cookies** - Secure session storage{{/if}}
+- ✅ **Password reset** - Email-based recovery
+- ✅ **Email verification** - Account verification
+
+## Quick Start
+
+### Client-Side Authentication
+
+```typescript
+// src/app/login/page.tsx
+'use client';
+
+import { useState } from 'react';
+import { signIn, signUp, signInWithGoogle } from '@/lib/firebase/auth';
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSignIn = async () => {
+    try {
+      const user = await signIn(email, password);
+      console.log('Signed in:', user);
+    } catch (error) {
+      console.error('Sign in failed:', error);
+    }
+  };
+
+  const handleSignUp = async () => {
+    try {
+      const user = await signUp(email, password);
+      console.log('Signed up:', user);
+    } catch (error) {
+      console.error('Sign up failed:', error);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const user = await signInWithGoogle();
+      console.log('Google sign in:', user);
+    } catch (error) {
+      console.error('Google sign in failed:', error);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+      />
+      <button onClick={handleSignIn}>Sign In</button>
+      <button onClick={handleSignUp}>Sign Up</button>
+      <button onClick={handleGoogleSignIn}>Sign In with Google</button>
+    </div>
+  );
+}
+```
+
+{{#if (eq stateManagement "context")}}
+### Using Auth Context
+
+```typescript
+// src/components/Profile.tsx
+'use client';
+
+import { useAuth } from '@/contexts/AuthContext';
+
+export function Profile() {
+  const { user, loading, signOut } = useAuth();
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>Not signed in</div>;
+
+  return (
+    <div>
+      <h1>Welcome, {user.displayName || user.email}</h1>
+      <p>Email: {user.email}</p>
+      <p>UID: {user.uid}</p>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  );
+}
+```
+{{/if}}
+
+{{#if (eq stateManagement "zustand")}}
+### Using Auth Store
+
+```typescript
+// src/components/Profile.tsx
+'use client';
+
+import { useAuthStore } from '@/stores/useAuthStore';
+
+export function Profile() {
+  const { user, loading, signOut } = useAuthStore();
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>Not signed in</div>;
+
+  return (
+    <div>
+      <h1>Welcome, {user.displayName || user.email}</h1>
+      <p>Email: {user.email}</p>
+      <p>UID: {user.uid}</p>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  );
+}
+```
+{{/if}}
+
+{{#if (eq firebasePattern "server-first")}}
+## Server-Side Authentication
+
+### Protecting API Routes
+
+```typescript
+// src/app/api/protected/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyIdToken } from '@/lib/firebase-admin/auth';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Get token from Authorization header
+    const token = request.headers.get('Authorization')?.split('Bearer ')[1];
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Verify token with Firebase Admin SDK
+    const decodedToken = await verifyIdToken(token);
+    const uid = decodedToken.uid;
+
+    // Use uid for database queries
+    return NextResponse.json({
+      message: 'Protected data',
+      uid,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Invalid token' },
+      { status: 401 }
+    );
+  }
+}
+```
+
+### Server Actions with Authentication
+
+```typescript
+// src/app/actions/user.ts
+'use server';
+
+import { cookies } from 'next/headers';
+import { verifySessionCookie } from '@/lib/firebase-admin/session';
+
+export async function getUserData() {
+  const cookieStore = await cookies();
+  const session = cookieStore.get('session')?.value;
+
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const decodedClaims = await verifySessionCookie(session);
+  const uid = decodedClaims.uid;
+
+  // Fetch user data from Firestore
+  return {
+    uid,
+    // ... user data
+  };
+}
+```
+
+### Middleware Protection
+
+```typescript
+// middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { verifySessionCookie } from '@/lib/firebase-admin/session';
+
+export async function middleware(request: NextRequest) {
+  const session = request.cookies.get('session')?.value;
+
+  // Protect /dashboard routes
+  if (request.nextUrl.pathname.startsWith('/dashboard')) {
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    try {
+      await verifySessionCookie(session);
+      return NextResponse.next();
+    } catch (error) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*'],
+};
+```
+{{/if}}
+
+## Authentication Methods
+
+### Email/Password Sign Up
+
+```typescript
+import { signUp } from '@/lib/firebase/auth';
+
+async function handleSignUp(email: string, password: string) {
+  try {
+    const user = await signUp(email, password);
+
+    // Send verification email
+    await user.sendEmailVerification();
+
+    console.log('Sign up successful, verification email sent');
+  } catch (error: any) {
+    if (error.code === 'auth/email-already-in-use') {
+      console.error('Email already in use');
+    } else if (error.code === 'auth/weak-password') {
+      console.error('Password too weak');
+    } else {
+      console.error('Sign up failed:', error);
+    }
+  }
+}
+```
+
+### Email/Password Sign In
+
+```typescript
+import { signIn } from '@/lib/firebase/auth';
+
+async function handleSignIn(email: string, password: string) {
+  try {
+    const user = await signIn(email, password);
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      console.warn('Please verify your email');
+      await user.sendEmailVerification();
+    }
+
+    console.log('Sign in successful');
+  } catch (error: any) {
+    if (error.code === 'auth/user-not-found') {
+      console.error('User not found');
+    } else if (error.code === 'auth/wrong-password') {
+      console.error('Wrong password');
+    } else {
+      console.error('Sign in failed:', error);
+    }
+  }
+}
+```
+
+### Google Sign-In
+
+```typescript
+import { signInWithGoogle } from '@/lib/firebase/auth';
+
+async function handleGoogleSignIn() {
+  try {
+    const user = await signInWithGoogle();
+    console.log('Google sign in successful:', user);
+  } catch (error: any) {
+    if (error.code === 'auth/popup-closed-by-user') {
+      console.log('Sign in cancelled by user');
+    } else if (error.code === 'auth/popup-blocked') {
+      console.error('Popup blocked by browser');
+    } else {
+      console.error('Google sign in failed:', error);
+    }
+  }
+}
+```
+
+### Password Reset
+
+```typescript
+import { resetPassword } from '@/lib/firebase/auth';
+
+async function handlePasswordReset(email: string) {
+  try {
+    await resetPassword(email);
+    console.log('Password reset email sent');
+  } catch (error: any) {
+    if (error.code === 'auth/user-not-found') {
+      console.error('Email not found');
+    } else {
+      console.error('Password reset failed:', error);
+    }
+  }
+}
+```
+
+### Sign Out
+
+```typescript
+import { signOut } from '@/lib/firebase/auth';
+
+async function handleSignOut() {
+  try {
+    await signOut();
+    console.log('Signed out successfully');
+  } catch (error) {
+    console.error('Sign out failed:', error);
+  }
+}
+```
+
+## User Profile Management
+
+### Update Display Name
+
+```typescript
+import { getAuth, updateProfile } from 'firebase/auth';
+
+async function updateDisplayName(displayName: string) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) throw new Error('Not authenticated');
+
+  try {
+    await updateProfile(user, { displayName });
+    console.log('Display name updated');
+  } catch (error) {
+    console.error('Update failed:', error);
+  }
+}
+```
+
+### Update Email
+
+```typescript
+import { getAuth, updateEmail, sendEmailVerification } from 'firebase/auth';
+
+async function updateUserEmail(newEmail: string) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) throw new Error('Not authenticated');
+
+  try {
+    await updateEmail(user, newEmail);
+    await sendEmailVerification(user);
+    console.log('Email updated, verification sent');
+  } catch (error: any) {
+    if (error.code === 'auth/requires-recent-login') {
+      console.error('Please sign in again to update email');
+    } else if (error.code === 'auth/email-already-in-use') {
+      console.error('Email already in use');
+    } else {
+      console.error('Email update failed:', error);
+    }
+  }
+}
+```
+
+### Update Password
+
+```typescript
+import { getAuth, updatePassword } from 'firebase/auth';
+
+async function updateUserPassword(newPassword: string) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) throw new Error('Not authenticated');
+
+  try {
+    await updatePassword(user, newPassword);
+    console.log('Password updated successfully');
+  } catch (error: any) {
+    if (error.code === 'auth/requires-recent-login') {
+      console.error('Please sign in again to update password');
+    } else if (error.code === 'auth/weak-password') {
+      console.error('Password too weak');
+    } else {
+      console.error('Password update failed:', error);
+    }
+  }
+}
+```
+
+### Delete Account
+
+```typescript
+import { getAuth, deleteUser } from 'firebase/auth';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+
+async function deleteAccount() {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) throw new Error('Not authenticated');
+
+  try {
+    // Delete user data from Firestore
+    await deleteDoc(doc(db, 'users', user.uid));
+
+    // Delete authentication account
+    await deleteUser(user);
+
+    console.log('Account deleted successfully');
+  } catch (error: any) {
+    if (error.code === 'auth/requires-recent-login') {
+      console.error('Please sign in again to delete account');
+    } else {
+      console.error('Account deletion failed:', error);
+    }
+  }
+}
+```
+
+## Email Verification
+
+### Send Verification Email
+
+```typescript
+import { getAuth, sendEmailVerification } from 'firebase/auth';
+
+async function sendVerification() {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) throw new Error('Not authenticated');
+  if (user.emailVerified) {
+    console.log('Email already verified');
+    return;
+  }
+
+  try {
+    await sendEmailVerification(user);
+    console.log('Verification email sent');
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+  }
+}
+```
+
+### Check Verification Status
+
+```typescript
+import { getAuth } from 'firebase/auth';
+
+function checkEmailVerified(): boolean {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) return false;
+  return user.emailVerified;
+}
+```
+
+## Security Best Practices
+
+### 1. Password Requirements
+
+```typescript
+function validatePassword(password: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain uppercase letter');
+  }
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain lowercase letter');
+  }
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain number');
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    errors.push('Password must contain special character');
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+```
+
+### 2. Rate Limiting
+
+Configure in Firebase Console:
+1. Go to Authentication > Settings
+2. Enable "Email Enumeration Protection"
+3. Configure rate limits for sign-in attempts
+
+### 3. Authorized Domains
+
+Only allow authentication from specific domains:
+1. Firebase Console > Authentication > Settings
+2. Add authorized domains:
+   - `localhost` (development)
+   - `your-domain.com` (production)
+   - `your-backend--your-project.web.app` (Firebase App Hosting)
+
+### 4. Firebase App Check
+
+Add an extra layer of security:
+
+```typescript
+// src/lib/firebase/app-check.ts
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+import { app } from './config';
+
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+```
+
+Enable in Firebase Console > App Check.
+
+### 5. Multi-Factor Authentication (MFA)
+
+```typescript
+import {
+  multiFactor,
+  PhoneAuthProvider,
+  PhoneMultiFactorGenerator,
+} from 'firebase/auth';
+
+async function enableMFA(phoneNumber: string) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) throw new Error('Not authenticated');
+
+  try {
+    const session = await multiFactor(user).getSession();
+    const phoneAuthProvider = new PhoneAuthProvider(auth);
+
+    const verificationId = await phoneAuthProvider.verifyPhoneNumber(
+      phoneNumber,
+      session
+    );
+
+    // User enters verification code
+    const verificationCode = prompt('Enter verification code:');
+
+    const cred = PhoneAuthProvider.credential(
+      verificationId,
+      verificationCode!
+    );
+    const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(cred);
+
+    await multiFactor(user).enroll(multiFactorAssertion, 'Phone Number');
+    console.log('MFA enabled');
+  } catch (error) {
+    console.error('MFA enrollment failed:', error);
+  }
+}
+```
+
+## Firebase Console Configuration
+
+### Enable Authentication Methods
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project
+3. Navigate to **Authentication** > **Sign-in method**
+4. Enable providers:
+   - ✅ **Email/Password**
+   - ✅ **Google** (requires OAuth client ID)
+
+### Google Sign-In Setup
+
+1. In Firebase Console, enable Google provider
+2. Configure OAuth consent screen:
+   - Project name
+   - User support email
+   - Developer contact
+3. Add authorized domains
+4. Save OAuth client ID (automatically configured by Firebase)
+
+### Email Templates
+
+Customize email templates:
+1. Firebase Console > Authentication > Templates
+2. Customize:
+   - **Email verification**
+   - **Password reset**
+   - **Email change**
+
+## Firestore Security Rules
+
+Protect user data with security rules:
+
+```javascript
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Public read, authenticated write
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && request.auth.uid == resource.data.authorId;
+    }
+  }
+}
+```
+
+Deploy rules:
+```bash
+firebase deploy --only firestore:rules
+```
+
+## Troubleshooting
+
+### "Firebase: Error (auth/popup-blocked)"
+
+**Issue**: Google Sign-In popup blocked by browser
+
+**Solutions**:
+1. **Allow popups** for your domain in browser settings
+2. **Use redirect instead of popup**:
+   ```typescript
+   import { signInWithRedirect } from 'firebase/auth';
+
+   await signInWithRedirect(auth, provider);
+   ```
+
+### "Firebase: Error (auth/unauthorized-domain)"
+
+**Issue**: Domain not authorized for authentication
+
+**Solution**:
+1. Firebase Console > Authentication > Settings
+2. Add domain to "Authorized domains"
+3. Include: `localhost`, production domain, Firebase App Hosting URL
+
+### "Firebase: Error (auth/requires-recent-login)"
+
+**Issue**: Sensitive operations require recent sign-in
+
+**Solution**:
+```typescript
+import { reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+
+async function reauthenticate(password: string) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user || !user.email) throw new Error('Not authenticated');
+
+  const credential = EmailAuthProvider.credential(user.email, password);
+  await reauthenticateWithCredential(user, credential);
+
+  // Now perform sensitive operation
+  await updatePassword(user, newPassword);
+}
+```
+
+### User Not Persisting After Refresh
+
+**Issue**: User state lost on page reload
+
+**Solution**:
+{{#if (eq stateManagement "context")}}
+Ensure AuthContext is wrapping your app:
+
+```typescript
+// src/app/layout.tsx
+import { AuthProvider } from '@/contexts/AuthContext';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
+```
+{{/if}}
+
+{{#if (eq stateManagement "zustand")}}
+Check that auth store is initializing correctly:
+
+```typescript
+// src/stores/useAuthStore.ts
+// Firebase auth state observer should be set up in store
+```
+{{/if}}
+
+### Email Verification Not Working
+
+**Issue**: Verification emails not sent
+
+**Check**:
+1. **Spam folder** - Verification emails might be filtered
+2. **Email templates** - Ensure configured in Firebase Console
+3. **SMTP settings** - Check Firebase email delivery settings
+4. **Rate limits** - Too many requests might be blocked
+
+### Authentication Persists After Sign Out
+
+**Issue**: User still authenticated after sign out
+
+**Solution**:
+```typescript
+import { signOut } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
+
+async function completeSignOut() {
+  const auth = getAuth();
+
+  // Clear any local state
+  {{#if (eq stateManagement "context")}}// AuthContext handles this automatically
+  {{/if}}{{#if (eq stateManagement "zustand")}}useAuthStore.getState().clearUser();
+  {{/if}}
+
+  // Sign out from Firebase
+  await signOut(auth);
+
+  // Redirect to login
+  window.location.href = '/login';
+}
+```
+
+## Testing Authentication
+
+{{#if (eq testing "playwright")}}
+### E2E Tests with Playwright
+
+```typescript
+// tests/e2e/auth.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Authentication', () => {
+  test('should sign up new user', async ({ page }) => {
+    await page.goto('/signup');
+
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'SecurePass123!');
+    await page.click('button:has-text("Sign Up")');
+
+    await expect(page).toHaveURL('/dashboard');
+  });
+
+  test('should sign in existing user', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'SecurePass123!');
+    await page.click('button:has-text("Sign In")');
+
+    await expect(page).toHaveURL('/dashboard');
+  });
+
+  test('should sign out', async ({ page }) => {
+    // Assume user is signed in
+    await page.goto('/dashboard');
+    await page.click('button:has-text("Sign Out")');
+
+    await expect(page).toHaveURL('/login');
+  });
+});
+```
+{{/if}}
+
+### Manual Testing Checklist
+
+- [ ] Sign up with email/password
+- [ ] Sign in with email/password
+- [ ] Sign in with Google
+- [ ] Sign out
+- [ ] Password reset flow
+- [ ] Email verification
+- [ ] Update profile
+- [ ] Update email
+- [ ] Update password
+- [ ] Delete account
+- [ ] Protected routes redirect when not authenticated
+- [ ] Protected routes accessible when authenticated
+
+## Resources
+
+- [Firebase Authentication Documentation](https://firebase.google.com/docs/auth)
+- [Firebase Security Rules](https://firebase.google.com/docs/rules)
+- [Firebase App Check](https://firebase.google.com/docs/app-check)
+- [Next.js Authentication](https://nextjs.org/docs/authentication)
+
+## Next Steps
+
+- Review [Database Guide](./database.md) for Firestore integration
+- Check [API Routes](./api.md) for protected endpoints
+- See [Deployment Guide](../deployment/firebase.md) for production setup
+
+{{else}}
+## Authentication Setup
+
+This project doesn't use Firebase Authentication. To add authentication:
+
+1. Choose an auth provider (Auth0, NextAuth.js, Clerk, etc.)
+2. Install dependencies
+3. Configure environment variables
+4. Implement auth flows
+
+See [Next.js Authentication Documentation](https://nextjs.org/docs/authentication) for options.
+{{/if}}

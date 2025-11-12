@@ -1,0 +1,834 @@
+# API Routes
+
+Complete guide to Next.js API Routes and Server Actions in {{projectName}}.
+
+## Overview
+
+Next.js provides two ways to handle backend logic:
+
+1. **API Routes** - Traditional REST API endpoints (`/api/*`)
+2. **Server Actions** - Server-side functions called directly from components
+
+This project includes utilities for both approaches.
+
+## API Route Structure
+
+```
+src/app/api/
+├── hello/
+│   └── route.ts              # GET /api/hello
+├── users/
+│   ├── route.ts              # GET/POST /api/users
+│   └── [id]/
+│       └── route.ts          # GET/PUT/DELETE /api/users/:id
+├── auth/
+│   ├── login/
+│   │   └── route.ts          # POST /api/auth/login
+│   └── logout/
+│       └── route.ts          # POST /api/auth/logout
+├── upload/
+│   └── route.ts              # POST /api/upload
+└── webhooks/
+    └── stripe/
+        └── route.ts          # POST /api/webhooks/stripe
+```
+
+## API Routes
+
+### Basic GET Route
+
+```typescript
+// src/app/api/hello/route.ts
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  return NextResponse.json({
+    message: 'Hello from Next.js API!',
+    timestamp: new Date().toISOString(),
+  });
+}
+```
+
+### GET with Query Parameters
+
+```typescript
+// src/app/api/users/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const page = searchParams.get('page') || '1';
+  const limit = searchParams.get('limit') || '10';
+
+  // Fetch users from database
+  const users = await fetchUsers(parseInt(page), parseInt(limit));
+
+  return NextResponse.json({
+    users,
+    page: parseInt(page),
+    limit: parseInt(limit),
+  });
+}
+```
+
+### POST with Request Body
+
+```typescript
+// src/app/api/users/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { createUser } from '@/lib/api/validation';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validate input
+    const validated = createUser.parse(body);
+
+    // Create user in database
+    const user = await createUserInDB(validated);
+
+    return NextResponse.json(
+      { user, message: 'User created successfully' },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: 'Invalid request', message: error.message },
+      { status: 400 }
+    );
+  }
+}
+```
+
+### Dynamic Route Parameters
+
+```typescript
+// src/app/api/users/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+type Params = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(request: NextRequest, { params }: Params) {
+  const { id } = await params;
+
+  const user = await getUserById(id);
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'User not found' },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({ user });
+}
+
+export async function PUT(request: NextRequest, { params }: Params) {
+  const { id } = await params;
+  const body = await request.json();
+
+  const updatedUser = await updateUser(id, body);
+
+  return NextResponse.json({ user: updatedUser });
+}
+
+export async function DELETE(request: NextRequest, { params }: Params) {
+  const { id } = await params;
+
+  await deleteUser(id);
+
+  return NextResponse.json({ message: 'User deleted' });
+}
+```
+
+## Server Actions
+
+{{#if (eq firebasePattern "server-first")}}
+Server Actions are recommended for Firebase server-first pattern.
+
+### Basic Server Action
+
+```typescript
+// src/app/actions/posts.ts
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { getFirestore } from '@/lib/firebase-admin/firestore';
+
+export async function createPost(title: string, content: string, authorId: string) {
+  const db = getFirestore();
+
+  try {
+    const docRef = await db.collection('posts').add({
+      title,
+      content,
+      authorId,
+      createdAt: new Date(),
+      published: false,
+    });
+
+    // Revalidate the posts page
+    revalidatePath('/posts');
+
+    return { success: true, id: docRef.id };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+```
+
+### Server Action with Form Data
+
+```typescript
+// src/app/actions/posts.ts
+'use server';
+
+export async function createPostAction(formData: FormData) {
+  const title = formData.get('title') as string;
+  const content = formData.get('content') as string;
+
+  // Validate
+  if (!title || !content) {
+    return { success: false, error: 'Title and content required' };
+  }
+
+  // Create post
+  const result = await createPost(title, content, 'user-id');
+
+  return result;
+}
+```
+
+### Using Server Actions in Client Components
+
+```typescript
+// src/app/posts/new/page.tsx
+'use client';
+
+import { createPostAction } from '@/app/actions/posts';
+import { useRouter } from 'next/navigation';
+
+export default function NewPostPage() {
+  const router = useRouter();
+
+  async function handleSubmit(formData: FormData) {
+    const result = await createPostAction(formData);
+
+    if (result.success) {
+      router.push(`/posts/${result.id}`);
+    } else {
+      alert(result.error);
+    }
+  }
+
+  return (
+    <form action={handleSubmit}>
+      <input name="title" placeholder="Title" required />
+      <textarea name="content" placeholder="Content" required />
+      <button type="submit">Create Post</button>
+    </form>
+  );
+}
+```
+
+### Server Action with Authentication
+
+```typescript
+// src/app/actions/posts.ts
+'use server';
+
+import { cookies } from 'next/headers';
+import { verifySessionCookie } from '@/lib/firebase-admin/session';
+
+export async function createPost(title: string, content: string) {
+  // Verify authentication
+  const cookieStore = await cookies();
+  const session = cookieStore.get('session')?.value;
+
+  if (!session) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const decodedClaims = await verifySessionCookie(session);
+    const authorId = decodedClaims.uid;
+
+    // Create post with authenticated user
+    const db = getFirestore();
+    const docRef = await db.collection('posts').add({
+      title,
+      content,
+      authorId,
+      createdAt: new Date(),
+    });
+
+    return { success: true, id: docRef.id };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+```
+{{/if}}
+
+## API Utilities
+
+This project includes pre-built API utilities:
+
+### Response Helpers
+
+```typescript
+// src/lib/api/response.ts
+import { apiResponse } from '@/lib/api/response';
+
+// Success response
+return apiResponse.success({ data: user });
+
+// Error response
+return apiResponse.error('User not found', 404);
+
+// Validation error
+return apiResponse.validationError({ email: 'Invalid email' });
+
+// Unauthorized
+return apiResponse.unauthorized('Please log in');
+```
+
+### Error Handling
+
+```typescript
+// src/lib/api/errors.ts
+import { ApiError, handleApiError } from '@/lib/api/errors';
+
+export async function GET() {
+  try {
+    const data = await fetchData();
+    return NextResponse.json({ data });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+// Custom API errors
+throw new ApiError('User not found', 404);
+throw new ApiError('Unauthorized', 401);
+```
+
+### Input Validation
+
+```typescript
+// src/lib/api/validation.ts
+import { z } from 'zod';
+import { validateRequest } from '@/lib/api/validation';
+
+const createUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2),
+  age: z.number().int().positive().optional(),
+});
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+
+  // Validate with Zod
+  const validation = validateRequest(createUserSchema, body);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', errors: validation.errors },
+      { status: 400 }
+    );
+  }
+
+  const { data } = validation;
+  // Use validated data
+}
+```
+
+### Middleware
+
+```typescript
+// src/lib/api/middleware.ts
+import { withAuth, withRateLimit, withCors } from '@/lib/api/middleware';
+
+// Protect route with authentication
+export const GET = withAuth(async (request, user) => {
+  // user is guaranteed to be authenticated
+  return NextResponse.json({ user });
+});
+
+// Apply rate limiting
+export const POST = withRateLimit(async (request) => {
+  // Limited to X requests per minute
+  return NextResponse.json({ success: true });
+}, { maxRequests: 10, windowMs: 60000 });
+
+// Enable CORS
+export const OPTIONS = withCors();
+export const GET = withCors(async (request) => {
+  return NextResponse.json({ data: 'public' });
+});
+```
+
+## Authentication in API Routes
+
+{{#if (eq backend "firebase")}}
+### Verify Firebase Token
+
+```typescript
+// src/app/api/protected/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+{{#if (eq firebasePattern "server-first")}}
+import { verifyIdToken } from '@/lib/firebase-admin/auth';
+{{else}}
+import { getAuth } from 'firebase-admin/auth';
+{{/if}}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Get token from Authorization header
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+{{#if (eq firebasePattern "server-first")}}
+    const decodedToken = await verifyIdToken(token);
+{{else}}
+    const decodedToken = await getAuth().verifyIdToken(token);
+{{/if}}
+    const uid = decodedToken.uid;
+
+    // Use uid for authorization
+    return NextResponse.json({ uid, message: 'Authenticated' });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Invalid token' },
+      { status: 401 }
+    );
+  }
+}
+```
+
+### Calling Protected API from Client
+
+```typescript
+// src/lib/api/client.ts
+import { getAuth } from 'firebase/auth';
+
+export async function callProtectedAPI(endpoint: string, options: RequestInit = {}) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  // Get ID token
+  const token = await user.getIdToken();
+
+  // Add token to request
+  const response = await fetch(endpoint, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API call failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Usage
+const data = await callProtectedAPI('/api/protected');
+```
+{{/if}}
+
+## CORS Configuration
+
+```typescript
+// src/app/api/public/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  const response = NextResponse.json({ data: 'public' });
+
+  // Set CORS headers
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  return response;
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+```
+
+## File Upload Endpoint
+
+```typescript
+// src/app/api/upload/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+{{#if (eq backend "firebase")}}
+{{#if (eq firebasePattern "server-first")}}
+import { getStorage } from '@/lib/firebase-admin/storage';
+{{else}}
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
+{{/if}}
+{{/if}}
+
+export async function POST(request: NextRequest) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    // Validate file
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'File too large (max 5MB)' },
+        { status: 400 }
+      );
+    }
+
+{{#if (eq backend "firebase")}}
+{{#if (eq firebasePattern "server-first")}}
+    // Upload to Firebase Storage (Admin SDK)
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const bucket = getStorage().bucket();
+    const filePath = `uploads/${Date.now()}_${file.name}`;
+    const fileRef = bucket.file(filePath);
+
+    await fileRef.save(buffer, {
+      contentType: file.type,
+    });
+
+    const [url] = await fileRef.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+    });
+{{else}}
+    // Upload to Firebase Storage (Client SDK)
+    const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+{{/if}}
+
+    return NextResponse.json({ url, filename: file.name });
+{{else}}
+    // Process file (save locally, upload to cloud, etc.)
+    const url = `http://localhost:3000/uploads/${file.name}`;
+    return NextResponse.json({ url, filename: file.name });
+{{/if}}
+  } catch (error: any) {
+    console.error('Upload failed:', error);
+    return NextResponse.json(
+      { error: 'Upload failed', message: error.message },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## Webhook Endpoint
+
+```typescript
+// src/app/api/webhooks/stripe/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.text();
+    const headersList = await headers();
+    const signature = headersList.get('stripe-signature');
+
+    if (!signature) {
+      return NextResponse.json(
+        { error: 'No signature' },
+        { status: 400 }
+      );
+    }
+
+    // Verify webhook signature
+    // const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+
+    // Handle webhook event
+    // switch (event.type) {
+    //   case 'payment_intent.succeeded':
+    //     // Handle successful payment
+    //     break;
+    //   default:
+    //     console.log(`Unhandled event type ${event.type}`);
+    // }
+
+    return NextResponse.json({ received: true });
+  } catch (error: any) {
+    console.error('Webhook error:', error);
+    return NextResponse.json(
+      { error: 'Webhook failed' },
+      { status: 400 }
+    );
+  }
+}
+```
+
+## Error Handling Patterns
+
+### Global Error Handler
+
+```typescript
+// src/lib/api/errors.ts
+export class ApiError extends Error {
+  constructor(public message: string, public status: number = 500) {
+    super(message);
+  }
+}
+
+export function handleApiError(error: unknown) {
+  console.error('API Error:', error);
+
+  if (error instanceof ApiError) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: error.status }
+    );
+  }
+
+  if (error instanceof z.ZodError) {
+    return NextResponse.json(
+      { error: 'Validation failed', errors: error.errors },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json(
+    { error: 'Internal server error' },
+    { status: 500 }
+  );
+}
+```
+
+### Try-Catch Pattern
+
+```typescript
+export async function GET(request: NextRequest) {
+  try {
+    const data = await fetchData();
+    return NextResponse.json({ data });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+```
+
+## Best Practices
+
+### 1. Always Validate Input
+
+```typescript
+import { z } from 'zod';
+
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const validated = schema.parse(body); // Throws if invalid
+  // Use validated data
+}
+```
+
+### 2. Use Proper HTTP Status Codes
+
+```typescript
+// 200 OK - Success
+return NextResponse.json({ data }, { status: 200 });
+
+// 201 Created - Resource created
+return NextResponse.json({ user }, { status: 201 });
+
+// 400 Bad Request - Invalid input
+return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+
+// 401 Unauthorized - Not authenticated
+return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+
+// 403 Forbidden - Not authorized
+return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+
+// 404 Not Found - Resource not found
+return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+// 500 Internal Server Error - Server error
+return NextResponse.json({ error: 'Server error' }, { status: 500 });
+```
+
+### 3. Set Appropriate Headers
+
+```typescript
+const response = NextResponse.json({ data });
+
+// Cache control
+response.headers.set('Cache-Control', 'public, max-age=3600');
+
+// Content type
+response.headers.set('Content-Type', 'application/json');
+
+// Security headers
+response.headers.set('X-Content-Type-Options', 'nosniff');
+response.headers.set('X-Frame-Options', 'DENY');
+```
+
+### 4. Handle Errors Gracefully
+
+```typescript
+try {
+  const data = await fetchData();
+  return NextResponse.json({ data });
+} catch (error) {
+  console.error('Error:', error);
+
+  return NextResponse.json(
+    { error: 'Failed to fetch data', details: process.env.NODE_ENV === 'development' ? error.message : undefined },
+    { status: 500 }
+  );
+}
+```
+
+### 5. Rate Limit API Routes
+
+```typescript
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '1 m'),
+});
+
+export async function POST(request: NextRequest) {
+  const ip = request.ip ?? '127.0.0.1';
+  const { success } = await ratelimit.limit(ip);
+
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429 }
+    );
+  }
+
+  // Handle request
+}
+```
+
+## Testing API Routes
+
+{{#if (eq testing "playwright")}}
+### E2E API Tests
+
+```typescript
+// tests/e2e/api.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('API Routes', () => {
+  test('GET /api/hello returns success', async ({ request }) => {
+    const response = await request.get('/api/hello');
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty('message');
+  });
+
+  test('POST /api/users creates user', async ({ request }) => {
+    const response = await request.post('/api/users', {
+      data: {
+        email: 'test@example.com',
+        name: 'Test User',
+      },
+    });
+
+    expect(response.status()).toBe(201);
+
+    const data = await response.json();
+    expect(data.user).toHaveProperty('email', 'test@example.com');
+  });
+
+  test('POST /api/users validates input', async ({ request }) => {
+    const response = await request.post('/api/users', {
+      data: {
+        email: 'invalid-email',
+      },
+    });
+
+    expect(response.status()).toBe(400);
+
+    const data = await response.json();
+    expect(data).toHaveProperty('error');
+  });
+});
+```
+{{/if}}
+
+### Manual Testing with curl
+
+```bash
+# GET request
+curl http://localhost:3000/api/hello
+
+# POST request with JSON
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","name":"Test User"}'
+
+# With authentication
+curl http://localhost:3000/api/protected \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# File upload
+curl -X POST http://localhost:3000/api/upload \
+  -F "file=@/path/to/file.jpg"
+```
+
+## Resources
+
+- [Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
+- [Next.js Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
+- [HTTP Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
+
+## Next Steps
+
+{{#if (eq backend "firebase")}}- Review [Authentication](./authentication.md) for protected routes
+- Check [Database](./database.md) for data operations
+{{/if}}- See [Getting Started](../getting-started/development.md) for development workflow
