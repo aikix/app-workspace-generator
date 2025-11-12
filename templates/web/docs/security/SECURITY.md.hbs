@@ -1,0 +1,797 @@
+# Security Guide
+
+Comprehensive security documentation for {{projectName}}.
+
+## Table of Contents
+
+1. [Security Features](#security-features)
+2. [Security Headers](#security-headers)
+3. [Input Validation](#input-validation)
+4. [XSS Prevention](#xss-prevention)
+5. [CSRF Protection](#csrf-protection)
+6. [Rate Limiting](#rate-limiting)
+7. [Authentication Security](#authentication-security)
+8. [API Security](#api-security)
+9. [File Upload Security](#file-upload-security)
+10. [Database Security](#database-security)
+11. [Dependency Security](#dependency-security)
+12. [Security Checklist](#security-checklist)
+
+## Security Features
+
+This project includes comprehensive security measures:
+
+- ✅ Security headers (HSTS, CSP, X-Frame-Options, etc.)
+- ✅ Input validation with Zod
+- ✅ XSS prevention with DOMPurify
+- ✅ CSRF protection for state-changing operations
+- ✅ Rate limiting to prevent abuse
+- ✅ SQL injection prevention (parameterized queries)
+- ✅ Secure file upload validation
+{{#if (eq backend "firebase")}}
+- ✅ Firebase security rules
+- ✅ Session management with httpOnly cookies
+{{/if}}
+- ✅ Automated security scanning (CodeQL, npm audit)
+- ✅ Secret detection (TruffleHog, Gitleaks)
+- ✅ Dependency vulnerability scanning
+
+## Security Headers
+
+Security headers are configured in `next.config.js`:
+
+### Headers Implemented
+
+```javascript
+// Strict Transport Security (HSTS)
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+
+// Prevent clickjacking
+X-Frame-Options: SAMEORIGIN
+
+// Prevent MIME type sniffing
+X-Content-Type-Options: nosniff
+
+// XSS Protection
+X-XSS-Protection: 1; mode=block
+
+// Referrer Policy
+Referrer-Policy: strict-origin-when-cross-origin
+
+// Content Security Policy (CSP)
+Content-Security-Policy: default-src 'self'; ...
+```
+
+### Content Security Policy (CSP)
+
+The CSP is configured to:
+- Only allow scripts from same origin
+- Only allow styles from same origin
+- Allow images from same origin and data URIs
+- Prevent inline scripts (use nonces for exceptions)
+{{#if (eq backend "firebase")}}
+- Allow connections to Firebase services
+{{/if}}
+
+**To customize CSP**, edit `next.config.js`:
+
+\`\`\`javascript
+{
+  key: 'Content-Security-Policy',
+  value: [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Adjust as needed
+    // Add your directives...
+  ].join('; ')
+}
+\`\`\`
+
+## Input Validation
+
+Always validate user input using the provided validation utilities.
+
+### Basic Validation
+
+\`\`\`typescript
+import { ValidationSchemas, validateInput } from '@/lib/security';
+
+// Validate email
+const result = validateInput(ValidationSchemas.email, userEmail);
+if (!result.success) {
+  console.error('Validation errors:', result.errors);
+  return;
+}
+
+// Validate password
+const passwordResult = validateInput(ValidationSchemas.password, password);
+\`\`\`
+
+### Form Validation
+
+\`\`\`typescript
+import { FormValidation, validateInput } from '@/lib/security';
+
+// Login form
+const result = validateInput(FormValidation.login, {
+  email: 'user@example.com',
+  password: 'mypassword'
+});
+
+// Registration form
+const regResult = validateInput(FormValidation.register, formData);
+\`\`\`
+
+### API Route Validation
+
+\`\`\`typescript
+import { validateRequest } from '@/lib/security';
+import { z } from 'zod';
+
+const schema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2).max(50),
+});
+
+export async function POST(request: NextRequest) {
+  const validation = await validateRequest(request, schema);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: validation.errors },
+      { status: 400 }
+    );
+  }
+
+  const { email, name } = validation.data;
+  // Process validated data...
+}
+\`\`\`
+
+### File Validation
+
+\`\`\`typescript
+import { validateFile, FileValidation } from '@/lib/security';
+
+// Validate image upload
+const result = validateFile(file, FileValidation.image);
+
+if (!result.success) {
+  alert(result.error);
+  return;
+}
+
+// Custom validation
+const customResult = validateFile(file, {
+  maxSize: 10 * 1024 * 1024, // 10MB
+  allowedTypes: ['image/jpeg', 'image/png'],
+  allowedExtensions: ['jpg', 'jpeg', 'png'],
+});
+\`\`\`
+
+## XSS Prevention
+
+Prevent Cross-Site Scripting (XSS) attacks by sanitizing user-generated content.
+
+### Sanitization Levels
+
+1. **Strict**: Remove all HTML
+2. **Basic**: Allow safe formatting tags (b, i, strong, em)
+3. **Rich**: Allow common rich text tags (headings, lists, links)
+4. **HTML**: Allow most HTML tags (still removes dangerous content)
+
+### Usage Examples
+
+\`\`\`typescript
+import { sanitizeHTML, sanitizeText, escapeHTML } from '@/lib/security';
+
+// Remove all HTML
+const plainText = sanitizeText(userInput);
+
+// Allow basic formatting
+const formatted = sanitizeHTML(userInput, 'basic');
+
+// Allow rich text
+const richText = sanitizeHTML(userInput, 'rich');
+
+// Escape HTML entities
+const escaped = escapeHTML(userInput);
+\`\`\`
+
+### React Components
+
+\`\`\`tsx
+import { sanitizeHTML } from '@/lib/security';
+
+function UserContent({ content }: { content: string }) {
+  const safeContent = sanitizeHTML(content, 'rich');
+
+  return (
+    <div dangerouslySetInnerHTML=\{{ __html: safeContent }} />
+  );
+}
+\`\`\`
+
+### URL Sanitization
+
+\`\`\`typescript
+import { sanitizeURL } from '@/lib/security';
+
+// Block dangerous protocols (javascript:, data:, etc.)
+const safeURL = sanitizeURL(userProvidedURL);
+
+if (!safeURL) {
+  console.error('Dangerous URL blocked');
+}
+\`\`\`
+
+## CSRF Protection
+
+Protect against Cross-Site Request Forgery attacks.
+
+### API Routes
+
+\`\`\`typescript
+import { withCSRFProtection } from '@/lib/security';
+
+async function handler(request: NextRequest) {
+  // Your API logic
+  return NextResponse.json({ success: true });
+}
+
+// Wrap handler with CSRF protection
+export const POST = withCSRFProtection(handler);
+export const PUT = withCSRFProtection(handler);
+export const DELETE = withCSRFProtection(handler);
+\`\`\`
+
+### Client-Side Usage
+
+\`\`\`typescript
+import { fetchWithCSRF } from '@/lib/security';
+
+// Automatically includes CSRF token
+const response = await fetchWithCSRF('/api/data', {
+  method: 'POST',
+  body: JSON.stringify({ data: 'value' }),
+});
+\`\`\`
+
+### React Hook
+
+\`\`\`tsx
+import { useCSRFFetch } from '@/lib/security';
+
+function MyComponent() {
+  const csrfFetch = useCSRFFetch();
+
+  const handleSubmit = async () => {
+    try {
+      const response = await csrfFetch('/api/submit', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+      console.log('Success:', result);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  return <button onClick={handleSubmit}>Submit</button>;
+}
+\`\`\`
+
+### Forms
+
+\`\`\`tsx
+import { CSRFTokenInput } from '@/lib/security';
+
+function MyForm() {
+  return (
+    <form action="/api/submit" method="POST">
+      <CSRFTokenInput />
+      <input type="text" name="data" />
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+\`\`\`
+
+## Rate Limiting
+
+Prevent abuse and DDoS attacks with rate limiting.
+
+### Pre-configured Rate Limiters
+
+\`\`\`typescript
+import { RateLimiters } from '@/lib/security';
+
+// Strict: 5 requests per 15 minutes (auth endpoints)
+export async function POST(request: NextRequest) {
+  const rateLimitResult = await RateLimiters.auth(request);
+  if (rateLimitResult) return rateLimitResult;
+
+  // Handle login...
+}
+
+// Moderate: 100 requests per 15 minutes (API endpoints)
+export async function GET(request: NextRequest) {
+  const rateLimitResult = await RateLimiters.api(request);
+  if (rateLimitResult) return rateLimitResult;
+
+  // Handle request...
+}
+
+// Lenient: 1000 requests per 15 minutes (general)
+export async function GET(request: NextRequest) {
+  const rateLimitResult = await RateLimiters.general(request);
+  if (rateLimitResult) return rateLimitResult;
+
+  // Handle request...
+}
+
+// Very strict: 3 requests per hour (expensive operations)
+export async function POST(request: NextRequest) {
+  const rateLimitResult = await RateLimiters.expensive(request);
+  if (rateLimitResult) return rateLimitResult;
+
+  // Handle expensive operation...
+}
+\`\`\`
+
+### Custom Rate Limiter
+
+\`\`\`typescript
+import { createRateLimiter } from '@/lib/security';
+
+const uploadLimiter = createRateLimiter({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 5,
+  message: 'Too many uploads, please wait',
+});
+
+export async function POST(request: NextRequest) {
+  const rateLimitResult = await uploadLimiter(request);
+  if (rateLimitResult) return rateLimitResult;
+
+  // Handle upload...
+}
+\`\`\`
+
+### Rate Limit Headers
+
+Rate limit responses include these headers:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 2024-01-01T12:00:00Z
+Retry-After: 300
+```
+
+## Authentication Security
+
+{{#if (eq backend "firebase")}}
+### Firebase Authentication
+
+#### Session Management
+
+Sessions are managed with httpOnly cookies for security:
+
+\`\`\`typescript
+// After Firebase authentication
+const sessionCookie = await admin.auth().createSessionCookie(idToken, {
+  expiresIn: 60 * 60 * 24 * 5 * 1000, // 5 days
+});
+
+// Set httpOnly cookie
+cookies().set('session', sessionCookie, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 60 * 60 * 24 * 5, // 5 days
+});
+\`\`\`
+
+#### Protected Routes
+
+Protect routes using middleware:
+
+\`\`\`typescript
+// middleware.ts
+export async function middleware(request: NextRequest) {
+  const session = request.cookies.get('session');
+
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  try {
+    await verifySessionCookie(session.value);
+    return NextResponse.next();
+  } catch (error) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/profile/:path*'],
+};
+\`\`\`
+
+#### Security Rules
+
+Firestore security rules are configured in `firestore.rules`:
+
+\`\`\`javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Public read, authenticated write
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && request.auth.uid == resource.data.authorId;
+    }
+  }
+}
+\`\`\`
+
+Storage security rules in `storage.rules`:
+
+\`\`\`javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Users can only upload to their own folder
+    match /users/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+  }
+}
+\`\`\`
+{{else}}
+### Authentication Best Practices
+
+1. **Password Requirements**
+   - Minimum 8 characters
+   - At least one uppercase letter
+   - At least one lowercase letter
+   - At least one number
+   - At least one special character
+
+2. **Session Management**
+   - Use httpOnly cookies for tokens
+   - Set secure flag in production
+   - Implement session expiration
+   - Invalidate sessions on logout
+
+3. **Account Security**
+   - Implement rate limiting on auth endpoints
+   - Add CAPTCHA for failed login attempts
+   - Enable account lockout after failed attempts
+   - Implement password reset flow
+   - Add email verification
+{{/if}}
+
+## API Security
+
+### Request Validation
+
+Always validate API requests:
+
+\`\`\`typescript
+import { validateRequest, RateLimiters } from '@/lib/security';
+import { z } from 'zod';
+
+const schema = z.object({
+  email: z.string().email(),
+  message: z.string().min(10).max(1000),
+});
+
+export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResult = await RateLimiters.api(request);
+  if (rateLimitResult) return rateLimitResult;
+
+  // Input validation
+  const validation = await validateRequest(request, schema);
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: validation.errors },
+      { status: 400 }
+    );
+  }
+
+  const { email, message } = validation.data;
+
+  // Process request...
+  return NextResponse.json({ success: true });
+}
+\`\`\`
+
+### Error Handling
+
+Never expose sensitive information in error messages:
+
+\`\`\`typescript
+// ❌ Bad
+return NextResponse.json(
+  { error: error.message }, // May leak sensitive info
+  { status: 500 }
+);
+
+// ✅ Good
+console.error('Database error:', error); // Log full error
+return NextResponse.json(
+  { error: 'An error occurred' }, // Generic message
+  { status: 500 }
+);
+\`\`\`
+
+### CORS Configuration
+
+Configure CORS in `next.config.js` or middleware:
+
+\`\`\`typescript
+// middleware.ts
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+
+  // Set CORS headers
+  response.headers.set('Access-Control-Allow-Origin', 'https://yourdomain.com');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  return response;
+}
+\`\`\`
+
+## File Upload Security
+
+### Validation
+
+Always validate file uploads:
+
+\`\`\`typescript
+import { validateFile, sanitizeFilename, FileValidation } from '@/lib/security';
+
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  const file = formData.get('file') as File;
+
+  // Validate file
+  const validation = validateFile(file, FileValidation.image);
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error },
+      { status: 400 }
+    );
+  }
+
+  // Sanitize filename
+  const safeFilename = sanitizeFilename(file.name);
+
+  // Process upload...
+}
+\`\`\`
+
+### Storage Security
+
+{{#if (eq backend "firebase")}}
+Firebase Storage security rules prevent unauthorized access:
+
+\`\`\`javascript
+// storage.rules
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      // File size limit
+      allow write: if request.resource.size < 10 * 1024 * 1024;
+
+      // File type restrictions
+      allow write: if request.resource.contentType.matches('image/.*');
+
+      // User can only access their own files
+      allow read, write: if request.auth.uid == userId;
+    }
+  }
+}
+\`\`\`
+{{else}}
+1. Store files outside the web root
+2. Generate random filenames to prevent guessing
+3. Scan files for viruses (use ClamAV or similar)
+4. Implement file type validation (check magic bytes, not just extension)
+5. Set appropriate file permissions
+{{/if}}
+
+## Database Security
+
+{{#if (eq backend "firebase")}}
+### Firestore Security
+
+1. **Always use security rules** - Never rely on client-side checks alone
+2. **Validate all fields** - Check data types, ranges, and formats
+3. **Implement user isolation** - Users should only access their own data
+4. **Use subcollections** - For better security rule organization
+
+\`\`\`javascript
+// Example security rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function hasValidData() {
+      return request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200;
+    }
+
+    // Apply rules
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && hasValidData();
+      allow update, delete: if isOwner(resource.data.authorId);
+    }
+  }
+}
+\`\`\`
+{{else}}
+### SQL Injection Prevention
+
+1. **Always use parameterized queries** - Never concatenate user input
+2. **Use ORMs** - Sequelize, Prisma, TypeORM handle escaping
+3. **Validate input** - Check types, formats, and ranges
+4. **Limit database permissions** - Use least privilege principle
+
+\`\`\`typescript
+// ❌ Bad - Vulnerable to SQL injection
+const query = `SELECT * FROM users WHERE email = '${userEmail}'`;
+
+// ✅ Good - Parameterized query
+const query = 'SELECT * FROM users WHERE email = $1';
+const result = await db.query(query, [userEmail]);
+\`\`\`
+{{/if}}
+
+## Dependency Security
+
+### Automated Scanning
+
+This project includes automated security scanning:
+
+1. **CodeQL** - Static code analysis
+2. **npm audit** - Dependency vulnerability scanning
+3. **Dependency Review** - PR dependency changes review
+4. **TruffleHog** - Secret scanning
+5. **Gitleaks** - Additional secret detection
+6. **Semgrep** - SAST security scanning
+7. **License Check** - License compliance
+
+### Manual Security Checks
+
+Run these commands regularly:
+
+\`\`\`bash
+# Check for vulnerabilities
+npm audit
+
+# Fix vulnerabilities
+npm audit fix
+
+# Check for outdated packages
+npm outdated
+
+# Update dependencies
+npm update
+\`\`\`
+
+### Dependency Best Practices
+
+1. Keep dependencies up to date
+2. Review dependency changes in pull requests
+3. Use exact versions in package.json (avoid ^ and ~)
+4. Audit new dependencies before adding them
+5. Remove unused dependencies
+6. Use tools like Snyk or Dependabot
+
+## Security Checklist
+
+Use this checklist for security reviews:
+
+### Authentication & Authorization
+- [ ] Passwords meet complexity requirements
+- [ ] Sessions use httpOnly cookies
+- [ ] Session expiration is implemented
+- [ ] Rate limiting on auth endpoints
+- [ ] Account lockout after failed attempts
+- [ ] CSRF tokens on state-changing operations
+{{#if (eq backend "firebase")}}
+- [ ] Firebase security rules are configured
+- [ ] Session cookies are properly managed
+{{/if}}
+
+### Input Validation
+- [ ] All user inputs are validated
+- [ ] File uploads are validated (size, type, extension)
+- [ ] Form data is sanitized
+- [ ] URL parameters are validated
+- [ ] API requests use schema validation
+
+### XSS Prevention
+- [ ] User-generated content is sanitized
+- [ ] HTML entities are escaped
+- [ ] Content Security Policy is configured
+- [ ] No use of dangerouslySetInnerHTML with unsanitized content
+- [ ] External URLs are validated
+
+### Data Protection
+- [ ] Sensitive data is encrypted at rest
+- [ ] HTTPS is enforced in production
+- [ ] Secrets are not committed to git
+- [ ] Environment variables are used for secrets
+{{#if (eq backend "firebase")}}
+- [ ] Firestore security rules are tested
+- [ ] Storage security rules are implemented
+{{/if}}
+
+### API Security
+- [ ] Rate limiting is implemented
+- [ ] CORS is properly configured
+- [ ] Error messages don't leak sensitive info
+- [ ] Authentication is required for protected endpoints
+- [ ] Input validation is implemented
+
+### Infrastructure
+- [ ] Security headers are configured
+- [ ] Dependencies are up to date
+- [ ] Security scanning is automated
+- [ ] Secrets are properly managed
+- [ ] Logging and monitoring are configured
+
+### Code Quality
+- [ ] Security linting rules are enabled
+- [ ] Code reviews include security checks
+- [ ] Tests include security test cases
+- [ ] Documentation includes security guidelines
+
+## Reporting Security Issues
+
+If you discover a security vulnerability, please email:
+
+**security@yourdomain.com**
+
+Please **do not** open a public issue for security vulnerabilities.
+
+## Additional Resources
+
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/)
+- [Next.js Security](https://nextjs.org/docs/app/building-your-application/configuring/security)
+{{#if (eq backend "firebase")}}
+- [Firebase Security Rules](https://firebase.google.com/docs/rules)
+- [Firebase Authentication Best Practices](https://firebase.google.com/docs/auth/web/manage-users)
+{{/if}}
+- [Web Security Basics](https://developer.mozilla.org/en-US/docs/Web/Security)
+- [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)

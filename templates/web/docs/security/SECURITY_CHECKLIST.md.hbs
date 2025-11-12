@@ -1,0 +1,386 @@
+# Security Checklist
+
+Use this checklist before deploying to production and during security reviews.
+
+## Pre-Deployment Security Checklist
+
+### 🔐 Authentication & Authorization
+
+- [ ] **Password Requirements**
+  - [ ] Minimum 8 characters enforced
+  - [ ] Complexity requirements (uppercase, lowercase, number, special char)
+  - [ ] Password strength indicator implemented
+  - [ ] No password hints or recovery questions
+
+- [ ] **Session Management**
+  - [ ] Sessions use httpOnly cookies
+  - [ ] Secure flag enabled in production
+  - [ ] SameSite attribute set (Lax or Strict)
+  - [ ] Session timeout implemented
+  - [ ] Sessions invalidated on logout
+  - [ ] Concurrent session handling
+
+- [ ] **Account Security**
+  - [ ] Rate limiting on login endpoint (max 5 attempts/15min)
+  - [ ] Account lockout after failed attempts
+  - [ ] CAPTCHA on repeated failures
+  - [ ] Email verification for new accounts
+  - [ ] Password reset flow implemented securely
+  - [ ] Two-factor authentication (if applicable)
+
+{{#if (eq backend "firebase")}}
+- [ ] **Firebase Security**
+  - [ ] Firestore security rules configured
+  - [ ] Security rules tested
+  - [ ] Storage security rules configured
+  - [ ] Admin SDK only used server-side
+  - [ ] Session cookies properly managed
+  - [ ] Token verification implemented
+{{/if}}
+
+### 🛡️ Input Validation & Sanitization
+
+- [ ] **Validation**
+  - [ ] All user inputs validated
+  - [ ] Validation on both client and server
+  - [ ] Type checking implemented
+  - [ ] Length limits enforced
+  - [ ] Format validation (email, phone, URL)
+  - [ ] File upload validation (size, type, extension)
+
+- [ ] **Sanitization**
+  - [ ] User-generated content sanitized
+  - [ ] HTML entities escaped when needed
+  - [ ] SQL inputs properly escaped (or using parameterized queries)
+  - [ ] URL parameters sanitized
+  - [ ] Filenames sanitized
+  - [ ] No eval() or equivalent used with user input
+
+### 🚫 XSS Prevention
+
+- [ ] **Output Encoding**
+  - [ ] User content sanitized before display
+  - [ ] Appropriate sanitization level used
+  - [ ] dangerouslySetInnerHTML used with sanitized content only
+  - [ ] External URLs validated
+  - [ ] Content-Type headers set correctly
+
+- [ ] **Content Security Policy**
+  - [ ] CSP configured in next.config.js
+  - [ ] Inline scripts use nonces
+  - [ ] External script sources whitelisted
+  - [ ] Image sources restricted
+  - [ ] Frame ancestors defined
+
+### 🔒 CSRF Protection
+
+- [ ] **Token Management**
+  - [ ] CSRF tokens generated for sessions
+  - [ ] Tokens included in state-changing requests
+  - [ ] Token validation on server
+  - [ ] Tokens rotated appropriately
+  - [ ] SameSite cookies used
+
+- [ ] **Request Verification**
+  - [ ] Origin header checked
+  - [ ] Referer header checked (where applicable)
+  - [ ] Custom headers required for sensitive operations
+  - [ ] POST/PUT/DELETE protected
+
+### ⏱️ Rate Limiting
+
+- [ ] **Endpoint Protection**
+  - [ ] Auth endpoints: 5 req/15min
+  - [ ] API endpoints: 100 req/15min
+  - [ ] File upload: 5 req/min
+  - [ ] Expensive operations: 3 req/hour
+  - [ ] Rate limit headers included in responses
+  - [ ] Proper error messages for rate limits
+
+### 💾 Data Protection
+
+- [ ] **Encryption**
+  - [ ] HTTPS enforced in production
+  - [ ] HSTS header configured
+  - [ ] Sensitive data encrypted at rest
+  - [ ] Secure cookie flag enabled
+  - [ ] TLS 1.2+ required
+
+- [ ] **Secrets Management**
+  - [ ] No secrets in git history
+  - [ ] Environment variables used for secrets
+  - [ ] .env files in .gitignore
+  - [ ] Secrets rotated regularly
+  - [ ] Secret management service used (if applicable)
+
+{{#if (eq backend "firebase")}}
+- [ ] **Firebase Security**
+  - [ ] Service account keys secured
+  - [ ] Environment-specific Firebase projects
+  - [ ] Security rules prevent unauthorized access
+  - [ ] Backups configured
+{{/if}}
+
+### 🌐 API Security
+
+- [ ] **Authentication**
+  - [ ] API authentication required
+  - [ ] Token-based authentication used
+  - [ ] Tokens have expiration
+  - [ ] Authorization checks on all endpoints
+  - [ ] Principle of least privilege applied
+
+- [ ] **Request Handling**
+  - [ ] Input validation on all endpoints
+  - [ ] Rate limiting implemented
+  - [ ] CORS properly configured
+  - [ ] Request size limits enforced
+  - [ ] Timeout limits set
+
+- [ ] **Response Security**
+  - [ ] Error messages don't leak sensitive info
+  - [ ] Stack traces not exposed in production
+  - [ ] Appropriate status codes used
+  - [ ] Security headers included
+  - [ ] Sensitive data not logged
+
+### 📁 File Upload Security
+
+- [ ] **Validation**
+  - [ ] File size limits enforced
+  - [ ] File type validation (MIME type + magic bytes)
+  - [ ] File extension whitelist
+  - [ ] Filename sanitization
+  - [ ] Virus scanning (if applicable)
+
+- [ ] **Storage**
+  - [ ] Files stored outside web root
+  - [ ] Random filenames generated
+  - [ ] Appropriate file permissions set
+  - [ ] CDN with restricted access (if applicable)
+{{#if (eq backend "firebase")}}
+  - [ ] Firebase Storage rules configured
+{{/if}}
+
+### 🗄️ Database Security
+
+{{#if (eq backend "firebase")}}
+- [ ] **Firestore**
+  - [ ] Security rules configured
+  - [ ] Rules tested with emulator
+  - [ ] User data isolated
+  - [ ] Field validation in rules
+  - [ ] Query limits enforced
+  - [ ] Indexes optimized
+
+- [ ] **Storage**
+  - [ ] Storage rules configured
+  - [ ] File size limits in rules
+  - [ ] File type restrictions
+  - [ ] User folder isolation
+{{else}}
+- [ ] **SQL Security**
+  - [ ] Parameterized queries used
+  - [ ] No raw SQL with user input
+  - [ ] Database user has minimum privileges
+  - [ ] Connection strings in environment variables
+  - [ ] Database backups configured
+{{/if}}
+
+### 🔍 Security Headers
+
+- [ ] **Headers Configured**
+  - [ ] Strict-Transport-Security (HSTS)
+  - [ ] X-Frame-Options
+  - [ ] X-Content-Type-Options
+  - [ ] X-XSS-Protection
+  - [ ] Referrer-Policy
+  - [ ] Permissions-Policy
+  - [ ] Content-Security-Policy
+  - [ ] X-Powered-By removed
+
+### 📦 Dependency Security
+
+- [ ] **Dependency Management**
+  - [ ] Dependencies up to date
+  - [ ] npm audit clean
+  - [ ] No known vulnerabilities
+  - [ ] Unused dependencies removed
+  - [ ] Dependabot enabled
+  - [ ] Lock files committed
+
+- [ ] **Automated Scanning**
+  - [ ] CodeQL analysis running
+  - [ ] npm audit in CI
+  - [ ] Secret scanning enabled
+  - [ ] SAST scanning configured
+  - [ ] License compliance checked
+
+### 🔧 Infrastructure
+
+- [ ] **Environment**
+  - [ ] Production environment configured
+  - [ ] Environment variables set
+  - [ ] Debug mode disabled in production
+  - [ ] Source maps disabled in production
+  - [ ] Console logs removed/disabled in production
+
+- [ ] **Monitoring**
+  - [ ] Error tracking configured
+  - [ ] Security logging enabled
+  - [ ] Failed auth attempts logged
+  - [ ] Suspicious activity alerts
+  - [ ] Uptime monitoring
+
+- [ ] **Backup & Recovery**
+  - [ ] Backup strategy defined
+  - [ ] Backup tested
+  - [ ] Recovery procedure documented
+  - [ ] Disaster recovery plan
+
+### 🧪 Testing
+
+- [ ] **Security Testing**
+  - [ ] Security test cases written
+  - [ ] Authentication tests passing
+  - [ ] Authorization tests passing
+  - [ ] Input validation tests passing
+  - [ ] XSS prevention tests passing
+  - [ ] CSRF protection tests passing
+
+- [ ] **Penetration Testing**
+  - [ ] Manual security review completed
+  - [ ] OWASP Top 10 checked
+  - [ ] Vulnerability scan performed
+  - [ ] Findings documented and fixed
+
+### 📚 Documentation
+
+- [ ] **Security Documentation**
+  - [ ] Security guide available
+  - [ ] Security policy documented
+  - [ ] Incident response plan
+  - [ ] Security contact information
+  - [ ] Vulnerability disclosure policy
+
+- [ ] **Team Training**
+  - [ ] Security best practices documented
+  - [ ] Team trained on security
+  - [ ] Code review checklist includes security
+  - [ ] Security champions identified
+
+### 📋 Compliance
+
+- [ ] **Legal & Compliance**
+  - [ ] Privacy policy in place
+  - [ ] Terms of service defined
+  - [ ] Cookie consent implemented (if applicable)
+  - [ ] GDPR compliance (if applicable)
+  - [ ] Data retention policy defined
+
+### 🚀 Deployment
+
+- [ ] **Pre-Deployment**
+  - [ ] Security review completed
+  - [ ] All checks above passed
+  - [ ] Rollback plan prepared
+  - [ ] Deployment checklist followed
+
+- [ ] **Post-Deployment**
+  - [ ] Security headers verified
+  - [ ] HTTPS working correctly
+  - [ ] Error handling working
+  - [ ] Monitoring active
+  - [ ] Backup verified
+
+## Severity Levels
+
+Use these severity levels for security issues:
+
+### 🔴 Critical
+- Immediate fix required, block deployment
+- Examples: SQL injection, authentication bypass, RCE
+
+### 🟠 High
+- Fix before deployment
+- Examples: XSS, CSRF, sensitive data exposure
+
+### 🟡 Medium
+- Fix in next release
+- Examples: Missing security headers, weak rate limiting
+
+### 🟢 Low
+- Fix when convenient
+- Examples: Information disclosure, weak password policy
+
+## Security Review Process
+
+1. **Pre-Review**
+   - [ ] Run automated security scans
+   - [ ] Review recent changes
+   - [ ] Check dependency updates
+
+2. **Review**
+   - [ ] Complete this checklist
+   - [ ] Document findings
+   - [ ] Prioritize issues by severity
+
+3. **Remediation**
+   - [ ] Fix critical issues
+   - [ ] Fix high severity issues
+   - [ ] Plan medium/low severity fixes
+
+4. **Verification**
+   - [ ] Verify fixes
+   - [ ] Re-run security scans
+   - [ ] Update documentation
+
+5. **Sign-Off**
+   - [ ] Security team approval
+   - [ ] Technical lead approval
+   - [ ] Deploy to production
+
+## Quick Commands
+
+\`\`\`bash
+# Run security audit
+npm audit
+
+# Check for vulnerabilities
+npm audit --audit-level=moderate
+
+# Fix vulnerabilities
+npm audit fix
+
+# Check outdated packages
+npm outdated
+
+# Run linter
+npm run lint
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
+\`\`\`
+
+## Resources
+
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/)
+- [Next.js Security](https://nextjs.org/docs/app/building-your-application/configuring/security)
+{{#if (eq backend "firebase")}}
+- [Firebase Security Rules](https://firebase.google.com/docs/rules)
+{{/if}}
+- [Web Security Basics](https://developer.mozilla.org/en-US/docs/Web/Security)
+
+---
+
+**Last Updated**: ___________________
+
+**Reviewed By**: ___________________
+
+**Date**: ___________________
+
+**Sign-Off**: ___________________

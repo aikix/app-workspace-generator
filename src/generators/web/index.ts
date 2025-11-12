@@ -317,6 +317,32 @@ async function generateSourceStructure(
       source: 'web/src/lib/api/index.ts',
       destination: 'src/lib/api/index.ts',
     },
+    // Security utilities
+    {
+      type: 'copy',
+      source: 'web/lib/security/validation.ts',
+      destination: 'src/lib/security/validation.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/lib/security/sanitization.ts',
+      destination: 'src/lib/security/sanitization.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/lib/security/rate-limit.ts',
+      destination: 'src/lib/security/rate-limit.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/lib/security/csrf.ts',
+      destination: 'src/lib/security/csrf.ts',
+    },
+    {
+      type: 'copy',
+      source: 'web/lib/security/index.ts',
+      destination: 'src/lib/security/index.ts',
+    },
     // Example API routes
     {
       type: 'copy',
@@ -1028,6 +1054,22 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
       }
     );
   }
+
+  // Add security documentation
+  operations.push(
+    {
+      type: 'template',
+      source: 'web/docs/security/SECURITY.md.hbs',
+      destination: 'docs/security/SECURITY.md',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/docs/security/SECURITY_CHECKLIST.md.hbs',
+      destination: 'docs/security/SECURITY_CHECKLIST.md',
+      context,
+    }
+  );
 
   // Add PWA files
   if (context.pwa) {
