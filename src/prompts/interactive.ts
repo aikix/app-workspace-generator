@@ -166,7 +166,7 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
       type: 'confirm',
       name: 'animations',
       message: 'Add Framer Motion animations?',
-      default: true,
+      default: false,
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ] as any);
