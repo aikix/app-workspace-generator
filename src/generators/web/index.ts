@@ -247,13 +247,13 @@ async function generateSourceStructure(
     // Components - shadcn/ui (always included)
     {
       type: 'copy',
-      source: 'web/src/components/ui/Button.tsx',
-      destination: 'src/components/ui/Button.tsx',
+      source: 'web/src/components/ui/button.tsx',
+      destination: 'src/components/ui/button.tsx',
     },
     {
       type: 'copy',
-      source: 'web/src/components/ui/Card.tsx',
-      destination: 'src/components/ui/Card.tsx',
+      source: 'web/src/components/ui/card.tsx',
+      destination: 'src/components/ui/card.tsx',
     },
     {
       type: 'copy',

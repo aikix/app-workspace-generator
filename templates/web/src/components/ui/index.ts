@@ -4,7 +4,7 @@
  * Reusable UI components with Tailwind CSS styling
  */
 
-export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './Button';
+export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './button';
 export {
   Card,
   CardHeader,
@@ -14,4 +14,4 @@ export {
   type CardHeaderProps,
   type CardBodyProps,
   type CardFooterProps,
-} from './Card';
+} from './card';
