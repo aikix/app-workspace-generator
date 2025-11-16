@@ -33,12 +33,10 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
   const answers = await inquirer.prompt<{
     projectName: string;
     workspaceType: WorkspaceType;
-    framework: FrameworkType;
-    typescript: boolean;
-    styling: StylingType;
     uiLibrary: UILibraryType;
     testing: TestingType;
     stateManagement: StateManagementType;
+    animations: boolean;
     backend: BackendType;
     backendFeatures: BackendFeature[];
     firebasePattern?: FirebasePattern;
@@ -49,7 +47,6 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     architecture: boolean;
     linting: boolean;
     gitHooks: boolean;
-    packageManager: PackageManagerType;
   }>([
     {
       type: 'input',
@@ -114,56 +111,6 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     },
     {
       type: 'list',
-      name: 'framework',
-      message: 'Which framework?',
-      choices: [
-        {
-          name: 'Next.js (recommended)',
-          value: 'next',
-        },
-        {
-          name: 'Vite (Coming soon)',
-          value: 'vite',
-          disabled: true,
-        },
-        {
-          name: 'Remix (Coming soon)',
-          value: 'remix',
-          disabled: true,
-        },
-      ],
-      default: 'next',
-    },
-    {
-      type: 'confirm',
-      name: 'typescript',
-      message: 'Use TypeScript?',
-      default: true,
-    },
-    {
-      type: 'list',
-      name: 'styling',
-      message: 'Which styling solution?',
-      choices: [
-        {
-          name: 'Tailwind CSS (recommended)',
-          value: 'tailwind',
-        },
-        {
-          name: 'CSS Modules (Coming soon)',
-          value: 'css-modules',
-          disabled: true,
-        },
-        {
-          name: 'Styled Components (Coming soon)',
-          value: 'styled-components',
-          disabled: true,
-        },
-      ],
-      default: 'tailwind',
-    },
-    {
-      type: 'list',
       name: 'uiLibrary',
       message: 'UI component library?',
       choices: [
@@ -204,21 +151,11 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
           value: 'playwright',
         },
         {
-          name: 'Cypress (Coming soon)',
-          value: 'cypress',
-          disabled: true,
-        },
-        {
-          name: 'Vitest (Coming soon)',
-          value: 'vitest',
-          disabled: true,
-        },
-        {
           name: 'None (skip testing)',
           value: 'none',
         },
       ],
-      default: 'playwright',
+      default: 'none',
     },
     {
       type: 'list',
@@ -254,15 +191,6 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
         {
           name: 'Firebase (Auth, Firestore, Storage)',
           value: 'firebase',
-        },
-        {
-          name: 'Supabase (Coming soon)',
-          value: 'supabase',
-          disabled: true,
-        },
-        {
-          name: 'Custom backend',
-          value: 'custom',
         },
         {
           name: 'None (frontend only)',
@@ -324,25 +252,25 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
       message: 'Set up Git hooks (Husky)?',
       default: true,
     },
-    {
-      type: 'list',
-      name: 'packageManager',
-      message: 'Package manager?',
-      choices: [
-        { name: 'npm', value: 'npm' },
-        { name: 'pnpm', value: 'pnpm' },
-        { name: 'yarn', value: 'yarn' },
-        { name: 'bun', value: 'bun' },
-      ],
-      default: 'npm',
-    },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ] as any);
+
+  // Set defaults for removed prompts
+  const framework: FrameworkType = 'next';
+  const typescript = true;
+  const styling: StylingType = 'tailwind';
+  const packageManager: PackageManagerType = 'npm';
 
   // Default backendFeatures to empty array if not set
   if (!answers.backendFeatures) {
     answers.backendFeatures = [];
   }
 
-  return answers as PromptAnswers;
+  return {
+    ...answers,
+    framework,
+    typescript,
+    styling,
+    packageManager,
+  } as PromptAnswers;
 }

@@ -1,3 +1,14 @@
+## Unreleased
+
+- feat(cli): streamline interactive flow with sensible defaults for Next.js + Firebase ecosystem
+  - Remove framework prompt (always defaults to Next.js)
+  - Remove TypeScript prompt (always enabled)
+  - Remove styling prompt (always defaults to Tailwind CSS)
+  - Remove package manager prompt (always defaults to npm)
+  - Simplify testing framework choices (Playwright or None)
+  - Simplify backend choices (Firebase or None)
+  - Reduces questions from ~16 to ~11 for faster setup
+
 ## 1.17.0 (2025-11-11)
 
 - feat(state-management): add React Context and Zustand support ([60ec085](https://github.com/aikix/app-workspace-generator/commit/60ec085)), closes [#18](https://github.com/aikix/app-workspace-generator/issues/18)

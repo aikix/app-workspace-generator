@@ -57,27 +57,34 @@ npx app-workspace-generator create
 ✨ Let's create your project!
 
 ? Project name: my-awesome-app
-? Project type: (Use arrow keys)
-  ❯ Web App Only
+? Workspace type: (Use arrow keys)
+  ❯ Single web app (recommended for starting)
     Progressive Web App (PWA)
-    Multi-Platform (PWA + iOS + Android)
+    Multi-Platform (coming soon)
 
-? Include Firebase backend? (Y/n)
-? Add authentication? (Y/n)
-? Database type:
-  ❯ Firestore
-    None
+? UI component library:
+  ❯ None (recommended for custom design)
+    Radix UI (coming soon)
+    shadcn/ui (coming soon)
 
-? Include state management?
-  ❯ React Context (built-in)
+? Testing framework:
+  ❯ None (skip testing)
+    Playwright (E2E testing)
+
+? State management solution:
+  ❯ React Context (Built-in, good for auth & theme)
     Zustand
     None
 
-? Add animations? (Y/n)
+? Backend services:
+  ❯ None (frontend only)
+    Firebase (Auth, Firestore, Storage)
+
+? Generate AI agent instructions (CLAUDE.md)? (Y/n)
+? Set up ESLint + Prettier? (Y/n)
 
 ✅ Creating project structure...
 ✅ Installing dependencies...
-✅ Setting up Firebase...
 ✅ Configuring Git...
 
 🎉 Done! Your project is ready at ./my-awesome-app
@@ -85,6 +92,12 @@ npx app-workspace-generator create
 📚 Next steps:
   cd my-awesome-app
   npm run dev
+
+Note: Defaults automatically set:
+  • Framework: Next.js 15 (App Router)
+  • Language: TypeScript
+  • Styling: Tailwind CSS v4
+  • Package Manager: npm
 ```
 
 ## 🖥️ CLI Commands
