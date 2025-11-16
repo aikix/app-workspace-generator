@@ -1,0 +1,28 @@
+{
+  "name": "shadcn-test-app",
+  "description": "Test app with shadcn/ui",
+  "author": "Test Author",
+  "workspace": {
+    "type": "single",
+    "platforms": ["web"]
+  },
+  "web": {
+    "framework": "next",
+    "typescript": true,
+    "styling": "tailwind",
+    "ui": "shadcn",
+    "testing": "none",
+    "stateManagement": "context",
+    "animations": false,
+    "linting": true,
+    "formatting": true,
+    "gitHooks": true
+  },
+  "documentation": {
+    "aiInstructions": true,
+    "architecture": true,
+    "apiDocs": false,
+    "styleguide": false
+  },
+  "packageManager": "npm"
+}
