@@ -84,20 +84,6 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     },
     {
       type: 'confirm',
-      name: 'pwaOffline',
-      message: 'Enable offline support (service worker caching)?',
-      default: true,
-      when: (answers: { workspaceType: WorkspaceType }): boolean => answers.workspaceType === 'pwa',
-    },
-    {
-      type: 'confirm',
-      name: 'pwaInstallable',
-      message: 'Make app installable (Add to Home Screen)?',
-      default: true,
-      when: (answers: { workspaceType: WorkspaceType }): boolean => answers.workspaceType === 'pwa',
-    },
-    {
-      type: 'confirm',
       name: 'pwaNotifications',
       message: 'Enable push notifications (optional)?',
       default: false,
@@ -144,7 +130,7 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
           value: 'none',
         },
       ],
-      default: 'playwright',
+      default: 'none',
     },
     {
       type: 'list',
@@ -183,6 +169,10 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
   const gitHooks = true;
   const packageManager: PackageManagerType = 'npm';
 
+  // Auto-enable offline and installable for PWA
+  const pwaOffline = answers.workspaceType === 'pwa' ? true : undefined;
+  const pwaInstallable = answers.workspaceType === 'pwa' ? true : undefined;
+
   return {
     ...answers,
     framework,
@@ -195,5 +185,7 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     linting,
     gitHooks,
     packageManager,
+    pwaOffline,
+    pwaInstallable,
   } as PromptAnswers;
 }
