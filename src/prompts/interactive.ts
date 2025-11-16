@@ -115,28 +115,16 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
       message: 'UI component library?',
       choices: [
         {
-          name: 'None (recommended for custom design)',
-          value: 'none',
-        },
-        {
-          name: 'Radix UI (Coming soon)',
-          value: 'radix',
-          disabled: true,
-        },
-        {
-          name: 'shadcn/ui (Coming soon)',
+          name: 'shadcn/ui (Radix + Tailwind, pre-styled components)',
           value: 'shadcn',
-          disabled: true,
         },
         {
-          name: 'Material-UI (Coming soon)',
-          value: 'mui',
-          disabled: true,
+          name: 'Radix UI (Unstyled primitives, full control)',
+          value: 'radix',
         },
         {
-          name: 'Chakra UI (Coming soon)',
-          value: 'chakra',
-          disabled: true,
+          name: 'None (custom design, recommended for learning)',
+          value: 'none',
         },
       ],
       default: 'none',

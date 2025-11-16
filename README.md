@@ -63,9 +63,9 @@ npx app-workspace-generator create
     Multi-Platform (coming soon)
 
 ? UI component library:
-  ❯ None (recommended for custom design)
-    Radix UI (coming soon)
-    shadcn/ui (coming soon)
+  ❯ shadcn/ui (Radix + Tailwind, pre-styled components)
+    Radix UI (Unstyled primitives, full control)
+    None (custom design, recommended for learning)
 
 ? Testing framework:
   ❯ None (skip testing)
