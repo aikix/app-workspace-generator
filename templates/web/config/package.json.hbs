@@ -34,10 +34,17 @@
     "next": "^16.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "zod": "^3.24.1"{{#if (eq backend "firebase")}}{{#if (eq firebasePattern "client-side")}},
-    "firebase": "^12.5.0"{{else}},
+    "zod": "^3.24.1",
     "firebase": "^12.5.0",
-    "firebase-admin": "^13.6.0"{{/if}}{{/if}}{{#if pwa}},
+    {{#if (eq firebasePattern "server-first")}}
+    "firebase-admin": "^13.6.0",
+    {{/if}}
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.5",
+    "@radix-ui/react-dialog": "^1.1.3",
+    "@radix-ui/react-slot": "^1.1.1",
+    "lucide-react": "^0.469.0"{{#if pwa}},
     "next-pwa": "^5.6.0"{{/if}}{{#if (eq stateManagement "zustand")}},
     "zustand": "^5.0.2"{{/if}}{{#if animations}},
     "framer-motion": "^12.3.0"{{/if}}

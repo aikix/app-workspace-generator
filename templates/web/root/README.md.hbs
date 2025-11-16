@@ -2,196 +2,187 @@
 
 {{description}}
 
-## 🚀 Quick Start
+## 🚀 Tech Stack
 
-### Prerequisites
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4 + shadcn/ui
+- **Backend**: Firebase ({{firebasePattern}})
+- **State Management**: {{#if (eq stateManagement "zustand")}}Zustand{{else}}React Context{{/if}}
+- **Testing**: {{#if (eq testing "playwright")}}Playwright{{else}}None{{/if}}
+- **Animations**: {{#if animations}}Framer Motion{{else}}None{{/if}}
+- **Dev Tools**: ESLint, Prettier, Husky, commitlint, semantic-release
 
-- Node.js >= 18.0.0
-{{#if (eq packageManager "pnpm")}}
-- pnpm
-{{else if (eq packageManager "yarn")}}
-- Yarn
-{{else if (eq packageManager "bun")}}
-- Bun
-{{else}}
-- npm
-{{/if}}
+## 📋 Prerequisites
 
-### Installation
+- Node.js >= 20.0.0
+- npm (or pnpm/yarn/bun)
+- Firebase project (see setup below)
 
-```bash
-# Install dependencies
-{{#if (eq packageManager "pnpm")}}
-pnpm install
-{{else if (eq packageManager "yarn")}}
-yarn install
-{{else if (eq packageManager "bun")}}
-bun install
-{{else}}
-npm install
-{{/if}}
+## 🔥 Firebase Setup
 
-# Run development server
-{{#if (eq packageManager "pnpm")}}
-pnpm dev
-{{else if (eq packageManager "yarn")}}
-yarn dev
-{{else if (eq packageManager "bun")}}
-bun dev
-{{else}}
-npm run dev
-{{/if}}
-```
+**IMPORTANT**: Complete these steps before running the app:
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+### 1. Enable Authentication Providers
 
-### Environment Variables
+The Firebase CLI cannot automatically enable auth providers. You must do this manually:
+
+1. Visit: [Firebase Console > Authentication > Sign-in method](https://console.firebase.google.com/project/{{projectName}}/authentication/providers)
+
+2. **Enable Google Sign-In**:
+   - Click "Google" provider
+   - Toggle "Enable"
+   - Add support email
+   - Save
+
+3. **Enable Email Link (Passwordless)**:
+   - Click "Email/Password" provider
+   - Toggle "Enable"
+   - Toggle "Email link (passwordless sign-in)"
+   - Save
+
+### 2. Configure Environment Variables
 
 1. Copy the example environment file:
    ```bash
    cp .env.example .env.local
    ```
 
-2. Update `.env.local` with your configuration:
-
-**Required Variables:**
-- `NEXT_PUBLIC_APP_NAME` - Your application name
-- `NEXT_PUBLIC_APP_URL` - Your application URL (default: `http://localhost:3000`)
-- `NODE_ENV` - Environment (development/production/test)
-
-{{#if (eq backend "firebase")}}
-**Firebase Configuration:**
+2. Update `.env.local` with your Firebase credentials:
 
 {{#if (eq firebasePattern "client-side")}}
-For client-side Firebase setup, you'll need:
-- `NEXT_PUBLIC_FIREBASE_API_KEY`
-- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
-- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-- `NEXT_PUBLIC_FIREBASE_APP_ID`
+**Client-side Firebase Configuration:**
 
-Get these from: Firebase Console > Project Settings > General > Your apps
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+Get these from: **Firebase Console > Project Settings > General > Your apps**
 {{else}}
-For server-side Firebase setup, you'll need:
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
+**Server-first Firebase Configuration:**
 
-Get these from: Firebase Console > Project Settings > Service Accounts > Generate New Private Key
-
-⚠️ **Important**: Never commit `.env.local` to version control!
-{{/if}}
-{{/if}}
-
-All environment variables are validated on startup using Zod.
-If required variables are missing, you'll see helpful error messages.
-
-## 📦 Tech Stack
-
-- **Framework**: {{capitalize framework}} {{#if (eq framework "next")}}15{{/if}}
-{{#if typescript}}
-- **Language**: TypeScript
-{{/if}}
-{{#if (eq styling "tailwind")}}
-- **Styling**: Tailwind CSS v4
-{{/if}}
-{{#if (ne testing "none")}}
-- **Testing**: {{capitalize testing}}
-{{/if}}
-{{#if (ne backend "none")}}
-- **Backend**: {{capitalize backend}}
-{{/if}}
-{{#if pwa}}
-- **PWA**: Progressive Web App with offline support
-{{/if}}
-{{#if (ne stateManagement "none")}}
-- **State Management**: {{#if (eq stateManagement "context")}}React Context{{else if (eq stateManagement "zustand")}}Zustand{{/if}}
-{{/if}}
-
-{{#if (eq stateManagement "context")}}
-## 🔄 State Management with React Context
-
-This project uses React Context for state management, providing:
-
-### Available Contexts
-
-#### AuthContext
-Manages Firebase authentication state and provides auth methods.
-
-**Usage:**
-```tsx
-'use client';
-
-import { useAuth } from '@/contexts/AuthContext';
-
-export default function ProfilePage() {
-  const { user, loading, signOut } = useAuth();
-
-  if (loading) return <div>Loading...</div>;
-  if (!user) return <div>Not signed in</div>;
-
-  return (
-    <div>
-      <p>Welcome, {user.email}!</p>
-      <button onClick={signOut}>Sign Out</button>
-    </div>
-  );
-}
+```env
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour_Private_Key_Here\n-----END PRIVATE KEY-----\n"
 ```
 
-**Setup in your root layout:**
-```tsx
-import { AuthProvider } from '@/contexts/AuthContext';
+Get these from: **Firebase Console > Project Settings > Service Accounts > Generate New Private Key**
 
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      </body>
-    </html>
-  );
-}
+⚠️ **Important**: 
+- Keep the quotes around `FIREBASE_PRIVATE_KEY`
+- Include the `\n` newline characters
+- Never commit `.env.local` to version control!
+{{/if}}
+
+### 3. Add Authorized Domains
+
+For production deployment:
+
+1. Go to: **Firebase Console > Authentication > Settings**
+2. Add your production domain(s) to "Authorized domains"
+3. `localhost` is pre-authorized for development
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
 ```
 
-#### ThemeContext
-Manages theme state (light/dark mode) with system preference detection.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-**Usage:**
-```tsx
-'use client';
+## 📦 Available Scripts
 
-import { useTheme } from '@/contexts/ThemeContext';
+### Development
 
-export default function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm run start` - Start production server
 
-  return (
-    <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
-      {resolvedTheme === 'dark' ? '🌙' : '☀️'}
-    </button>
-  );
-}
+### Code Quality
+
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint errors
+- `npm run format` - Format code with Prettier
+
+{{#if (eq testing "playwright")}}
+### Testing
+
+- `npm test` - Run Playwright E2E tests
+- `npm run test:ui` - Run tests with Playwright UI
+{{/if}}
+
+### Git Workflow
+
+- **develop**: Development branch (default)
+- **main**: Production branch (triggers releases via semantic-release)
+
+## ✨ Features
+
+✅ Firebase Authentication (Google + Email Link)
+✅ Responsive navigation with mobile menu (shadcn Sheet)
+✅ GDPR cookie consent
+✅ Dark mode support (CSS variables)
+✅ Accessible UI components (shadcn/ui)
+{{#if (eq testing "playwright")}}✅ E2E testing setup{{/if}}
+✅ CI/CD with semantic versioning
+✅ Pre-commit hooks (lint + format)
+✅ Conventional commits enforced
+
+## 📁 Project Structure
+
+```
+{{projectName}}/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── layout.tsx          # Root layout
+│   │   ├── page.tsx            # Home page
+│   │   ├── about/              # About page
+│   │   ├── login/              # Login + verification pages
+│   │   ├── terms/              # Terms of Service
+│   │   └── privacy/            # Privacy Policy
+│   ├── components/
+│   │   ├── layout/             # Header, Footer
+│   │   ├── ui/                 # shadcn/ui components
+│   │   └── gdpr/               # Cookie consent
+│   ├── hooks/
+│   │   └── firebase/           # useAuthClient hook
+│   ├── lib/
+│   │   ├── firebase/           # Firebase config & auth
+│   │   └── utils.ts            # cn() helper
+│   └── types/                  # TypeScript definitions
+├── public/                     # Static assets
+{{#if (eq testing "playwright")}}
+├── tests/                      # Playwright E2E tests
+{{/if}}
+├── .github/
+│   └── workflows/              # CI/CD workflows
+├── firestore.rules             # Firestore security rules
+├── components.json             # shadcn/ui config
+├── .env.local                  # Environment variables (create from .env.example)
+└── package.json
 ```
 
-### Context Files
-- `/src/contexts/AuthContext.tsx` - Authentication context
-- `/src/contexts/ThemeContext.tsx` - Theme management context
+## 🔄 State Management
 
-{{else if (eq stateManagement "zustand")}}
-## 🔄 State Management with Zustand
+{{#if (eq stateManagement "zustand")}}
+### Zustand
 
-This project uses Zustand for state management, providing lightweight and simple global state.
+This project uses Zustand for lightweight global state management.
 
-### Available Stores
+**Usage example:**
 
-#### useAuthStore
-Manages Firebase authentication state with Zustand.
-
-**Usage:**
 ```tsx
 'use client';
 
@@ -211,483 +202,83 @@ export default function ProfilePage() {
   );
 }
 ```
+{{else}}
+### React Context
 
-**Initialize auth listener in your root layout:**
+This project uses React Context for state management.
+
+**Usage example:**
+
 ```tsx
 'use client';
 
-import { useEffect } from 'react';
-import { initializeAuthListener } from '@/stores/useAuthStore';
+import { useAuth } from '@/contexts/AuthContext';
 
-export default function RootLayout({ children }) {
-  useEffect(() => {
-    const unsubscribe = initializeAuthListener();
-    return () => unsubscribe();
-  }, []);
+export default function ProfilePage() {
+  const { user, loading, signOut } = useAuth();
 
-  return <html><body>{children}</body></html>;
-}
-```
-
-#### useThemeStore
-Manages theme state with persistence to localStorage.
-
-**Usage:**
-```tsx
-'use client';
-
-import { useThemeStore } from '@/stores/useThemeStore';
-
-export default function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useThemeStore();
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>Not signed in</div>;
 
   return (
-    <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
-      {resolvedTheme === 'dark' ? '🌙 Dark' : '☀️ Light'}
-    </button>
+    <div>
+      <p>Welcome, {user.email}!</p>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
   );
 }
 ```
+{{/if}}
 
-**Initialize theme in your root layout:**
-```tsx
-'use client';
+## 🎨 Styling with shadcn/ui
 
-import { useEffect } from 'react';
-import { initializeTheme } from '@/stores/useThemeStore';
+This project uses shadcn/ui for UI components. Components are built on Radix UI primitives and styled with Tailwind CSS.
 
-export default function RootLayout({ children }) {
-  useEffect(() => {
-    const cleanup = initializeTheme();
-    return cleanup;
-  }, []);
+### Adding New Components
 
-  return <html suppressHydrationWarning><body>{children}</body></html>;
+```bash
+# Add a specific component
+npx shadcn@latest add button
+
+# Or manually copy from https://ui.shadcn.com
+```
+
+### Theme Customization
+
+Colors are defined in `src/app/globals.css` using CSS variables. Modify these to match your brand:
+
+```css
+:root {
+  --primary: 221.2 83.2% 53.3%; /* Blue */
+  --secondary: 240 4.8% 95.9%;   /* Gray */
+  --destructive: 0 84.2% 60.2%;  /* Red */
+  /* ... */
 }
 ```
-
-### Store Files
-- `/src/stores/useAuthStore.ts` - Authentication store
-- `/src/stores/useThemeStore.ts` - Theme management store
-
-{{/if}}
-{{#if pwa}}
-## 📱 Progressive Web App (PWA)
-
-This app is configured as a Progressive Web App with the following features:
-
-### Features
-
-{{#if pwaOffline}}
-- **Offline Support**: Service worker caching for offline functionality
-- **Offline Fallback**: Custom offline page when content is unavailable
-{{/if}}
-{{#if pwaInstallable}}
-- **Installable**: Add to home screen on mobile and desktop
-- **Install Prompt**: Custom install prompt component
-{{/if}}
-{{#if pwaNotifications}}
-- **Push Notifications**: Web push notification support
-{{/if}}
-- **App-like Experience**: Runs in standalone mode without browser UI
-- **Responsive Icons**: Multiple icon sizes for different devices
-- **Fast Loading**: Optimized caching strategies
-
-### Testing PWA Features
-
-1. **Lighthouse Audit**:
-   ```bash
-   # Open Chrome DevTools (F12)
-   # Go to Lighthouse tab
-   # Select "Progressive Web App" category
-   # Run audit
-   ```
-
-2. **Install Prompt**:
-   - Visit the app in Chrome/Edge
-   - Look for install icon in address bar
-   - Or use the custom install prompt component
-
-3. **Offline Mode**:
-   - Open DevTools Network tab
-   - Select "Offline" from throttling dropdown
-   - Refresh the page - you should see the offline fallback
-
-### PWA Configuration Files
-
-- `/public/manifest.json` - App manifest with metadata
-- `/public/offline.html` - Offline fallback page
-- `/public/icons/` - App icons in various sizes
-- `/public/screenshots/` - App screenshots for install prompts
-- `/next.config.js` - next-pwa configuration
-
-### Adding Icons
-
-Generate PWA icons from your logo:
-
-1. Create a square logo (1024x1024px recommended)
-2. Use [PWA Asset Generator](https://www.pwabuilder.com/imageGenerator)
-3. Place generated icons in `/public/icons/`
-4. Update paths in `/public/manifest.json`
-
-See `/public/icons/README.md` for detailed instructions.
-
-### Deployment Considerations
-
-- PWA features require HTTPS in production
-- Service workers only work over HTTPS (except localhost)
-- Test thoroughly on target devices before deploying
-- Check browser compatibility for your target audience
-
-{{/if}}
-## 🛠️ Available Scripts
-
-### Development
-
-- `{{packageManager}} run dev` - Start development server
-- `{{packageManager}} run build` - Build for production
-- `{{packageManager}} run start` - Start production server
-- `{{packageManager}} run type-check` - Run TypeScript type checking
-
-{{#if linting}}
-### Code Quality
-
-- `{{packageManager}} run lint` - Run ESLint
-- `{{packageManager}} run lint:fix` - Fix ESLint errors
-{{/if}}
-
-{{#if formatting}}
-- `{{packageManager}} run format` - Format code with Prettier
-- `{{packageManager}} run format:check` - Check code formatting
-{{/if}}
-
-{{#if (eq testing "playwright")}}
-### Testing
-
-- `{{packageManager}} run e2e` - Run E2E tests
-- `{{packageManager}} run e2e:ui` - Run E2E tests with UI
-- `{{packageManager}} run e2e:headed` - Run E2E tests in headed mode
-- `{{packageManager}} run e2e:debug` - Debug E2E tests
-{{/if}}
-
-## 🔧 Troubleshooting
-
-### Port Already in Use
-
-If port 3000 is already in use:
-
-```bash
-# Find and kill the process using port 3000
-{{#if (eq packageManager "pnpm")}}
-pnpm dev -p 3001
-{{else if (eq packageManager "yarn")}}
-yarn dev -p 3001
-{{else if (eq packageManager "bun")}}
-bun dev --port 3001
-{{else}}
-npm run dev -- -p 3001
-{{/if}}
-```
-
-### TypeScript Errors
-
-If you encounter TypeScript errors after installation:
-
-```bash
-# Clean and rebuild
-rm -rf .next node_modules
-{{#if (eq packageManager "pnpm")}}
-pnpm install
-{{else if (eq packageManager "yarn")}}
-yarn install
-{{else if (eq packageManager "bun")}}
-bun install
-{{else}}
-npm install
-{{/if}}
-{{packageManager}} run type-check
-```
-
-{{#if (eq backend "firebase")}}
-### Firebase Connection Issues
-
-**Authentication errors:**
-- Verify your environment variables in `.env.local`
-- Check Firebase Console > Authentication is enabled
-{{#if (eq firebasePattern "server-first")}}
-- Ensure service account JSON has correct permissions
-- Verify `FIREBASE_PRIVATE_KEY` includes newline characters
-{{/if}}
-
-**Firestore permission denied:**
-- Check `firestore.rules` are deployed: `firebase deploy --only firestore:rules`
-- Verify user is authenticated before accessing protected data
-- Check security rules match your data structure
-
-**Missing indexes:**
-- Deploy indexes: `firebase deploy --only firestore:indexes`
-- Check Firebase Console > Firestore > Indexes for index creation status
-{{/if}}
-
-### Module Resolution Issues
-
-If imports are not resolving:
-
-1. Check `tsconfig.json` paths configuration
-2. Restart your IDE/editor
-3. Clear Next.js cache: `rm -rf .next`
-
-### Build Failures
-
-```bash
-# Clean build artifacts
-rm -rf .next out
-
-# Rebuild
-{{#if (eq packageManager "pnpm")}}
-pnpm build
-{{else if (eq packageManager "yarn")}}
-yarn build
-{{else if (eq packageManager "bun")}}
-bun run build
-{{else}}
-npm run build
-{{/if}}
-```
-
-If issues persist:
-- Check for TypeScript errors: `{{packageManager}} run type-check`
-{{#if linting}}
-- Fix linting errors: `{{packageManager}} run lint:fix`
-{{/if}}
-- Ensure all environment variables are set
-
-## 📁 Project Structure
-
-```
-{{projectName}}/
-├── src/
-│   ├── app/                    # Next.js 15 App Router
-│   │   ├── layout.tsx          # Root layout with providers
-│   │   ├── page.tsx            # Home page
-│   │   ├── loading.tsx         # Loading UI
-│   │   ├── error.tsx           # Error boundary
-│   │   ├── not-found.tsx       # 404 page
-{{#if (eq backend "firebase")}}
-{{#if (eq firebasePattern "server-first")}}
-│   │   ├── api/                # API routes
-│   │   │   └── auth/           # Authentication endpoints
-│   │   └── actions/            # Server Actions
-{{/if}}
-{{/if}}
-│   │   └── components/         # Component showcase
-│   ├── components/
-│   │   ├── layout/             # Layout components (Header, Footer, Navigation)
-│   │   ├── ui/                 # Reusable UI components (Button, Card)
-│   │   └── features/           # Feature-specific components
-│   ├── hooks/                  # Custom React hooks
-{{#if (eq backend "firebase")}}
-{{#if (eq firebasePattern "client-side")}}
-│   │   └── firebase/           # Firebase hooks (useAuth, useFirestore)
-{{/if}}
-{{/if}}
-│   ├── lib/                    # Core utilities
-│   │   ├── env.ts              # Type-safe environment variables with Zod
-{{#if (eq backend "firebase")}}
-{{#if (eq firebasePattern "client-side")}}
-│   │   ├── firebase/           # Firebase client SDK
-│   │   │   ├── config.ts       # Firebase initialization
-│   │   │   ├── auth.ts         # Authentication helpers
-│   │   │   ├── firestore.ts    # Firestore CRUD and subscriptions
-│   │   │   └── storage.ts      # Cloud Storage helpers
-{{else if (eq firebasePattern "server-first")}}
-│   │   ├── firebase-admin/     # Firebase Admin SDK (server-side only)
-│   │   │   ├── config.ts       # Admin SDK initialization
-│   │   │   ├── auth.ts         # Server-side auth verification
-│   │   │   ├── firestore.ts    # Server-side Firestore operations
-│   │   │   └── session.ts      # Session cookie management
-{{/if}}
-│   │   └── db/                 # Database models
-│   │       └── models/         # Data models (User, Post)
-{{/if}}
-│   │   └── utils.ts            # Utility functions
-│   └── types/                  # TypeScript definitions
-│       ├── global.d.ts         # Global type declarations
-│       ├── utils.ts            # Utility types (ApiResponse, AsyncReturnType)
-│       └── index.ts            # Type exports
-├── public/                     # Static files (images, fonts, icons)
-{{#if (eq testing "playwright")}}
-├── tests/                      # End-to-end tests with Playwright
-{{/if}}
-├── .github/                    # GitHub configuration
-│   ├── ISSUE_TEMPLATE/         # Issue templates
-│   └── PULL_REQUEST_TEMPLATE.md
-{{#if documentation.architecture}}
-├── docs/                       # Project documentation
-{{/if}}
-{{#if (eq backend "firebase")}}
-├── firestore.rules             # Firestore security rules
-├── firestore.indexes.json      # Firestore composite indexes
-{{#if (eq firebasePattern "server-first")}}
-├── middleware.ts               # Next.js middleware for route protection
-{{/if}}
-{{/if}}
-├── .env.local                  # Local environment variables (create from .env.example)
-├── .env.example                # Environment variables template
-├── next.config.js              # Next.js configuration
-├── tailwind.config.js          # Tailwind CSS configuration
-├── tsconfig.json               # TypeScript configuration
-{{#if linting}}
-├── eslint.config.mjs           # ESLint configuration
-{{/if}}
-{{#if formatting}}
-├── .prettierrc.json            # Prettier configuration
-{{/if}}
-{{#if gitHooks}}
-├── commitlint.config.js        # Commit message linting
-├── .husky/                     # Git hooks
-│   ├── pre-commit              # Runs lint-staged before commits
-│   └── commit-msg              # Validates commit messages
-{{/if}}
-├── CLAUDE.md                   # AI assistant instructions
-├── CONTRIBUTING.md             # Contribution guidelines
-└── package.json                # Dependencies and scripts
-```
-
-### Key Directories
-
-- **`src/app/`**: Next.js App Router with file-based routing and React Server Components
-- **`src/components/`**: Reusable React components organized by category
-- **`src/hooks/`**: Custom React hooks for shared logic and state management
-- **`src/lib/`**: Core utilities, API clients, and business logic
-- **`src/types/`**: TypeScript type definitions and utility types
-{{#if (eq backend "firebase")}}
-- **`src/lib/db/models/`**: Type-safe database models with CRUD operations
-{{#if (eq firebasePattern "client-side")}}
-- **`src/lib/firebase/`**: Firebase client SDK for browser-side operations
-- **`src/hooks/firebase/`**: React hooks for Firebase real-time subscriptions
-{{else if (eq firebasePattern "server-first")}}
-- **`src/lib/firebase-admin/`**: Firebase Admin SDK for secure server-side operations
-- **`src/app/api/`**: API routes for authentication and data mutations
-- **`src/app/actions/`**: Server Actions for form submissions and mutations
-{{/if}}
-{{/if}}
-
-{{#if documentation.aiInstructions}}
-## 🤖 AI Assistant
-
-This project includes AI agent instructions in `CLAUDE.md` for Claude Code and similar AI assistants.
-{{/if}}
 
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
 
-The easiest way to deploy your Next.js app is using [Vercel](https://vercel.com):
-
-1. **Push to GitHub**:
+1. Push to GitHub:
    ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin <your-repo-url>
-   git push -u origin main
+   git push -u origin develop
    ```
 
-2. **Deploy to Vercel**:
-   - Go to [vercel.com/new](https://vercel.com/new)
-   - Import your GitHub repository
-   - Vercel will automatically detect Next.js settings
-   - Add environment variables from `.env.example`
-   - Click "Deploy"
+2. Import your repository on [Vercel](https://vercel.com/new)
 
-3. **Environment Variables**:
-   - Go to Project Settings > Environment Variables
-   - Add all variables from your `.env.local`
-{{#if (eq backend "firebase")}}
-   - For `FIREBASE_PRIVATE_KEY`, paste the entire private key including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`
-{{/if}}
-   - Set variables for Production, Preview, and Development environments as needed
+3. Add environment variables from `.env.example`
 
-4. **Custom Domain** (Optional):
-   - Go to Project Settings > Domains
-   - Add your custom domain and follow DNS configuration instructions
-
-{{#if (eq backend "firebase")}}
-### Firebase Hosting
-
-For Firebase projects, you can deploy to Firebase Hosting:
-
-1. **Install Firebase CLI**:
-   ```bash
-{{#if (eq packageManager "pnpm")}}
-   pnpm add -g firebase-tools
-{{else if (eq packageManager "yarn")}}
-   yarn global add firebase-tools
-{{else if (eq packageManager "bun")}}
-   bun add -g firebase-tools
-{{else}}
-   npm install -g firebase-tools
-{{/if}}
-   ```
-
-2. **Login and Initialize**:
-   ```bash
-   firebase login
-   firebase init hosting
-   ```
-
-   Choose:
-   - Public directory: `out` (for static export) or `.next` (for Node.js hosting)
-   - Configure as single-page app: Yes
-   - Set up automatic builds with GitHub: Optional
-
-3. **Configure Next.js for Static Export** (if using static hosting):
-
-   Update `next.config.js`:
-   ```js
-   const nextConfig = {
-     output: 'export',
-     images: { unoptimized: true },
-   };
-   ```
-
-4. **Build and Deploy**:
-   ```bash
-{{#if (eq packageManager "pnpm")}}
-   pnpm build
-{{else if (eq packageManager "yarn")}}
-   yarn build
-{{else if (eq packageManager "bun")}}
-   bun run build
-{{else}}
-   npm run build
-{{/if}}
-   firebase deploy --only hosting
-   ```
-
-5. **Deploy Firestore Rules and Indexes**:
-   ```bash
-   firebase deploy --only firestore:rules
-   firebase deploy --only firestore:indexes
-   ```
+4. Deploy!
 
 {{#if (eq firebasePattern "server-first")}}
-**Note**: Server-first pattern requires Node.js hosting (Cloud Functions for Firebase or Vercel), not static export.
-{{/if}}
+**Note**: Server-first Firebase pattern requires Node.js runtime (works on Vercel automatically).
 {{/if}}
 
 ### Environment Variables in Production
 
-Ensure all required environment variables are set:
+Ensure these are set in your deployment platform:
 
-**Required for all deployments:**
-- `NEXT_PUBLIC_APP_NAME`
-- `NEXT_PUBLIC_APP_URL` (set to your production URL)
-- `NODE_ENV=production`
-
-{{#if (eq backend "firebase")}}
-**Firebase variables:**
 {{#if (eq firebasePattern "client-side")}}
 - `NEXT_PUBLIC_FIREBASE_API_KEY`
 - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
@@ -698,54 +289,46 @@ Ensure all required environment variables are set:
 {{else}}
 - `FIREBASE_PROJECT_ID`
 - `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY` (with newlines preserved)
+- `FIREBASE_PRIVATE_KEY` (preserve newlines)
 {{/if}}
-{{/if}}
 
-### Build Optimization
+## 🔧 Troubleshooting
 
-Before deploying to production:
+### Firebase Connection Issues
 
-1. **Run a production build locally**:
-   ```bash
-{{#if (eq packageManager "pnpm")}}
-   pnpm build
-{{else if (eq packageManager "yarn")}}
-   yarn build
-{{else if (eq packageManager "bun")}}
-   bun run build
-{{else}}
-   npm run build
-{{/if}}
-   ```
+**Authentication not working:**
+- Verify environment variables are set correctly
+- Check Firebase Console > Authentication providers are enabled
+- Ensure your domain is authorized (for production)
 
-2. **Test the production build**:
-   ```bash
-{{#if (eq packageManager "pnpm")}}
-   pnpm start
-{{else if (eq packageManager "yarn")}}
-   yarn start
-{{else if (eq packageManager "bun")}}
-   bun start
-{{else}}
-   npm run start
-{{/if}}
-   ```
+**"Missing or insufficient permissions":**
+- Check `firestore.rules` are deployed: `firebase deploy --only firestore:rules`
+- Verify user is authenticated before accessing protected data
 
-3. **Check bundle size**:
-   - Next.js will show bundle sizes after build
-   - Optimize large bundles by code splitting and dynamic imports
+### TypeScript Errors
 
-4. **Performance testing**:
-   - Use Lighthouse in Chrome DevTools
-   - Test Core Web Vitals (LCP, FID, CLS)
-   - Optimize images with Next.js Image component
+```bash
+# Clean and rebuild
+rm -rf .next node_modules
+npm install
+npm run build
+```
 
-## 📖 Documentation
+### Port Already in Use
 
-{{#if documentation.architecture}}
-- [Getting Started](docs/getting-started/development-guide.md)
-- [Architecture](docs/architecture/directory-structure.md)
+```bash
+# Use a different port
+npm run dev -- -p 3001
+```
+
+## 📖 Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [shadcn/ui](https://ui.shadcn.com)
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [Tailwind CSS v4](https://tailwindcss.com/docs)
+{{#if (eq testing "playwright")}}
+- [Playwright](https://playwright.dev)
 {{/if}}
 
 ## 📝 License
@@ -754,4 +337,4 @@ MIT
 
 ---
 
-Built with ❤️ using [app-workspace-generator](https://github.com/yourusername/app-workspace-generator)
+Generated with [app-workspace-generator](https://github.com/yourusername/app-workspace-generator)

@@ -100,7 +100,7 @@ export interface PromptAnswers {
   animations: boolean;
   backend: BackendType;
   backendFeatures: BackendFeature[];
-  firebasePattern?: FirebasePattern;
+  firebasePattern: FirebasePattern; // Always asked now
   pwaOffline?: boolean;
   pwaInstallable?: boolean;
   pwaNotifications?: boolean;

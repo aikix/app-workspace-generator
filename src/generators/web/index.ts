@@ -3,6 +3,7 @@ import { executeFileOperations, type FileOperation } from '../base/files.js';
 import { ensureDir, writeFile } from '../../utils/file-system.js';
 import type { GenerationOptions, TemplateContext } from '../../types/config.js';
 import { logger } from '../../utils/logger.js';
+import { setupGitBranches } from '../../utils/git-setup.js';
 
 /**
  * Generate a web application
@@ -19,39 +20,44 @@ export async function generateWebApp(options: GenerationOptions): Promise<void> 
 
   try {
     // Step 1: Create project directory
-    logger.stepIndicator(1, 5, 'Creating project directory');
+    logger.stepIndicator(1, 6, 'Creating project directory');
     await ensureDir(targetDir);
     logger.success('Project directory created');
     totalFiles++;
 
     // Step 2: Generate configuration files
-    logger.stepIndicator(2, 5, 'Generating configuration files');
+    logger.stepIndicator(2, 6, 'Generating configuration files');
     const configCount = await generateConfigFiles(targetDir, templateContext);
     logger.fileCount(configCount, 'configuration files created');
     totalFiles += configCount;
 
     // Step 3: Generate source structure
-    logger.stepIndicator(3, 5, 'Generating source structure');
+    logger.stepIndicator(3, 6, 'Generating source structure');
     const sourceCount = await generateSourceStructure(targetDir, templateContext);
     logger.fileCount(sourceCount, 'source files created');
     totalFiles += sourceCount;
 
     // Step 4: Generate root files
-    logger.stepIndicator(4, 5, 'Generating documentation and root files');
+    logger.stepIndicator(4, 6, 'Generating documentation and root files');
     const rootCount = await generateRootFiles(targetDir, templateContext);
     logger.fileCount(rootCount, 'root files created');
     totalFiles += rootCount;
 
     // Step 5: Generate dev tools
     if (templateContext.linting || templateContext.formatting || templateContext.gitHooks) {
-      logger.stepIndicator(5, 5, 'Setting up development tools');
+      logger.stepIndicator(5, 6, 'Setting up development tools');
       await generateDevTools(targetDir, templateContext);
       logger.success('Development tools configured');
       totalFiles += 2; // git hooks
     } else {
-      logger.stepIndicator(5, 5, 'Skipping development tools');
+      logger.stepIndicator(5, 6, 'Skipping development tools');
       logger.info('No development tools configured');
     }
+
+    // Step 6: Setup Git and GitHub
+    logger.stepIndicator(6, 6, 'Setting up Git repository');
+    await setupGitBranches(targetDir, templateContext.projectName);
+    logger.success('Git repository configured');
 
     // Calculate elapsed time
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -193,18 +199,42 @@ async function generateSourceStructure(
       source: 'web/src/app/not-found.tsx',
       destination: 'src/app/not-found.tsx',
     },
-    // Components - Layout
+    // Page Routes
     {
-      type: 'template',
-      source: 'web/src/components/layout/Header.tsx.hbs',
-      destination: 'src/components/layout/Header.tsx',
-      context,
+      type: 'copy',
+      source: 'web/src/app/about/page.tsx',
+      destination: 'src/app/about/page.tsx',
     },
     {
-      type: 'template',
-      source: 'web/src/components/layout/Footer.tsx.hbs',
+      type: 'copy',
+      source: 'web/src/app/login/page.tsx',
+      destination: 'src/app/login/page.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/login/verify/page.tsx',
+      destination: 'src/app/login/verify/page.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/terms/page.tsx',
+      destination: 'src/app/terms/page.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/app/privacy/page.tsx',
+      destination: 'src/app/privacy/page.tsx',
+    },
+    // Components - Layout
+    {
+      type: 'copy',
+      source: 'web/src/components/layout/Header.tsx',
+      destination: 'src/components/layout/Header.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/components/layout/Footer.tsx',
       destination: 'src/components/layout/Footer.tsx',
-      context,
     },
     {
       type: 'template',
@@ -212,7 +242,7 @@ async function generateSourceStructure(
       destination: 'src/components/layout/Navigation.tsx',
       context,
     },
-    // Components - UI
+    // Components - shadcn/ui (always included)
     {
       type: 'copy',
       source: 'web/src/components/ui/Button.tsx',
@@ -225,8 +255,24 @@ async function generateSourceStructure(
     },
     {
       type: 'copy',
+      source: 'web/src/components/ui/input.tsx',
+      destination: 'src/components/ui/input.tsx',
+    },
+    {
+      type: 'copy',
+      source: 'web/src/components/ui/sheet.tsx',
+      destination: 'src/components/ui/sheet.tsx',
+    },
+    {
+      type: 'copy',
       source: 'web/src/components/ui/index.ts',
       destination: 'src/components/ui/index.ts',
+    },
+    // Components - GDPR (always included)
+    {
+      type: 'copy',
+      source: 'web/src/components/gdpr/CookieConsent.tsx',
+      destination: 'src/components/gdpr/CookieConsent.tsx',
     },
     // Component directories
     {
@@ -250,17 +296,30 @@ async function generateSourceStructure(
           },
         ]
       : []),
-    // Lib directory
+    // Lib directory - utils (always include shadcn cn helper)
     {
-      type: 'directory',
-      source: '',
-      destination: 'src/lib',
+      type: 'copy',
+      source: 'web/lib/utils.ts',
+      destination: 'src/lib/utils.ts',
     },
-    // Hooks directory
+    // Firebase auth utilities (always included)
     {
-      type: 'directory',
-      source: '',
-      destination: 'src/hooks',
+      type: 'copy',
+      source: 'web/lib/firebase/auth-client.ts',
+      destination: 'src/lib/firebase/auth-client.ts',
+    },
+    // Firebase config (always client-side config)
+    {
+      type: 'template',
+      source: 'web/lib/firebase/config.ts.hbs',
+      destination: 'src/lib/firebase/config.ts',
+      context,
+    },
+    // Firebase auth hook (always included)
+    {
+      type: 'copy',
+      source: 'web/src/hooks/firebase/useAuthClient.tsx',
+      destination: 'src/hooks/firebase/useAuthClient.tsx',
     },
     // Types directory with type definition files
     {
@@ -652,16 +711,8 @@ export {};
 `;
 
   let placeholderCount = 0;
-  // ui/index.ts is now a real file with component exports
   await writeFile(path.join(targetDir, 'src/hooks/index.ts'), placeholderContent);
   placeholderCount++;
-  // Note: src/types/index.ts is now a real file, not a placeholder
-
-  // Only create utils.ts placeholder if not using Firebase
-  if (context.backend !== 'firebase') {
-    await writeFile(path.join(targetDir, 'src/lib/utils.ts'), placeholderContent);
-    placeholderCount++;
-  }
 
   return operations.length + placeholderCount;
 }
@@ -788,50 +839,33 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     }
   );
 
-  // Add GitHub Actions workflows if git hooks are enabled
-  if (context.gitHooks) {
-    operations.push(
-      {
-        type: 'template',
-        source: 'web/github/workflows/ci-develop.yml.hbs',
-        destination: '.github/workflows/ci-develop.yml',
-        context,
-      },
-      {
-        type: 'template',
-        source: 'web/github/workflows/ci-main.yml.hbs',
-        destination: '.github/workflows/ci-main.yml',
-        context,
-      },
-      {
-        type: 'template',
-        source: 'web/github/workflows/release.yml.hbs',
-        destination: '.github/workflows/release.yml',
-        context,
-      },
-      {
-        type: 'template',
-        source: 'web/github/workflows/scheduled-prod-release.yml.hbs',
-        destination: '.github/workflows/scheduled-prod-release.yml',
-        context,
-      },
-      {
-        type: 'copy',
-        source: 'web/root/_releaserc.json',
-        destination: '.releaserc.json',
-      }
-    );
-
-    // Add Firebase service account deployment guide if using Firebase
-    if (context.backend === 'firebase') {
-      operations.push({
-        type: 'template',
-        source: 'web/scripts/service-accounts/README.md.hbs',
-        destination: 'scripts/service-accounts/README.md',
-        context,
-      });
+  // Add GitHub Actions workflows (always included)
+  operations.push(
+    {
+      type: 'template',
+      source: 'web/github/workflows/ci-develop.yml',
+      destination: '.github/workflows/ci-develop.yml',
+      context,
+    },
+    {
+      type: 'template',
+      source: 'web/github/workflows/ci-main.yml',
+      destination: '.github/workflows/ci-main.yml',
+      context,
+    },
+    {
+      type: 'copy',
+      source: 'web/root/.releaserc.json',
+      destination: '.releaserc.json',
     }
-  }
+  );
+
+  // Add shadcn/ui components.json config (always included)
+  operations.push({
+    type: 'copy',
+    source: 'web/components.json',
+    destination: 'components.json',
+  });
 
   // Create public directory
   operations.push({

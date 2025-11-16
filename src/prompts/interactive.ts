@@ -21,32 +21,31 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
   console.log();
   console.log('┌─────────────────────────────────────────────────┐');
   console.log('│                                                 │');
-  console.log('│   🚀 App Workspace Generator                    │');
+  console.log('│   ✨ Team Starter Generator                     │');
   console.log('│                                                 │');
-  console.log('│   Create production-ready web applications     │');
-  console.log('│   with AI agent instructions included          │');
+  console.log('│   Opinionated, production-ready stack          │');
   console.log('│                                                 │');
   console.log('└─────────────────────────────────────────────────┘');
+  console.log();
+  console.log('Fixed Tech Stack:');
+  console.log('  • Next.js 15 + TypeScript');
+  console.log('  • Tailwind CSS v4 + shadcn/ui');
+  console.log('  • Firebase Backend');
+  console.log('  • ESLint + Prettier + Husky + commitlint');
   console.log();
 
   // Type assertion needed due to version mismatch between inquirer v10 and @types/inquirer v9
   const answers = await inquirer.prompt<{
     projectName: string;
     workspaceType: WorkspaceType;
-    uiLibrary: UILibraryType;
     testing: TestingType;
     stateManagement: StateManagementType;
     animations: boolean;
-    backend: BackendType;
     backendFeatures: BackendFeature[];
-    firebasePattern?: FirebasePattern;
+    firebasePattern: FirebasePattern;
     pwaOffline?: boolean;
     pwaInstallable?: boolean;
     pwaNotifications?: boolean;
-    aiInstructions: boolean;
-    architecture: boolean;
-    linting: boolean;
-    gitHooks: boolean;
   }>([
     {
       type: 'input',
@@ -70,20 +69,15 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     {
       type: 'list',
       name: 'workspaceType',
-      message: 'What type of workspace?',
+      message: 'Project type?',
       choices: [
         {
-          name: 'Single web app (recommended for starting)',
+          name: 'Web App',
           value: 'single',
         },
         {
-          name: 'PWA (Progressive Web App - installable, offline-capable)',
+          name: 'Progressive Web App (PWA)',
           value: 'pwa',
-        },
-        {
-          name: 'Multi-platform (web + iOS + Android) - Phase 3 (Coming soon)',
-          value: 'multi',
-          disabled: true,
         },
       ],
       default: 'single',
@@ -111,23 +105,30 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
     },
     {
       type: 'list',
-      name: 'uiLibrary',
-      message: 'UI component library?',
+      name: 'firebasePattern',
+      message: 'Firebase architecture?',
       choices: [
         {
-          name: 'shadcn/ui (Radix + Tailwind, pre-styled components)',
-          value: 'shadcn',
+          name: 'Server-first (Recommended - Server Components + Admin SDK)',
+          value: 'server-first',
         },
         {
-          name: 'Radix UI (Unstyled primitives, full control)',
-          value: 'radix',
-        },
-        {
-          name: 'None (custom design, recommended for learning)',
-          value: 'none',
+          name: 'Client-side (Simple - Browser only)',
+          value: 'client-side',
         },
       ],
-      default: 'none',
+      default: 'server-first',
+    },
+    {
+      type: 'checkbox',
+      name: 'backendFeatures',
+      message: 'Firebase features?',
+      choices: [
+        { name: 'Authentication', value: 'auth', checked: true },
+        { name: 'Firestore Database', value: 'database', checked: true },
+        { name: 'Cloud Storage', value: 'storage', checked: false },
+        { name: 'Cloud Functions', value: 'functions', checked: false },
+      ],
     },
     {
       type: 'list',
@@ -139,126 +140,60 @@ export async function runInteractivePrompts(cwd: string): Promise<PromptAnswers>
           value: 'playwright',
         },
         {
-          name: 'None (skip testing)',
+          name: 'None',
           value: 'none',
         },
       ],
-      default: 'none',
+      default: 'playwright',
     },
     {
       type: 'list',
       name: 'stateManagement',
-      message: 'State management solution?',
+      message: 'State management?',
       choices: [
         {
-          name: 'React Context (Built-in, good for auth & theme)',
-          value: 'context',
-        },
-        {
-          name: 'Zustand (Lightweight, simple global state)',
+          name: 'Zustand (Lightweight global state)',
           value: 'zustand',
         },
         {
-          name: 'None (use local state only)',
-          value: 'none',
+          name: 'React Context (Built-in)',
+          value: 'context',
         },
       ],
-      default: 'context',
+      default: 'zustand',
     },
     {
       type: 'confirm',
       name: 'animations',
-      message: 'Add animations with Framer Motion?',
-      default: false,
-    },
-    {
-      type: 'list',
-      name: 'backend',
-      message: 'Backend services?',
-      choices: [
-        {
-          name: 'Firebase (Auth, Firestore, Storage)',
-          value: 'firebase',
-        },
-        {
-          name: 'None (frontend only)',
-          value: 'none',
-        },
-      ],
-      default: 'none',
-    },
-    {
-      type: 'checkbox',
-      name: 'backendFeatures',
-      message: 'Which Firebase features?',
-      choices: [
-        { name: 'Authentication', value: 'auth', checked: true },
-        { name: 'Firestore Database', value: 'database', checked: true },
-        { name: 'Cloud Storage', value: 'storage', checked: false },
-        { name: 'Cloud Functions', value: 'functions', checked: false },
-      ],
-      when: (answers: { backend: BackendType }): boolean => answers.backend === 'firebase',
-    },
-    {
-      type: 'list',
-      name: 'firebasePattern',
-      message: 'Firebase architecture pattern?',
-      choices: [
-        {
-          name: 'Client-side (Simple - Auth and data fetching in browser)',
-          value: 'client-side',
-        },
-        {
-          name: 'Server-first (Optimal - Server Components + Admin SDK for security & SEO)',
-          value: 'server-first',
-        },
-      ],
-      default: 'server-first',
-      when: (answers: { backend: BackendType }): boolean => answers.backend === 'firebase',
-    },
-    {
-      type: 'confirm',
-      name: 'aiInstructions',
-      message: 'Generate AI agent instructions (CLAUDE.md)?',
-      default: true,
-    },
-    {
-      type: 'confirm',
-      name: 'architecture',
-      message: 'Generate architecture documentation?',
-      default: true,
-    },
-    {
-      type: 'confirm',
-      name: 'linting',
-      message: 'Set up ESLint + Prettier?',
-      default: true,
-    },
-    {
-      type: 'confirm',
-      name: 'gitHooks',
-      message: 'Set up Git hooks (Husky)?',
+      message: 'Add Framer Motion animations?',
       default: true,
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ] as any);
 
-  // Set defaults for removed prompts
+  // Set fixed defaults for team-opinionated stack
   const framework: FrameworkType = 'next';
   const typescript = true;
   const styling: StylingType = 'tailwind';
+  const uiLibrary: UILibraryType = 'shadcn';
+  const backend: BackendType = 'firebase';
+  const aiInstructions = true;
+  const architecture = true;
+  const linting = true;
+  const gitHooks = true;
   const packageManager: PackageManagerType = 'npm';
-
-  // Default backendFeatures to empty array if not set
-  if (!answers.backendFeatures) {
-    answers.backendFeatures = [];
-  }
 
   return {
     ...answers,
     framework,
     typescript,
     styling,
+    uiLibrary,
+    backend,
+    aiInstructions,
+    architecture,
+    linting,
+    gitHooks,
     packageManager,
   } as PromptAnswers;
 }

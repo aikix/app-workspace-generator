@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
-{{#if (eq styling "tailwind")}}
 import './globals.css';
-{{/if}}
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import CookieConsent from '@/components/gdpr/CookieConsent';
 
 export const metadata: Metadata = {
   title: '{{pascalCase projectName}}',
   description: '{{description}}',
-  keywords: ['{{projectName}}', 'Next.js', 'React', 'TypeScript'{{#if (eq styling "tailwind")}}, 'Tailwind CSS'{{/if}}{{#if (eq backend "firebase")}}, 'Firebase'{{/if}}{{#if pwa}}, 'PWA'{{/if}}],
+  keywords: ['{{projectName}}', 'Next.js', 'React', 'TypeScript', 'Tailwind CSS', 'Firebase'{{#if pwa}}, 'PWA'{{/if}}],
   authors: [{ name: 'Your Name' }],
   creator: 'Your Name',
   publisher: '{{pascalCase projectName}}',
@@ -69,6 +68,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <CookieConsent />
       </body>
     </html>
   );
