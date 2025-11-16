@@ -227,14 +227,16 @@ async function generateSourceStructure(
     },
     // Components - Layout
     {
-      type: 'copy',
-      source: 'web/src/components/layout/Header.tsx',
+      type: 'template',
+      source: 'web/src/components/layout/Header.tsx.hbs',
       destination: 'src/components/layout/Header.tsx',
+      context,
     },
     {
-      type: 'copy',
-      source: 'web/src/components/layout/Footer.tsx',
+      type: 'template',
+      source: 'web/src/components/layout/Footer.tsx.hbs',
       destination: 'src/components/layout/Footer.tsx',
+      context,
     },
     {
       type: 'template',
