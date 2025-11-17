@@ -5,11 +5,15 @@ This document explains the complete CI/CD pipeline and deployment process for th
 ## Architecture Overview
 
 ```
-Feature Branch → develop (auto-deploy to dev) → main (auto-deploy to prod)
-                    ↓                              ↓
-              Firebase App Hosting          Firebase App Hosting
-                 (Develop)                     (Production)
+Feature Branch → develop → Daily PR → main
+                    ↓                   ↓
+                   CI                  CI + Semantic Release
+                    ↓                   ↓
+          Firebase App Hosting    Firebase App Hosting
+           (auto-deploy)           (auto-deploy)
 ```
+
+**Note**: Firebase App Hosting automatically builds and deploys when code is pushed to connected branches. GitHub Actions only handle CI/CD testing and semantic versioning - no deployment steps needed!
 
 ## Environments
 
@@ -49,10 +53,9 @@ gh pr create --base develop --title "feat: add new feature"
 ### 2. Development Deployment
 
 When PR is merged to `develop`:
-1. ✅ Run tests and linter
-2. ✅ Build application with dev Firebase config
-3. ✅ Deploy to Firebase App Hosting (develop environment)
-4. 🎉 Available at develop URL
+1. ✅ GitHub Actions: Run tests and linter
+2. 🔥 Firebase App Hosting: Auto-detect push, build, and deploy
+3. 🎉 Available at develop URL (https://develop--PROJECT_ID.web.app)
 
 ### 3. Production Release
 
@@ -81,106 +84,122 @@ gh pr create --base main --head develop --title "🚀 Production Release"
 ### 4. Production Deployment
 
 When PR is merged to `main`:
-1. ✅ Run tests and linter
-2. ✅ Build application with prod Firebase config
-3. 🏷️ **Semantic Release**: Auto-version based on commits
-4. 📝 Generate CHANGELOG.md
-5. 🚀 Deploy to Firebase App Hosting (production)
-6. 🎉 Available at production URL
+1. ✅ GitHub Actions: Run tests and linter
+2. 🏷️ GitHub Actions: Semantic Release (versioning + changelog)
+3. 🔥 Firebase App Hosting: Auto-detect push, build, and deploy
+4. 🎉 Available at production URL
 
 ## Firebase App Hosting Setup
 
 ### Prerequisites
 
-1. **Two Firebase Projects**:
+1. **Two Firebase Projects** (create if you don't have):
    - Development project (e.g., `my-app-dev`)
    - Production project (e.g., `my-app-prod`)
 
-2. **Firebase CLI**:
+2. **Firebase CLI** (already installed by generator):
    ```bash
-   npm install -g firebase-tools
    firebase login
    ```
 
-### Initial Setup
+### Initial Setup (One-Time Manual Configuration)
 
-#### 1. Create Firebase App Hosting Sites
+#### TODO 1: Connect Repository to Firebase App Hosting
 
-```bash
-# For development
-firebase use my-app-dev
-firebase apphosting:backends:create develop \
-  --location us-central1 \
-  --service-account firebase-admin@my-app-dev.iam.gserviceaccount.com
+**Development Environment:**
+1. Open Firebase Console: https://console.firebase.google.com/
+2. Select your **development project** (e.g., `my-app-dev`)
+3. Go to **App Hosting** section
+4. Click "Get Started" or "Add Backend"
+5. Connect your GitHub repository
+6. Configure backend:
+   - **Backend ID**: `develop`
+   - **Branch**: `develop`
+   - **Root directory**: `/` (or leave default)
+   - **Region**: `us-central1` (or preferred region)
+7. Review and create backend
 
-# For production  
-firebase use my-app-prod
-firebase apphosting:backends:create production \
-  --location us-central1 \
-  --service-account firebase-admin@my-app-prod.iam.gserviceaccount.com
+**Production Environment:**
+1. Select your **production project** (e.g., `my-app-prod`)
+2. Go to **App Hosting** section
+3. Connect the same GitHub repository
+4. Configure backend:
+   - **Backend ID**: `production`
+   - **Branch**: `main`
+   - **Root directory**: `/` (or leave default)
+   - **Region**: `us-central1` (or preferred region)
+5. Review and create backend
+
+#### TODO 2: Configure Firebase Environment Variables
+
+**For each backend (develop and production):**
+
+In Firebase Console → App Hosting → Backend → Settings → Environment Variables:
+
+Add the following variables:
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=<your-api-key>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=<project-id>
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=<project-id>.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=<your-sender-id>
+NEXT_PUBLIC_FIREBASE_APP_ID=<your-app-id>
 ```
 
-#### 2. Connect GitHub Repository
+**How to get these values:**
+- Go to Firebase Console → Project Settings → General
+- Scroll to "Your apps" section
+- Select your web app or create one
+- Copy the config values
 
-In Firebase Console:
-1. Go to App Hosting
-2. Connect your GitHub repository
-3. Select appropriate branch for each backend:
-   - `develop` backend → `develop` branch
-   - `production` backend → `main` branch
+#### TODO 3: Enable Authentication Providers
 
-#### 3. Configure GitHub Secrets
+In Firebase Console for **both projects**:
+1. Go to **Authentication** → **Sign-in method**
+2. Enable **Google** provider:
+   - Add support email
+   - Save
+3. Enable **Email/Password** provider:
+   - Toggle "Email link (passwordless sign-in)"
+   - Save
+4. Add authorized domains (if needed):
+   - Add your production domain
+   - localhost is pre-authorized for development
 
-Navigate to GitHub → Settings → Secrets and variables → Actions
+#### TODO 4: Set Up Firestore (if using database)
 
-Add the following secrets:
+For **both projects**:
+1. Go to **Firestore Database**
+2. Click "Create database"
+3. Choose location (same as App Hosting region recommended)
+4. Start in **production mode** (configure rules later)
+5. Update security rules as needed
 
-**Development Secrets** (suffix with `_DEV`):
+#### TODO 5: Configure GitHub Secret (Optional - only for semantic-release)
+
+Only **one** secret needed for semantic versioning:
+
+Navigate to: GitHub → Repository → Settings → Secrets and variables → Actions
+
+Add:
 ```
-FIREBASE_PROJECT_ID_DEV=my-app-dev
-FIREBASE_API_KEY_DEV=<from Firebase console>
-FIREBASE_AUTH_DOMAIN_DEV=my-app-dev.firebaseapp.com
-FIREBASE_STORAGE_BUCKET_DEV=my-app-dev.appspot.com
-FIREBASE_MESSAGING_SENDER_ID_DEV=<from Firebase console>
-FIREBASE_APP_ID_DEV=<from Firebase console>
-FIREBASE_SERVICE_ACCOUNT_DEV=<service account JSON>
+GITHUB_TOKEN=<automatically provided by GitHub Actions>
 ```
 
-**Production Secrets** (suffix with `_PROD`):
-```
-FIREBASE_PROJECT_ID_PROD=my-app-prod
-FIREBASE_API_KEY_PROD=<from Firebase console>
-FIREBASE_AUTH_DOMAIN_PROD=my-app-prod.firebaseapp.com
-FIREBASE_STORAGE_BUCKET_PROD=my-app-prod.appspot.com
-FIREBASE_MESSAGING_SENDER_ID_PROD=<from Firebase console>
-FIREBASE_APP_ID_PROD=<from Firebase console>
-FIREBASE_SERVICE_ACCOUNT_PROD=<service account JSON>
-```
-
-**How to get service account JSON**:
-```bash
-# Development
-firebase use my-app-dev
-firebase projects:list
-# Go to Firebase Console → Project Settings → Service Accounts
-# Generate new private key → Copy JSON content
-
-# Production
-firebase use my-app-prod
-# Repeat the same process
-```
+**Note**: `GITHUB_TOKEN` is automatically provided by GitHub Actions. No manual setup needed unless you need a PAT with extended permissions.
 
 ## GitHub Actions Workflows
 
-### `ci-develop.yml` - Development CI/CD
+### `ci-develop.yml` - Development CI
 
 **Triggers**:
 - Push to `develop` branch
 - Pull requests to `develop` branch
 
 **Jobs**:
-1. **Test**: Lint, type-check, build, test (on PRs)
-2. **Deploy**: Deploy to Firebase App Hosting develop (on push)
+1. **Test**: Lint, type-check, build, and E2E tests
+
+**Note**: No deployment step needed - Firebase App Hosting automatically deploys when code is pushed to `develop` branch.
 
 ### `ci-main.yml` - Production CI/CD
 
@@ -188,9 +207,10 @@ firebase use my-app-prod
 - Push to `main` branch
 
 **Jobs**:
-1. **Test & Build**: Lint, type-check, build, test
-2. **Release**: Semantic versioning and changelog
-3. **Deploy**: Deploy to Firebase App Hosting production
+1. **Test**: Lint, type-check, build, and E2E tests
+2. **Release**: Semantic versioning and changelog generation
+
+**Note**: No deployment step needed - Firebase App Hosting automatically deploys after semantic-release commits the version tag.
 
 ### `release-pr.yml` - Daily Release PR
 
