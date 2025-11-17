@@ -474,12 +474,6 @@ async function generateSourceStructure(
       operations.push(
         {
           type: 'template',
-          source: 'web/lib/firebase/config.ts.hbs',
-          destination: 'src/lib/firebase/config.ts',
-          context,
-        },
-        {
-          type: 'template',
           source: 'web/lib/firebase/auth.ts.hbs',
           destination: 'src/lib/firebase/auth.ts',
           context,
