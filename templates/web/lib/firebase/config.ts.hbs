@@ -25,36 +25,77 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validate required configuration
-const requiredConfig = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-] as const;
+// Check if Firebase is configured
+const isFirebaseConfigured = Boolean(
+  process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
+  process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN &&
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+);
 
-for (const key of requiredConfig) {
-  if (!process.env[key]) {
-    throw new Error(`Missing required Firebase config: ${key}`);
-  }
+// Warn in development if Firebase is not configured
+if (!isFirebaseConfigured && process.env.NODE_ENV === 'development') {
+  console.warn(
+    '⚠️  Firebase not configured. Please set up your Firebase environment variables.\n' +
+    '   See README.md for instructions or run: npm run firebase:setup'
+  );
 }
 
 /**
  * Initialize Firebase app (singleton pattern)
  * Only initializes once even with Hot Module Replacement
  */
-export const app: FirebaseApp =
-  getApps().length === 0
-    ? initializeApp(firebaseConfig)
-    : getApps()[0]!;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+
+// Only initialize Firebase if configured
+if (isFirebaseConfigured) {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]!;
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
 
 /**
- * Firebase Auth instance
+ * Get Firebase app instance
+ * Throws helpful error if Firebase is not configured
  */
-export const auth: Auth = getAuth(app);
+export function getFirebaseApp(): FirebaseApp {
+  if (!app) {
+    throw new Error(
+      'Firebase is not configured. Please set up your .env.local file with Firebase credentials.\n' +
+      'See README.md for setup instructions.'
+    );
+  }
+  return app;
+}
 
 /**
- * Firestore instance
+ * Get Firebase Auth instance
  */
-export const db: Firestore = getFirestore(app);
+export function getFirebaseAuth(): Auth {
+  if (!auth) {
+    throw new Error(
+      'Firebase Auth is not configured. Please set up your .env.local file.\n' +
+      'See README.md for setup instructions.'
+    );
+  }
+  return auth;
+}
+
+/**
+ * Get Firestore instance
+ */
+export function getFirebaseDb(): Firestore {
+  if (!db) {
+    throw new Error(
+      'Firestore is not configured. Please set up your .env.local file.\n' +
+      'See README.md for setup instructions.'
+    );
+  }
+  return db;
+}
+
+// Export instances (may be null if not configured)
+export { app, auth, db };
 
 export default app;

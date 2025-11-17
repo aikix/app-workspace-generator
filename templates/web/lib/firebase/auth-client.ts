@@ -24,7 +24,7 @@
  *    - localhost is pre-authorized for development
  */
 
-import { auth } from './config';
+import { auth, getFirebaseAuth } from './config';
 import {
   signInWithPopup,
   GoogleAuthProvider,
@@ -35,12 +35,26 @@ import {
 } from 'firebase/auth';
 
 /**
+ * Get auth instance with helpful error if not configured
+ */
+function requireAuth() {
+  if (!auth) {
+    throw new Error(
+      'Firebase is not configured. Please set up your .env.local file.\n' +
+      'Run: npm run firebase:setup'
+    );
+  }
+  return auth;
+}
+
+/**
  * Sign in with Google using popup
  */
 export async function signInWithGoogle() {
   try {
+    const authInstance = requireAuth();
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(authInstance, provider);
     return { user: result.user, error: null };
   } catch (error) {
     console.error('Google sign-in error:', error);
@@ -53,12 +67,13 @@ export async function signInWithGoogle() {
  */
 export async function sendEmailSignInLink(email: string) {
   try {
+    const authInstance = requireAuth();
     const actionCodeSettings = {
       url: window.location.origin + '/login/verify',
       handleCodeInApp: true,
     };
 
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    await sendSignInLinkToEmail(authInstance, email, actionCodeSettings);
     window.localStorage.setItem('emailForSignIn', email);
 
     return { success: true, error: null };
@@ -76,7 +91,8 @@ export async function sendEmailSignInLink(email: string) {
  */
 export async function verifyEmailSignInLink() {
   try {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
+    const authInstance = requireAuth();
+    if (isSignInWithEmailLink(authInstance, window.location.href)) {
       let email = window.localStorage.getItem('emailForSignIn');
 
       if (!email) {
@@ -88,7 +104,7 @@ export async function verifyEmailSignInLink() {
         throw new Error('Email is required');
       }
 
-      const result = await signInWithEmailLink(auth, email, window.location.href);
+      const result = await signInWithEmailLink(authInstance, email, window.location.href);
       window.localStorage.removeItem('emailForSignIn');
 
       return { user: result.user, error: null };
@@ -109,7 +125,8 @@ export async function verifyEmailSignInLink() {
  */
 export async function signOut() {
   try {
-    await firebaseSignOut(auth);
+    const authInstance = requireAuth();
+    await firebaseSignOut(authInstance);
     return { success: true, error: null };
   } catch (error) {
     console.error('Sign out error:', error);

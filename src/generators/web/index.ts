@@ -811,6 +811,13 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     }
   );
 
+  // Add Firebase setup script
+  operations.push({
+    type: 'copy',
+    source: 'web/scripts/firebase-setup.js',
+    destination: 'scripts/firebase-setup.js',
+  });
+
   // Add GitHub templates
   operations.push(
     {
