@@ -11,6 +11,7 @@ import {
   validateProjectNameForGeneration,
 } from '../utils/validation.js';
 import { runFirebaseSetupPrompts, executeFirebaseSetup } from '../prompts/firebase-setup.js';
+import { checkPrerequisites } from '../utils/prerequisites.js';
 import type { GenerationOptions } from '../types/config.js';
 
 /**
@@ -29,6 +30,13 @@ export function createCommand(): Command {
       try {
         const cwd = process.cwd();
         const debug = options.debug || false;
+
+        // Check prerequisites first
+        const prerequisitesMet = await checkPrerequisites();
+        if (!prerequisitesMet) {
+          logger.error('Please install the required tools before continuing.');
+          process.exit(1);
+        }
 
         // Mode 1: Config file (for AI agents)
         if (options.config) {

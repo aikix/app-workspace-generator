@@ -4,6 +4,7 @@ import { ensureDir, writeFile } from '../../utils/file-system.js';
 import type { GenerationOptions, TemplateContext } from '../../types/config.js';
 import { logger } from '../../utils/logger.js';
 import { setupGitBranches } from '../../utils/git-setup.js';
+import { autoConfigureFirebase } from '../../utils/firebase-auto-config.js';
 
 /**
  * Generate a web application
@@ -20,42 +21,46 @@ export async function generateWebApp(options: GenerationOptions): Promise<void> 
 
   try {
     // Step 1: Create project directory
-    logger.stepIndicator(1, 6, 'Creating project directory');
+    logger.stepIndicator(1, 7, 'Creating project directory');
     await ensureDir(targetDir);
     logger.success('Project directory created');
     totalFiles++;
 
     // Step 2: Generate configuration files
-    logger.stepIndicator(2, 6, 'Generating configuration files');
+    logger.stepIndicator(2, 7, 'Generating configuration files');
     const configCount = await generateConfigFiles(targetDir, templateContext);
     logger.fileCount(configCount, 'configuration files created');
     totalFiles += configCount;
 
     // Step 3: Generate source structure
-    logger.stepIndicator(3, 6, 'Generating source structure');
+    logger.stepIndicator(3, 7, 'Generating source structure');
     const sourceCount = await generateSourceStructure(targetDir, templateContext);
     logger.fileCount(sourceCount, 'source files created');
     totalFiles += sourceCount;
 
     // Step 4: Generate root files
-    logger.stepIndicator(4, 6, 'Generating documentation and root files');
+    logger.stepIndicator(4, 7, 'Generating documentation and root files');
     const rootCount = await generateRootFiles(targetDir, templateContext);
     logger.fileCount(rootCount, 'root files created');
     totalFiles += rootCount;
 
     // Step 5: Generate dev tools
     if (templateContext.linting || templateContext.formatting || templateContext.gitHooks) {
-      logger.stepIndicator(5, 6, 'Setting up development tools');
+      logger.stepIndicator(5, 7, 'Setting up development tools');
       await generateDevTools(targetDir, templateContext);
       logger.success('Development tools configured');
       totalFiles += 2; // git hooks
     } else {
-      logger.stepIndicator(5, 6, 'Skipping development tools');
+      logger.stepIndicator(5, 7, 'Skipping development tools');
       logger.info('No development tools configured');
     }
 
-    // Step 6: Setup Git and GitHub
-    logger.stepIndicator(6, 6, 'Setting up Git repository');
+    // Step 6: Auto-configure Firebase
+    logger.stepIndicator(6, 7, 'Configuring Firebase');
+    await autoConfigureFirebase(targetDir);
+
+    // Step 7: Setup Git and GitHub
+    logger.stepIndicator(7, 7, 'Setting up Git repository');
     await setupGitBranches(targetDir, templateContext.projectName);
     logger.success('Git repository configured');
 

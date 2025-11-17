@@ -6,6 +6,48 @@ A flexible CLI tool to scaffold modern web and multi-platform applications with 
 
 Generate production-ready project structures tailored to your needs through a simple interactive CLI. Whether you're building a standard web app, a Progressive Web App (PWA), or a full multi-platform solution with native iOS and Android apps, this generator sets you up with the right foundation.
 
+## 📋 Prerequisites
+
+Before using this generator, ensure you have the following tools installed:
+
+### Required Tools
+
+1. **Node.js** (v18 or higher)
+
+   ```bash
+   node --version  # Check version
+   # Install from https://nodejs.org/ or use nvm
+   ```
+
+2. **Git**
+
+   ```bash
+   git --version  # Check version
+   # macOS: brew install git
+   # Ubuntu: sudo apt install git
+   # https://git-scm.com/downloads
+   ```
+
+3. **GitHub CLI (gh)**
+
+   ```bash
+   gh --version  # Check version
+   npm install -g gh  # Install
+   gh auth login  # Authenticate
+   # https://cli.github.com/
+   ```
+
+4. **Firebase CLI**
+   ```bash
+   firebase --version  # Check version
+   npm install -g firebase-tools  # Install
+   firebase login  # Authenticate
+   firebase use <project-id>  # Select project
+   # https://firebase.google.com/docs/cli
+   ```
+
+The generator will automatically check for these tools at startup and provide installation instructions if any are missing.
+
 ## 🚀 Features
 
 ### Flexible Project Types
