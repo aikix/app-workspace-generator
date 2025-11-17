@@ -630,14 +630,14 @@ async function generateSourceStructure(
       source: 'web/src/contexts/ThemeContext.tsx',
       destination: 'src/contexts/ThemeContext.tsx',
     });
-
-    // Always add ThemeToggle component
-    operations.push({
-      type: 'copy',
-      source: 'web/src/components/ThemeToggle.tsx',
-      destination: 'src/components/ThemeToggle.tsx',
-    });
   }
+
+  // Always add ThemeToggle component (used in Header)
+  operations.push({
+    type: 'copy',
+    source: 'web/src/components/ThemeToggle.tsx',
+    destination: 'src/components/ThemeToggle.tsx',
+  });
 
   if (context.stateManagement === 'zustand') {
     operations.push(
