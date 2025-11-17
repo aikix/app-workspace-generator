@@ -3,6 +3,9 @@ import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import CookieConsent from '@/components/gdpr/CookieConsent';
+{{#if pwa}}
+import PWAProvider from '@/components/pwa/PWAProvider';
+{{/if}}
 
 export const metadata: Metadata = {
   title: '{{pascalCase projectName}}',
@@ -65,10 +68,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="flex flex-col min-h-screen">
+{{#if pwa}}
+        <PWAProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <CookieConsent />
+        </PWAProvider>
+{{else}}
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
         <CookieConsent />
+{{/if}}
       </body>
     </html>
   );

@@ -1,28 +1,3 @@
-{{#if pwa}}
-import withPWAInit from '@ducanh2912/next-pwa';
-
-const withPWA = withPWAInit({
-  dest: 'public',
-  {{#if pwaOffline}}
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-  {{else}}
-  disable: true,
-  {{/if}}
-  {{#if pwaNotifications}}
-  scope: '/',
-  sw: 'service-worker.js',
-  {{/if}}
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  workboxOptions: {
-    disableDevLogs: true,
-  },
-});
-
-{{/if}}
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable React Strict Mode for better development experience
@@ -192,9 +167,4 @@ const nextConfig = {
   },
 };
 
-{{#if pwa}}
-// Export config with PWA support
-export default withPWA(nextConfig);
-{{else}}
 export default nextConfig;
-{{/if}}

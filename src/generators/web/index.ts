@@ -919,9 +919,29 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
       },
       {
         type: 'template',
-        source: 'web/public/offline.html.hbs',
-        destination: 'public/offline.html',
+        source: 'web/public/sw.js.hbs',
+        destination: 'public/sw.js',
         context,
+      },
+      {
+        type: 'copy',
+        source: 'web/src/lib/pwa/service-worker.ts',
+        destination: 'src/lib/pwa/service-worker.ts',
+      },
+      {
+        type: 'copy',
+        source: 'web/src/components/pwa/PWAProvider.tsx',
+        destination: 'src/components/pwa/PWAProvider.tsx',
+      },
+      {
+        type: 'copy',
+        source: 'web/src/components/pwa/InstallPrompt.tsx',
+        destination: 'src/components/pwa/InstallPrompt.tsx',
+      },
+      {
+        type: 'copy',
+        source: 'web/src/app/offline/page.tsx',
+        destination: 'src/app/offline/page.tsx',
       },
       {
         type: 'copy',
