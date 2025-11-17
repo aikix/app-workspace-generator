@@ -90,10 +90,65 @@ The generator will automatically check for these tools at startup and provide in
 - **iOS**: Xcode project with native capabilities
 - **Android**: Android Studio project with native capabilities
 
+## 📦 Installation & Usage
+
+### Option 1: Run Directly with npx (Recommended)
+
+No installation required! Run the generator directly from GitHub:
+
+```bash
+# Create a new project interactively
+npx github:aikix/app-workspace-generator create my-app
+
+# Or use the shorter create command
+npx github:aikix/app-workspace-generator create
+
+# Use with a config file
+npx github:aikix/app-workspace-generator create --config ./my-config.json
+```
+
+### Option 2: Install Globally
+
+Install once, use anywhere:
+
+```bash
+# Install globally from GitHub
+npm install -g github:aikix/app-workspace-generator
+
+# Then use the CLI anywhere
+app-workspace-generator create my-app
+
+# Or use the shorter alias
+awg create my-app
+```
+
+### Option 3: Clone and Develop Locally
+
+For development or customization:
+
+```bash
+# Clone the repository
+git clone https://github.com/aikix/app-workspace-generator.git
+cd app-workspace-generator
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Run in development mode
+npm run dev -- create my-app
+
+# Or link globally for testing
+npm link
+app-workspace-generator create my-app
+```
+
 ## 🎮 CLI Interaction Flow
 
 ```bash
-npx app-workspace-generator create
+npx github:aikix/app-workspace-generator create
 
 # Interactive prompts:
 ✨ Let's create your project!
@@ -147,7 +202,7 @@ Note: Defaults automatically set:
 ### Create Command
 
 ```bash
-npx app-workspace-generator create [project-name] [options]
+npx github:aikix/app-workspace-generator create [project-name] [options]
 ```
 
 #### Options
@@ -162,21 +217,21 @@ npx app-workspace-generator create [project-name] [options]
 **Interactive Mode** (Default)
 
 ```bash
-npx app-workspace-generator create
+npx github:aikix/app-workspace-generator create
 # Prompts you for all configuration options
 ```
 
 **Quick Start Mode**
 
 ```bash
-npx app-workspace-generator create my-app
+npx github:aikix/app-workspace-generator create my-app
 # Creates project with default configuration
 ```
 
 **Config File Mode**
 
 ```bash
-npx app-workspace-generator create --config config.json
+npx github:aikix/app-workspace-generator create --config config.json
 # Creates project from JSON configuration file
 ```
 
@@ -185,7 +240,7 @@ npx app-workspace-generator create --config config.json
 When you select Firebase as your backend, the CLI automatically sets up Firebase projects and configuration:
 
 ```bash
-npx app-workspace-generator create my-app
+npx github:aikix/app-workspace-generator create my-app
 # Select "Firebase" when prompted for backend services
 ```
 
