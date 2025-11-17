@@ -1,0 +1,20 @@
+# Firebase App Hosting Configuration
+# This file configures Firebase App Hosting for Next.js deployment
+# Environment-specific settings are managed through GitHub Actions
+
+runConfig:
+  # Minimum instances to keep running (0 for cost optimization on develop)
+  minInstances: 0
+  # Maximum instances for auto-scaling
+  maxInstances: 4
+  # CPU allocation (0.5, 1, 2, 4, 8)
+  cpu: 1
+  # Memory allocation in GB (0.5, 1, 2, 4, 8, 16, 32)
+  memoryMiB: 512
+  # Maximum concurrent requests per instance
+  concurrency: 80
+  # Environment variables (secrets managed via GitHub Actions)
+  env:
+    - variable: NODE_ENV
+      value: production
+

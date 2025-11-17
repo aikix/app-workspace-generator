@@ -1,0 +1,121 @@
+name: Daily Production Release PR
+
+on:
+  schedule:
+    # Run daily at 10 AM UTC (adjust to your timezone)
+    - cron: '0 10 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  create-release-pr:
+    name: Create Release PR (develop → main)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: develop
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Check if PR already exists
+        id: check-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_COUNT=$(gh pr list --base main --head develop --json number --jq 'length')
+          echo "pr_count=$PR_COUNT" >> $GITHUB_OUTPUT
+      
+      - name: Check for new commits
+        id: check-commits
+        if: steps.check-pr.outputs.pr_count == '0'
+        run: |
+          git fetch origin main
+          COMMITS_AHEAD=$(git rev-list --count origin/main..origin/develop)
+          echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+          echo "Commits ahead of main: $COMMITS_AHEAD"
+      
+      - name: Generate changelog
+        id: changelog
+        if: steps.check-pr.outputs.pr_count == '0' && steps.check-commits.outputs.commits_ahead > '0'
+        run: |
+          # Get commits since last tag or from main
+          LAST_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log origin/main..origin/develop --pretty=format:"- %s (%h)" --no-merges)
+          else
+            COMMITS=$(git log ${LAST_TAG}..origin/develop --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # Group commits by type
+          FEATURES=$(echo "$COMMITS" | grep "^- feat" || echo "")
+          FIXES=$(echo "$COMMITS" | grep "^- fix" || echo "")
+          OTHERS=$(echo "$COMMITS" | grep -v "^- feat" | grep -v "^- fix" || echo "")
+          
+          # Build changelog
+          CHANGELOG="## 📋 Release Summary\n\n"
+          CHANGELOG+="This PR contains all changes from the \`develop\` branch ready for production release.\n\n"
+          
+          if [ ! -z "$FEATURES" ]; then
+            CHANGELOG+="### ✨ Features\n\n$FEATURES\n\n"
+          fi
+          
+          if [ ! -z "$FIXES" ]; then
+            CHANGELOG+="### 🐛 Bug Fixes\n\n$FIXES\n\n"
+          fi
+          
+          if [ ! -z "$OTHERS" ]; then
+            CHANGELOG+="### 🔧 Other Changes\n\n$OTHERS\n\n"
+          fi
+          
+          CHANGELOG+="---\n\n"
+          CHANGELOG+="**Automated Release**: This PR was automatically created by the daily release workflow.\n"
+          CHANGELOG+="Once merged, semantic-release will automatically version and deploy to production.\n"
+          
+          # Save to file and output
+          echo "$CHANGELOG" > changelog.md
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_count == '0' && steps.check-commits.outputs.commits_ahead > '0'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +"%Y-%m-%d")
+          PR_TITLE="🚀 Production Release - $DATE"
+          
+          gh pr create \
+            --base main \
+            --head develop \
+            --title "$PR_TITLE" \
+            --body-file changelog.md \
+            --label "release" \
+            --label "automated"
+      
+      - name: Summary
+        if: steps.check-pr.outputs.pr_count == '0' && steps.check-commits.outputs.commits_ahead > '0'
+        run: |
+          echo "✅ Created release PR from develop to main"
+          echo "📊 Commits included: ${{ steps.check-commits.outputs.commits_ahead }}"
+      
+      - name: Skip - No new commits
+        if: steps.check-pr.outputs.pr_count == '0' && steps.check-commits.outputs.commits_ahead == '0'
+        run: |
+          echo "ℹ️  No new commits to release. Skipping PR creation."
+      
+      - name: Skip - PR already exists
+        if: steps.check-pr.outputs.pr_count != '0'
+        run: |
+          echo "ℹ️  Release PR already exists. Skipping PR creation."
+          gh pr list --base main --head develop
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

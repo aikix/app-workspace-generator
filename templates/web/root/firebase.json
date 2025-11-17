@@ -1,0 +1,21 @@
+{
+  "hosting": [
+    {
+      "site": "develop",
+      "public": ".next",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "frameworksBackend": {
+        "region": "us-central1"
+      }
+    },
+    {
+      "site": "production",
+      "public": ".next",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "frameworksBackend": {
+        "region": "us-central1"
+      }
+    }
+  ]
+}
+

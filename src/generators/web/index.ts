@@ -863,10 +863,36 @@ async function generateRootFiles(targetDir: string, context: TemplateContext): P
     },
     {
       type: 'copy',
+      source: 'web/github/workflows/release-pr.yml',
+      destination: '.github/workflows/release-pr.yml',
+    },
+    {
+      type: 'copy',
       source: 'web/root/.releaserc.json',
       destination: '.releaserc.json',
     }
   );
+
+  // Add Firebase App Hosting configuration (always included for Firebase backend)
+  if (context.backend === 'firebase') {
+    operations.push(
+      {
+        type: 'copy',
+        source: 'web/root/apphosting.yaml',
+        destination: 'apphosting.yaml',
+      },
+      {
+        type: 'copy',
+        source: 'web/root/firebase.json',
+        destination: 'firebase.json',
+      },
+      {
+        type: 'copy',
+        source: 'web/docs/DEPLOYMENT.md',
+        destination: 'docs/DEPLOYMENT.md',
+      }
+    );
+  }
 
   // Add shadcn/ui components.json config (always included)
   operations.push({
