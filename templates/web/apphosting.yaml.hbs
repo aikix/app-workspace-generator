@@ -1,0 +1,80 @@
+# Firebase App Hosting Configuration
+# https://firebase.google.com/docs/app-hosting/configure-app
+
+# This is the base configuration used by all environments
+# Environment-specific overrides can be defined in apphosting.<env>.yaml
+
+runConfig:
+  # CPU allocation (default: 1)
+  cpu: 1
+  
+  # Memory in MiB (default: 512)
+  memoryMiB: 512
+  
+  # Maximum number of instances (default: 100)
+  maxInstances: 10
+  
+  # Minimum number of instances (default: 0)
+  # Set to 1 or more for production to avoid cold starts
+  minInstances: 0
+  
+  # Maximum concurrent requests per instance (default: 80)
+  concurrency: 80
+
+{{#if (eq backend "firebase")}}
+# Environment variables available during build and runtime
+env:
+  # App configuration
+  - variable: NEXT_PUBLIC_APP_NAME
+    value: {{projectName}}
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Firebase configuration (client-side)
+  # These are set per environment in apphosting.dev.yaml and apphosting.prod.yaml
+  # They are exposed to the browser (NEXT_PUBLIC_ prefix)
+  
+  # Uncomment and configure for production use:
+  # - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+  #   value: your-api-key
+  #   availability:
+  #     - RUNTIME
+  #
+  # - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+  #   value: your-project.firebaseapp.com
+  #   availability:
+  #     - RUNTIME
+  #
+  # - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  #   value: your-project-id
+  #   availability:
+  #     - RUNTIME
+  #
+  # - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+  #   value: your-project.appspot.com
+  #   availability:
+  #     - RUNTIME
+  #
+  # - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+  #   value: your-sender-id
+  #   availability:
+  #     - RUNTIME
+  #
+  # - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+  #   value: your-app-id
+  #   availability:
+  #     - RUNTIME
+
+{{#if (eq firebasePattern "server-first")}}
+  # Firebase Admin SDK (server-side only)
+  # Use Cloud Secret Manager for sensitive credentials
+  # https://firebase.google.com/docs/app-hosting/configure-app#store-access-secret-parameters
+  
+  # - variable: FIREBASE_ADMIN_CREDENTIALS
+  #   secret: your-secret-id
+  #   availability:
+  #     - RUNTIME
+{{/if}}
+{{/if}}
+

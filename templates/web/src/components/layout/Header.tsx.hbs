@@ -14,6 +14,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Menu, User, LogOut } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 /**
  * Header component - Main navigation header with auth
@@ -22,6 +23,7 @@ import { Menu, User, LogOut } from 'lucide-react';
  * - Responsive design with mobile menu
  * - Firebase auth integration
  * - User avatar and sign-out
+ * - Theme toggle (light/dark mode)
  */
 export default function Header() {
   const { user } = useAuthClient();
@@ -63,6 +65,9 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Auth Section */}
           {user ? (
@@ -115,6 +120,12 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
+
+              {/* Theme Toggle */}
+              <div className="flex items-center gap-2 py-2">
+                <span className="text-sm font-medium">Theme</span>
+                <ThemeToggle />
+              </div>
 
               <div className="border-t pt-4 mt-2">
                 {user ? (

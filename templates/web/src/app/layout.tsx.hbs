@@ -3,6 +3,7 @@ import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import CookieConsent from '@/components/gdpr/CookieConsent';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 {{#if pwa}}
 import PWAProvider from '@/components/pwa/PWAProvider';
 {{/if}}
@@ -66,21 +67,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
+        <ThemeProvider>
 {{#if pwa}}
-        <PWAProvider>
+          <PWAProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <CookieConsent />
+          </PWAProvider>
+{{else}}
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
           <CookieConsent />
-        </PWAProvider>
-{{else}}
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <CookieConsent />
 {{/if}}
+        </ThemeProvider>
       </body>
     </html>
   );

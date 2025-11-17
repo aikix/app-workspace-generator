@@ -172,8 +172,6 @@ export function validateProjectId(projectId: string): boolean {
  * ```
  */
 export async function createFirebaseProject(projectId: string): Promise<void> {
-  logger.info(`Creating Firebase project: ${projectId}`);
-
   // Validate project ID format
   if (!validateProjectId(projectId)) {
     throw new Error(
@@ -182,13 +180,12 @@ export async function createFirebaseProject(projectId: string): Promise<void> {
   }
 
   try {
-    await execAsync(`firebase projects:create ${projectId} --display-name "${projectId}"`);
-    logger.success(`Created project: ${projectId}`);
+    await execAsync(`firebase projects:create ${projectId} --display-name "${projectId}" 2>&1`);
+    logger.success(`✓ ${projectId} created`);
   } catch (error) {
     if (error instanceof Error && error.message.includes('already exists')) {
-      logger.warning(`Project ${projectId} already exists, skipping creation`);
+      logger.info(`✓ ${projectId} (already exists)`);
     } else {
-      logger.error(`Failed to create project: ${projectId}`);
       throw error;
     }
   }
@@ -246,11 +243,9 @@ export async function createWebApp(projectId: string, appName: string): Promise<
     throw new Error('App name cannot be empty');
   }
 
-  logger.info(`Creating web app in ${projectId}...`);
-
   try {
     const { stdout } = await execAsync(
-      `firebase apps:create WEB "${appName}" --project ${projectId}`
+      `firebase apps:create WEB "${appName}" --project ${projectId} 2>&1`
     );
 
     // Extract app ID from output
@@ -260,13 +255,12 @@ export async function createWebApp(projectId: string, appName: string): Promise<
     }
 
     const appId = appIdMatch[1]!;
-    logger.success(`Created web app: ${appName} (${appId})`);
+    logger.success(`✓ Web app created: ${appId}`);
     return appId;
   } catch (error) {
     if (error instanceof Error && error.message.includes('already exists')) {
-      logger.warning(`Web app ${appName} already exists, retrieving existing app ID...`);
       // Try to get existing app ID
-      const { stdout } = await execAsync(`firebase apps:list --project ${projectId}`);
+      const { stdout } = await execAsync(`firebase apps:list --project ${projectId} 2>&1`);
       const appIdMatch = stdout.match(/([^\s]+)\s+\(WEB\)/);
       const existingAppId = appIdMatch?.[1];
 
@@ -274,10 +268,9 @@ export async function createWebApp(projectId: string, appName: string): Promise<
         throw new Error(`Web app exists but could not retrieve app ID from: ${stdout}`);
       }
 
-      logger.success(`Retrieved existing app ID: ${existingAppId}`);
+      logger.info(`✓ Web app exists: ${existingAppId}`);
       return existingAppId;
     }
-    logger.error(`Failed to create web app in ${projectId}`);
     throw error;
   }
 }
@@ -315,11 +308,9 @@ export async function getWebAppConfig(
     throw new Error('App ID cannot be empty');
   }
 
-  logger.info('Fetching web app configuration...');
-
   try {
     const { stdout } = await execAsync(
-      `firebase apps:sdkconfig WEB ${appId} --project ${projectId}`
+      `firebase apps:sdkconfig WEB ${appId} --project ${projectId} 2>&1`
     );
 
     // Parse the SDK config JSON output
@@ -340,10 +331,9 @@ export async function getWebAppConfig(
       throw new Error(`Firebase config missing required fields: ${missingFields.join(', ')}`);
     }
 
-    logger.success('Web app config retrieved');
+    logger.success(`✓ Configuration retrieved`);
     return config;
   } catch (error) {
-    logger.error('Failed to fetch web app config');
     if (error instanceof SyntaxError) {
       throw new Error('Failed to parse Firebase config JSON');
     }
@@ -443,7 +433,7 @@ ${config.measurementId ? `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${config.measureme
 `;
   }
 
-  const filePath = path.default.join(targetDir, filename);
+  const filePath = path.join(targetDir, filename);
   await writeFile(filePath, content);
 }
 

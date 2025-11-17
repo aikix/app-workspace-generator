@@ -1,0 +1,50 @@
+# Firebase App Hosting Configuration - Development Environment
+# https://firebase.google.com/docs/app-hosting/multiple-environments
+
+# This file overrides values from apphosting.yaml for the development environment
+# Set the "Environment name" in Firebase Console to "dev" to use this file
+
+runConfig:
+  # Development uses minimal resources
+  cpu: 1
+  memoryMiB: 512
+  maxInstances: 5
+  minInstances: 0
+  concurrency: 50
+
+{{#if (eq backend "firebase")}}
+env:
+  # Development-specific Firebase configuration
+  # Replace these values with your actual development Firebase project config
+  
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: __DEV_API_KEY__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: __DEV_AUTH_DOMAIN__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: __DEV_PROJECT_ID__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: __DEV_STORAGE_BUCKET__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: __DEV_MESSAGING_SENDER_ID__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: __DEV_APP_ID__
+    availability:
+      - RUNTIME
+{{/if}}
+

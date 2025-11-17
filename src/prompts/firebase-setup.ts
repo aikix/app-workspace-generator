@@ -1,4 +1,6 @@
 import { input, confirm, checkbox } from '@inquirer/prompts';
+import path from 'path';
+import { readFile, writeFile } from 'fs/promises';
 import { logger } from '../utils/logger.js';
 import {
   verifyFirebaseCLI,
@@ -27,9 +29,50 @@ export interface FirebaseSetupResult {
 }
 
 /**
+ * Update apphosting.yaml files with actual Firebase configurations
+ */
+async function updateApphostingYamlFiles(
+  targetDir: string,
+  configs: Record<string, FirebaseWebAppConfig>,
+  environments: string[]
+): Promise<void> {
+  for (const env of environments) {
+    const config = configs[env];
+    if (!config) {
+      logger.warning(`Configuration not found for environment: ${env}, skipping`);
+      continue;
+    }
+
+    const filename = `apphosting.${env}.yaml`;
+    const filepath = path.join(targetDir, filename);
+
+    try {
+      let content = await readFile(filepath, 'utf-8');
+
+      // Replace placeholder values with actual Firebase config
+      content = content
+        .replace(`__${env.toUpperCase()}_API_KEY__`, config.apiKey)
+        .replace(`__${env.toUpperCase()}_AUTH_DOMAIN__`, config.authDomain)
+        .replace(`__${env.toUpperCase()}_PROJECT_ID__`, config.projectId)
+        .replace(`__${env.toUpperCase()}_STORAGE_BUCKET__`, config.storageBucket)
+        .replace(`__${env.toUpperCase()}_MESSAGING_SENDER_ID__`, config.messagingSenderId)
+        .replace(`__${env.toUpperCase()}_APP_ID__`, config.appId);
+
+      await writeFile(filepath, content, 'utf-8');
+    } catch (error) {
+      logger.warning(
+        `Failed to update ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+}
+
+/**
  * Run Firebase auto-setup prompts
  */
-export async function runFirebaseSetupPrompts(): Promise<FirebaseSetupAnswers | null> {
+export async function runFirebaseSetupPrompts(
+  projectName?: string
+): Promise<FirebaseSetupAnswers | null> {
   logger.header('🔥 Firebase Auto-Setup');
   logger.newLine();
 
@@ -40,10 +83,11 @@ export async function runFirebaseSetupPrompts(): Promise<FirebaseSetupAnswers | 
     logger.success('Firebase CLI verified');
     logger.newLine();
 
-    // Get project base name
+    // Get project base name (default to project name if provided)
+    const defaultBaseName = projectName || 'my-app';
     const baseName = await input({
       message: 'Firebase project base name?',
-      default: 'my-app',
+      default: defaultBaseName,
       validate: (value: string) => {
         if (!value || value.trim().length === 0) {
           return 'Project base name is required';
@@ -149,9 +193,7 @@ export async function executeFirebaseSetup(
       const projectId = `${answers.baseName}-${env}`;
       projectIds.push(projectId);
 
-      logger.info(`Creating project: ${projectId}...`);
       await createFirebaseProject(projectId);
-      logger.success(`✓ ${projectId} created`);
     }
 
     logger.newLine();
@@ -163,60 +205,34 @@ export async function executeFirebaseSetup(
       const projectId = `${answers.baseName}-${env}`;
       const appName = `${answers.baseName} (${env})`;
 
-      logger.info(`Creating web app in ${projectId}...`);
       const appId = await createWebApp(projectId, appName);
-      logger.success(`✓ Web app created: ${appId}`);
-
-      logger.info(`Retrieving configuration for ${projectId}...`);
       const config = await getWebAppConfig(projectId, appId);
       configs[env] = config;
-      logger.success(`✓ Configuration retrieved`);
     }
 
     logger.newLine();
 
-    // Step 3: Write .env files
-    logger.section('Writing environment files');
+    // Step 3: Write configuration files
+    logger.section('Writing configuration files');
 
-    // Write .env.local with dev config (or first environment)
-    const primaryEnv = answers.environments[0];
-    if (!primaryEnv) {
+    // Find dev environment (or first environment)
+    const devEnv = answers.environments.find((env) => env === 'dev') || answers.environments[0];
+    if (!devEnv) {
       throw new Error('No environment selected');
     }
 
-    const primaryConfig = configs[primaryEnv];
-    if (!primaryConfig) {
-      throw new Error(`Configuration not found for environment: ${primaryEnv}`);
+    const devConfig = configs[devEnv];
+    if (!devConfig) {
+      throw new Error(`Configuration not found for environment: ${devEnv}`);
     }
 
-    await writeEnvFile(targetDir, '.env.local', primaryConfig, 'client-side');
-    logger.success(`✓ Created .env.local with ${primaryEnv} configuration`);
+    // Write .env.local with dev config (for local development only)
+    await writeEnvFile(targetDir, '.env.local', devConfig, 'client-side');
+    logger.success(`✓ Created .env.local with ${devEnv} configuration (for local development)`);
 
-    // Write .env.example
-    const exampleConfig: FirebaseWebAppConfig = {
-      apiKey: 'your-api-key',
-      authDomain: 'your-project.firebaseapp.com',
-      projectId: 'your-project-id',
-      storageBucket: 'your-project.appspot.com',
-      messagingSenderId: 'your-sender-id',
-      appId: 'your-app-id',
-    };
-
-    await writeEnvFile(targetDir, '.env.example', exampleConfig, 'client-side');
-    logger.success('✓ Created .env.example');
-
-    // Write environment-specific files if multiple environments
-    if (answers.environments.length > 1) {
-      for (const env of answers.environments) {
-        const envConfig = configs[env];
-        if (!envConfig) {
-          logger.warning(`Configuration not found for environment: ${env}, skipping`);
-          continue;
-        }
-        await writeEnvFile(targetDir, `.env.${env}`, envConfig, 'client-side');
-        logger.success(`✓ Created .env.${env}`);
-      }
-    }
+    // Update apphosting.yaml files with actual Firebase configs
+    await updateApphostingYamlFiles(targetDir, configs, answers.environments);
+    logger.success('✓ Updated apphosting.*.yaml files with Firebase configurations');
 
     logger.newLine();
     logger.celebrate('Firebase setup complete!');
@@ -229,17 +245,16 @@ export async function executeFirebaseSetup(
       ...projectIds.map((id) => `  ✓ ${id}`),
       '',
       '📝 Configuration Files:',
-      '  • .env.local (primary config)',
-      '  • .env.example (template)',
-      ...(answers.environments.length > 1
-        ? answers.environments.map((env) => `  • .env.${env}`)
-        : []),
+      '  • .env.local (for local development)',
+      ...answers.environments.map((env) => `  • apphosting.${env}.yaml (for ${env} deployment)`),
       '',
       '🔗 Next steps:',
-      '  1. Review .env.local configuration',
-      '  2. Set up Firebase services in console',
-      '  3. Configure Firestore rules',
-      '  4. Set up Authentication providers',
+      '  1. Review .env.local for local development',
+      '  2. Set environment name in Firebase Console App Hosting settings',
+      '  3. Configure Firebase services in console',
+      '  4. Review apphosting.yaml files for deployment config',
+      '',
+      '📖 Learn more: https://firebase.google.com/docs/app-hosting/multiple-environments',
     ]);
 
     logger.newLine();

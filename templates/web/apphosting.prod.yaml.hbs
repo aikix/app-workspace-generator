@@ -1,0 +1,50 @@
+# Firebase App Hosting Configuration - Production Environment
+# https://firebase.google.com/docs/app-hosting/multiple-environments
+
+# This file overrides values from apphosting.yaml for the production environment
+# Set the "Environment name" in Firebase Console to "prod" to use this file
+
+runConfig:
+  # Production uses more resources and keeps warm instances
+  cpu: 2
+  memoryMiB: 1024
+  maxInstances: 20
+  minInstances: 1  # Keep at least 1 instance warm to avoid cold starts
+  concurrency: 100
+
+{{#if (eq backend "firebase")}}
+env:
+  # Production-specific Firebase configuration
+  # Replace these values with your actual production Firebase project config
+  
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: __PROD_API_KEY__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: __PROD_AUTH_DOMAIN__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: __PROD_PROJECT_ID__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: __PROD_STORAGE_BUCKET__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: __PROD_MESSAGING_SENDER_ID__
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: __PROD_APP_ID__
+    availability:
+      - RUNTIME
+{{/if}}
+

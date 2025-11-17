@@ -2,7 +2,9 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardHeader,
-  CardBody,
+  CardContent,
+  CardTitle,
+  CardDescription,
   CardFooter,
 } from '@/components/ui/card';
 
@@ -28,11 +30,12 @@ export default function ComponentsPage() {
           <div>
             <h3 className="text-lg font-medium mb-4">Variants</h3>
             <div className="flex flex-wrap gap-4">
-              <Button variant="primary">Primary</Button>
+              <Button>Default</Button>
               <Button variant="secondary">Secondary</Button>
               <Button variant="outline">Outline</Button>
               <Button variant="ghost">Ghost</Button>
-              <Button variant="danger">Danger</Button>
+              <Button variant="destructive">Destructive</Button>
+              <Button variant="link">Link</Button>
             </div>
           </div>
 
@@ -41,7 +44,7 @@ export default function ComponentsPage() {
             <h3 className="text-lg font-medium mb-4">Sizes</h3>
             <div className="flex flex-wrap items-center gap-4">
               <Button size="sm">Small</Button>
-              <Button size="md">Medium</Button>
+              <Button>Medium (Default)</Button>
               <Button size="lg">Large</Button>
             </div>
           </div>
@@ -52,8 +55,7 @@ export default function ComponentsPage() {
             <div className="flex flex-wrap gap-4">
               <Button>Normal</Button>
               <Button disabled>Disabled</Button>
-              <Button isLoading>Loading</Button>
-              <Button fullWidth>Full Width</Button>
+              <Button className="w-full">Full Width</Button>
             </div>
           </div>
         </div>
@@ -66,36 +68,37 @@ export default function ComponentsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Basic Card */}
           <Card>
-            <CardBody>
+            <CardContent className="pt-6">
               <h3 className="font-semibold mb-2">Basic Card</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 A simple card with just a body section.
               </p>
-            </CardBody>
+            </CardContent>
           </Card>
 
           {/* Card with Header */}
           <Card>
             <CardHeader>
-              <h3 className="font-semibold">Card with Header</h3>
-            </CardHeader>
-            <CardBody>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <CardTitle className="text-lg">Card with Header</CardTitle>
+              <CardDescription>
                 This card includes a header section separated by a border.
-              </p>
-            </CardBody>
+              </CardDescription>
+            </CardHeader>
           </Card>
 
           {/* Full Card */}
           <Card>
             <CardHeader>
-              <h3 className="font-semibold">Complete Card</h3>
-            </CardHeader>
-            <CardBody>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <CardTitle className="text-lg">Complete Card</CardTitle>
+              <CardDescription>
                 A card with header, body, and footer sections.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                This demonstrates all card sections working together.
               </p>
-            </CardBody>
+            </CardContent>
             <CardFooter>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline">
@@ -107,37 +110,35 @@ export default function ComponentsPage() {
           </Card>
 
           {/* Hover Card */}
-          <Card hover>
-            <CardBody>
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardContent className="pt-6">
               <h3 className="font-semibold mb-2">Hover Effect</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 This card has a hover effect with enhanced shadow.
               </p>
-            </CardBody>
+            </CardContent>
           </Card>
 
           {/* Borderless Card */}
-          <Card bordered={false}>
-            <CardBody>
+          <Card className="border-0 shadow-md">
+            <CardContent className="pt-6">
               <h3 className="font-semibold mb-2">No Border</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 This card has no border, just a shadow.
               </p>
-            </CardBody>
+            </CardContent>
           </Card>
 
           {/* Interactive Card */}
-          <Card hover>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <h3 className="font-semibold">Interactive Card</h3>
-            </CardHeader>
-            <CardBody>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <CardTitle className="text-lg">Interactive Card</CardTitle>
+              <CardDescription>
                 Combine hover effects with actions in the footer.
-              </p>
-            </CardBody>
+              </CardDescription>
+            </CardHeader>
             <CardFooter>
-              <Button size="sm" fullWidth>
+              <Button size="sm" className="w-full">
                 Learn More
               </Button>
             </CardFooter>
@@ -151,15 +152,16 @@ export default function ComponentsPage() {
 
         <Card className="max-w-2xl">
           <CardHeader>
-            <h3 className="text-xl font-semibold">User Profile</h3>
+            <CardTitle>User Profile</CardTitle>
+            <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
-          <CardBody>
+          <CardContent>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Name</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
+                  className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background"
                   placeholder="Enter your name"
                 />
               </div>
@@ -167,16 +169,16 @@ export default function ComponentsPage() {
                 <label className="block text-sm font-medium mb-1">Email</label>
                 <input
                   type="email"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
+                  className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background"
                   placeholder="Enter your email"
                 />
               </div>
             </div>
-          </CardBody>
+          </CardContent>
           <CardFooter>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-3 justify-end w-full">
               <Button variant="outline">Cancel</Button>
-              <Button variant="primary">Save Changes</Button>
+              <Button>Save Changes</Button>
             </div>
           </CardFooter>
         </Card>

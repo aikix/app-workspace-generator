@@ -233,22 +233,22 @@ kill %1  # Stop dev server
 ```bash
 cd /tmp/test-generator
 
-# Generate with Firebase auto-setup
-app-workspace-generator create test-firebase --firebase-auto-setup
+# Generate project and select Firebase backend
+app-workspace-generator create test-firebase
 
 # Answer prompts:
 ? Use TypeScript: Yes
 ? Styling: Tailwind CSS
 ? Testing: Playwright
 ? State management: Context
-? Backend: Firebase
+? Backend: Firebase  # Selecting Firebase triggers automatic setup
 ? Firebase pattern: Client-side SDK
 ? Enable Authentication: Yes
 ? Enable Firestore: Yes
 ? Enable Storage: Yes
 # ... other prompts ...
 
-# Firebase auto-setup prompts will appear:
+# Firebase auto-setup will run automatically:
 🔥 Firebase Auto-Setup
 
 ✓ Firebase CLI verified
@@ -275,10 +275,15 @@ app-workspace-generator create test-firebase --firebase-auto-setup
   ✓ test-firebase-gen-prod
 
 📝 Configuration Files:
-  • .env.local (primary config)
-  • .env.example (template)
-  • .env.dev
-  • .env.prod
+  • .env.local (for local development)
+  • apphosting.dev.yaml (for dev deployment)
+  • apphosting.prod.yaml (for prod deployment)
+
+🔗 Next steps:
+  1. Review .env.local for local development
+  2. Set environment name in Firebase Console App Hosting settings
+  3. Configure Firebase services in console
+  4. Review apphosting.yaml files for deployment config
 ```
 
 **Verify Firebase setup:**
@@ -286,21 +291,25 @@ app-workspace-generator create test-firebase --firebase-auto-setup
 ```bash
 cd test-firebase
 
-# Check .env files
-ls -la .env*
+# Check configuration files
+ls -la .env* apphosting*.yaml
 # Should see:
-# - .env.local (with dev config)
-# - .env.example (with placeholder values)
-# - .env.dev (dev environment config)
-# - .env.prod (prod environment config)
+# - .env.local (with dev config for local development)
+# - apphosting.yaml (base configuration)
+# - apphosting.dev.yaml (dev environment config)
+# - apphosting.prod.yaml (prod environment config)
 
-# Verify .env.local has real Firebase credentials
+# Verify .env.local has real Firebase credentials for local dev
 cat .env.local
 # Should contain:
 # NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSy...
 # NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=test-firebase-gen-dev.firebaseapp.com
 # NEXT_PUBLIC_FIREBASE_PROJECT_ID=test-firebase-gen-dev
 # ... etc
+
+# Verify apphosting.yaml files have real Firebase configs
+cat apphosting.dev.yaml
+# Should contain actual Firebase config values, not placeholders
 
 # Verify Firebase projects were created
 firebase projects:list

@@ -154,7 +154,6 @@ npx app-workspace-generator create [project-name] [options]
 
 - `-c, --config <path>` - Path to configuration file (JSON)
 - `--skip-install` - Skip dependency installation
-- `--firebase-auto-setup` - Automatically set up Firebase projects and configuration
 - `-v, --verbose` - Verbose output
 - `--debug` - Enable debug mode with detailed error information
 
@@ -183,13 +182,14 @@ npx app-workspace-generator create --config config.json
 
 #### Firebase Auto-Setup
 
-The `--firebase-auto-setup` flag automates the Firebase project creation and configuration process:
+When you select Firebase as your backend, the CLI automatically sets up Firebase projects and configuration:
 
 ```bash
-npx app-workspace-generator create my-app --firebase-auto-setup
+npx app-workspace-generator create my-app
+# Select "Firebase" when prompted for backend services
 ```
 
-When enabled, the CLI will:
+The automatic Firebase setup will:
 
 1. Verify Firebase CLI is installed and you're logged in
 2. Prompt for Firebase project settings:
@@ -200,7 +200,8 @@ When enabled, the CLI will:
 3. Create Firebase projects for each environment
 4. Create web apps in each project
 5. Retrieve Firebase SDK configurations
-6. Generate `.env.local`, `.env.example`, and environment-specific `.env` files
+6. Generate `.env.local` for local development
+7. Populate `apphosting.yaml` files for Firebase App Hosting deployments
 
 **Prerequisites:**
 
@@ -210,10 +211,13 @@ When enabled, the CLI will:
 **Example:**
 
 ```bash
-# Create project with Firebase auto-setup
-npx app-workspace-generator create my-app --firebase-auto-setup
+# Create project with Firebase backend
+npx app-workspace-generator create my-app
 
 # During setup, you'll be prompted:
+? Backend services: Firebase (Auth, Firestore, Storage)
+
+# Then Firebase setup runs automatically:
 🔥 Firebase Auto-Setup
 
 ✓ Firebase CLI verified
@@ -234,17 +238,37 @@ npx app-workspace-generator create my-app --firebase-auto-setup
 ? Enable Cloud Firestore? (Y/n)
 ? Enable Cloud Storage? (Y/n)
 
-# CLI will then create Firebase projects and generate .env files
+# CLI will then create Firebase projects and generate config files
 ✨ Firebase Projects Created:
   ✓ my-app-dev
   ✓ my-app-prod
 
 📝 Configuration Files:
-  • .env.local (primary config)
-  • .env.example (template)
-  • .env.dev
-  • .env.prod
+  • .env.local (for local development)
+  • apphosting.dev.yaml (for dev deployment)
+  • apphosting.prod.yaml (for prod deployment)
+
+🔗 Next steps:
+  1. Review .env.local for local development
+  2. Set environment name in Firebase Console App Hosting settings
+  3. Deploy using Firebase App Hosting
 ```
+
+**Environment Management:**
+
+The generator uses [Firebase App Hosting's multi-environment approach](https://firebase.google.com/docs/app-hosting/multiple-environments):
+
+- **Local Development**: Use `.env.local` with your development Firebase project
+- **Deployment**: Use `apphosting.yaml` with environment-specific overrides
+  - `apphosting.dev.yaml` - Development environment config
+  - `apphosting.prod.yaml` - Production environment config
+
+To deploy to different environments:
+
+1. In Firebase Console > App Hosting > Settings > Environment
+2. Set the "Environment name" to `dev` or `prod`
+3. Push to your GitHub branch to trigger deployment
+4. App Hosting will use the corresponding `apphosting.<env>.yaml` file
 
 ## 📁 Generated Project Structure
 
