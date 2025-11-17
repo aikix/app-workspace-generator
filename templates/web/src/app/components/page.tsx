@@ -1,10 +1,10 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardHeader,
   CardBody,
   CardFooter,
-} from '@/components/ui/Card';
+} from '@/components/ui/card';
 
 /**
  * Components showcase page - Demonstrates all available UI components

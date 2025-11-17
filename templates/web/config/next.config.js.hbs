@@ -1,5 +1,26 @@
 {{#if pwa}}
-import withPWA from 'next-pwa';
+import withPWAInit from '@ducanh2912/next-pwa';
+
+const withPWA = withPWAInit({
+  dest: 'public',
+  {{#if pwaOffline}}
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
+  skipWaiting: true,
+  {{else}}
+  disable: true,
+  {{/if}}
+  {{#if pwaNotifications}}
+  scope: '/',
+  sw: 'service-worker.js',
+  {{/if}}
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  workboxOptions: {
+    disableDevLogs: true,
+  },
+});
 
 {{/if}}
 /** @type {import('next').NextConfig} */
@@ -172,36 +193,8 @@ const nextConfig = {
 };
 
 {{#if pwa}}
-// PWA Configuration with next-pwa
-const pwaConfig = withPWA({
-  dest: 'public',
-  {{#if pwaOffline}}
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-  {{else}}
-  disable: true, // Offline support disabled
-  {{/if}}
-  runtimeCaching: [
-    {
-      urlPattern: /^https?.*/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'offlineCache',
-        expiration: {
-          maxEntries: 200,
-        },
-      },
-    },
-  ],
-  buildExcludes: [/middleware-manifest\.json$/],
-  {{#if pwaNotifications}}
-  scope: '/',
-  sw: 'service-worker.js',
-  {{/if}}
-});
-
-export default pwaConfig(nextConfig);
+// Export config with PWA support
+export default withPWA(nextConfig);
 {{else}}
 export default nextConfig;
 {{/if}}
